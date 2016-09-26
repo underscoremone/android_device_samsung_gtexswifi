@@ -1,0 +1,171 @@
+#init.gtexslte_base.rc
+
+on init
+    mkdir /cache 0000 system system
+    mkdir /efs 0774 radio system
+
+on boot
+
+# permissions for bluetooth.
+   setprop ro.bt.bdaddr_path "/efs/bluetooth/bt_addr"
+   chown bluetooth net_bt_stack ro.bt.bdaddr_path
+   symlink /system/etc/dbus.conf /etc/dbus.conf
+   symlink /system/etc/bluetooth /etc/bluetooth
+   mkdir /efs/bluetooth 0775 radio system
+   mkdir /data/misc 01771 system misc
+   mkdir /data/misc/bluetoothd 0770 bluetooth bluetooth
+   mkdir /data/misc/bluetooth 0770 system system
+   chmod 0770 /data/misc/bluetoothd
+   chmod 0770 /data/misc/bluetooth
+   chown bluetooth bluetooth /data/misc/bluetoothd
+   chown bluetooth bluetooth /data/misc/bluetooth
+   chown root bluetooth /dev/ttyS0
+    chmod 0770 /dev/ttyS0
+    chmod 0770 /dev/ttyS1
+    chmod 0660 /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chmod 0777 /system/bin/btld
+
+# for tsp command
+    chown system system /sys/class/sec/tsp/cmd
+    chown system system /sys/class/sec/tsp/input/enabled
+
+#LCD
+	chown system system /sys/class/backlight/panel/brightness
+	chmod 0664 system /sys/class/backlight/panel/brightness
+	chown radio system /sys/class/lcd/panel/power_reduce
+	chown system system /sys/class/backlight/panel/auto_brightness
+	chmod 0664 /sys/class/backlight/panel/auto_brightness
+	chown radio system /sys/class/lcd/panel/temperature
+	chmod 0664 /sys/class/lcd/panel/temperature
+
+# mdnie
+	chown system media_rw /sys/class/mdnie/mdnie/scenario
+	chmod 0664 /sys/class/mdnie/mdnie/scenario
+	chown system system /sys/class/mdnie/mdnie/negative
+	chmod 0664 /sys/class/mdnie/mdnie/negative
+	chown system media_rw /sys/class/mdnie/mdnie/accessibility
+	chmod 0664 /sys/class/mdnie/mdnie/accessibility
+	chown system media_rw /sys/class/mdnie/mdnie/mode
+	chmod 0664 /sys/class/mdnie/mdnie/mode
+	chown system system /sys/class/mdnie/mdnie/auto_brightness
+	chmod 0664 /sys/class/mdnie/mdnie/auto_brightness
+
+# permissions for cpufreq
+    chown radio system sys/power/cpufreq_min_limit
+    chown radio system sys/power/cpufreq_max_limit
+    chown radio system sys/power/cpufreq_table
+    chmod 0660 /sys/power/cpufreq_min_limit
+    chmod 0660 /sys/power/cpufreq_max_limit
+    chmod 0660 /sys/power/cpufreq_table
+
+# permissions for cpuhotplug
+    chown radio system /sys/devices/system/cpu/cpuhotplug/cpu_num_min_limit
+    chown radio system /sys/devices/system/cpu/cpuhotplug/cpu_num_limit
+    chmod 0660 /sys/devices/system/cpu/cpuhotplug/cpu_num_min_limit
+    chmod 0660 /sys/devices/system/cpu/cpuhotplug/cpu_num_limit
+
+# permissions for Battery
+   chown system radio /sys/class/power_supply/battery/batt_reset_soc
+   chown system radio /sys/class/power_supply/battery/batt_slate_mode
+   chown system radio /sys/class/power_supply/battery/factory_mode
+   chown system radio /sys/class/power_supply/battery/siop_level
+   chown system radio /sys/class/power_supply/battery/wc_enable
+   chown system radio /sys/class/power_supply/battery/update
+   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/call
+   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/video
+   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/music
+   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/browser
+   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/hotspot
+   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/camera
+   chown system radio /sys/class/power_supply/battery/talk_wcdma
+   chown system radio /sys/class/power_supply/battery/talk_gsm
+   chown system radio /sys/class/power_supply/battery/call
+   chown system radio /sys/class/power_supply/battery/data_call
+   chown system radio /sys/class/power_supply/battery/gps
+   chown system radio /sys/class/power_supply/battery/wifi
+   chown system radio /sys/class/power_supply/battery/lte
+   chown system radio /sys/class/power_supply/battery/lcd
+
+# permissions for cpuonline
+    chown radio system /sys/devices/system/cpu/cpu0/online
+    chown radio system /sys/devices/system/cpu/cpu1/online
+    chown radio system /sys/devices/system/cpu/cpu2/online
+    chown radio system /sys/devices/system/cpu/cpu3/online
+    chmod 0660 /sys/devices/system/cpu/cpu0/online
+    chmod 0660 /sys/devices/system/cpu/cpu1/online
+    chmod 0660 /sys/devices/system/cpu/cpu2/online
+    chmod 0660 /sys/devices/system/cpu/cpu3/online
+
+#Sensor
+# Accelerometer_sensor
+    chown system radio /sys/class/sensors/accelerometer_sensor/raw_data
+    chown system radio /sys/class/sensors/accelerometer_sensor/calibration
+    chown system radio /sys/class/sensors/accelerometer_sensor/reactive_alert
+    chown system radio /sys/class/sensors/accelerometer_sensor/vendor
+    chown system radio /sys/class/sensors/accelerometer_sensor/name
+    chown system radio /sys/class/sensors/accelerometer_sensor/lowpassfilter
+# Grip_sensor
+    chown system radio /sys/class/sensors/grip_sensor/vendor
+    chown system radio /sys/class/sensors/grip_sensor/name
+    chown system radio /sys/class/sensors/grip_sensor/raw_data
+    chown system radio /sys/class/sensors/grip_sensor/calibration
+    chown system radio /sys/class/sensors/grip_sensor/threshold
+    chown system radio /sys/class/sensors/grip_sensor/onoff
+    chown system radio /sys/class/sensors/grip_sensor/freq
+# Meta Event
+    chown system radio /sys/class/sensors/sensor_dev/flush
+
+on fs
+
+# for efs
+    chown radio system /efs
+    chmod 0771 /efs
+
+#For Absolute Persistence Partition 
+    mkdir /persdata 0755 system system
+    mkdir /persdata/absolute 0750 system system
+
+    wait /dev/block/platform/sdio_emmc/by-name/PERSDATA
+    check_fs /dev/block/platform/sdio_emmc/by-name/PERSDATA ext4
+    mount ext4 /dev/block/platform/sdio_emmc/by-name/PERSDATA /persdata/absolute nosuid nodev barrier=1
+
+    chown system system /persdata
+    chmod 0755 /persdata 
+    chown system system /persdata/absolute
+    chmod 0750 /persdata/absolute
+
+# LSI GPS
+     chown root system /dev/ttyS3
+     chmod 0660 /dev/ttyS3
+     chown root system /sys/class/sec/gps/GPS_PWR_EN/value
+     chmod 0664 /sys/class/sec/gps/GPS_PWR_EN/value
+     chown root system /sys/class/sec/gps/GPS_RESET/value
+     chmod 0664 /sys/class/sec/gps/GPS_RESET/value
+     mkdir /data/system 0771 system system
+     chown system system /data/system
+     mkdir /data/system/gps 0771 system system
+     chown system system /data/system/gps
+     rm /data/gps_started
+     rm /data/glonass_started
+     rm /data/beidou_started
+     rm /data/smd_started
+     rm /data/sv_cno.info
+
+# Indicate boot complete to PM to complete PM initialization
+on property:dev.bootcomplete=1
+    write /dev/console [AUTOTEST]BOOT_COMPLETE
+
+# Interactive governor parameters tuning for better power and performance
+    write /sys/devices/system/cpu/cpufreq/interactive/above_hispeed_delay 25000
+    write /sys/devices/system/cpu/cpufreq/interactive/go_hispeed_load 90
+    write /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq 1200000
+    write /sys/devices/system/cpu/cpufreq/interactive/io_is_busy 1
+    write /sys/devices/system/cpu/cpufreq/interactive/min_sample_time 50000
+    write /sys/devices/system/cpu/cpufreq/interactive/target_loads 85
+    write /sys/devices/system/cpu/cpufreq/interactive/timer_rate 50000
+    write /sys/devices/system/cpu/cpufreq/interactive/timer_slack 80000
+    write /sys/devices/system/cpu/cpufreq/interactive/boostpulse_duration 0
+
+    write /sys/devices/system/cpu/cpuhotplug/cpu_up_high_threshold 80

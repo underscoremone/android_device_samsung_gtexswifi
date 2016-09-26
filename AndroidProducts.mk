@@ -1,2 +1,2 @@
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/device_gtexslte.mk
+    $(LOCAL_DIR)/omni_samsung_gtexslte.mk

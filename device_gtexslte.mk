@@ -17,6 +17,16 @@ endif
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
+PRODUCT_COPY_FILES += \
+		device/samsung/gtexslte/init.board.rc:root/init.board.rc \
+		device/samsung/gtexslte/init.sc8830.rc:root/init.gtexslte.rc \
+    device/samsung/gtexslte/init.sc8830_ss.rc:root/init.sc8830_ss.rc \
+    device/samsung/gtexslte/init.sc8830.usb.rc:root/init.sc8830.usb.rc \
+    device/samsung/gtexslte/fstab.gtexslte:root/fstab.gtexslte \
+    device/samsung/gtexslte/ueventd.sc8830.rc:root/ueventd.gtexslte.rc \
+		device/samsung/gtexslte/init.wifi.rc:root/init.wifi.rc \
+		device/samsung/gtexslte/init.dhcp.rc:root/init.dhcp.rc
+
 $(call inherit-product, build/target/product/full.mk)
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
