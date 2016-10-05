@@ -1,0 +1,1 @@
+allow init cache_file:blk_file getattr;

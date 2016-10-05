@@ -124,6 +124,7 @@ persist.sys.thermal.enable=1
 persist.sys.sprd.modemreset=1
 ro.adb.secure=0
 ro.secure=0
+persist.sys.usb.config=mtp,adb
 persist.sys.sprd.wcnreset=1
 persist.sys.engpc.disable=0
 persist.service.agps.network=4g

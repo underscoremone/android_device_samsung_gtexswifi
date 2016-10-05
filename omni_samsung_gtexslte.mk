@@ -8,11 +8,17 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 #---------------------------#
 $(call inherit-product, vendor/omni/config/common.mk)
 
+
 #---------------------------#
 # Use generic Omni configs #
 #---------------------------#
 $(call inherit-product, device/samsung/gtexslte/device_gtexslte.mk)
 
+# Use specific resolution for bootanimation
+TARGET_BOOTANIMATION_SIZE := 720x480.zip
+
+# Exclude live wallpapers
+TARGET_EXCLUDE_LIVEWALLPAPERS := true
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_DEVICE := gtexslte
@@ -23,3 +29,6 @@ PRODUCT_MANUFACTURER := samsung
 
 TARGET_SCREEN_WIDTH := 800
 TARGET_SCREEN_HEIGHT := 1280
+
+TARGET_VARIANT_CONFIG := gtexslte_defconfig
+TARGET_SELINUX_CONFIG := gtexslte_defconfig

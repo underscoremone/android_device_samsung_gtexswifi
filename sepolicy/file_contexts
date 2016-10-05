@@ -1,0 +1,3 @@
+/dev/mali	      u:object_r:gpu_device:s0
+/dev/mali[0-9]	u:object_r:gpu_device:s0
+/dev/sprd_gsp   u:object_r:graphics_device:s0
