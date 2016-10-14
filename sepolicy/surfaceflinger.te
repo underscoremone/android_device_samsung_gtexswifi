@@ -1,1 +1,2 @@
-allow surfaceflinger device:chr_file { getattr read write open ioctl };
+allow surfaceflinger ctl_default_prop:property_service set;
+allow surfaceflinger debug_prop:property_service set;

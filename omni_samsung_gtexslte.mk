@@ -15,7 +15,7 @@ $(call inherit-product, vendor/omni/config/common.mk)
 $(call inherit-product, device/samsung/gtexslte/device_gtexslte.mk)
 
 # Use specific resolution for bootanimation
-TARGET_BOOTANIMATION_SIZE := 720x480.zip
+TARGET_BOOTANIMATION_SIZE := 720x480
 
 # Exclude live wallpapers
 TARGET_EXCLUDE_LIVEWALLPAPERS := true
@@ -29,6 +29,3 @@ PRODUCT_MANUFACTURER := samsung
 
 TARGET_SCREEN_WIDTH := 800
 TARGET_SCREEN_HEIGHT := 1280
-
-TARGET_VARIANT_CONFIG := gtexslte_defconfig
-TARGET_SELINUX_CONFIG := gtexslte_defconfig

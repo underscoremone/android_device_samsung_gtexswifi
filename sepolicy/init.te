@@ -1,1 +1,3 @@
 allow init cache_file:blk_file getattr;
+allow init init:capability sys_module;
+allow init unlabeled:blk_file getattr;

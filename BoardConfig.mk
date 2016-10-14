@@ -35,10 +35,12 @@ USE_OPENGL_RENDERER := true
 TARGET_BOARD_INFO_FILE := device/samsung/gtexslte/board-info.txt
 BOARD_EGL_CFG := device/samsung/gtexslte/egl.cfg
 
-TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
-TARGET_KERNEL_CONFIG := gtexslte_defconfig
+# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
+# TARGET_KERNEL_CONFIG := gtexslte_defconfig
+# TARGET_VARIANT_CONFIG := gtexslte_defconfig
+# TARGET_SELINUX_CONFIG := gtexslte_defconfig
 
-# TARGET_PREBUILT_KERNEL := device/samsung/gtexslte/kernel
+TARGET_PREBUILT_KERNEL := device/samsung/gtexslte/kernel
 
 SC9830_MODULES:
 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
@@ -55,6 +57,15 @@ SC9830_MODULES:
 TARGET_KERNEL_MODULES := SC9830_MODULES
 
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
+
+BOARD_SEPOLICY_UNION += \
+       debuggerd.te \
+       init.te \
+			 surfaceflinger.te \
+			 rild.te \
+			 systemserver.te \
+       file_contexts \
+			 netd.te
 
 TARGET_RECOVERY_FSTAB = device/samsung/gtexslte/recovery.fstab
 RECOVERY_VARIANT := twrp

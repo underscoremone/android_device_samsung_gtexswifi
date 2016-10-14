@@ -1,0 +1,3 @@
+allow rild proc_net:file write;
+allow rild system_data_file:dir { create write add_name remove_name};
+allow rild system_data_file:file { write unlink setattr };

@@ -1,4 +1,4 @@
-# import /init.board.rc
+import /init.board.rc
 import /init.gtexslte.usb.rc
 import /init.gtexslte_base.rc
 # import /init.sc8830_ss.rc
@@ -22,7 +22,7 @@ on init
     mkdir /preload 0771 system system
 
     mkdir /productinfo 0771 system system
- # See storage config details at http://source.android.com/tech/storage/
+    # See storage config details at http://source.android.com/tech/storage/
     mkdir /mnt/media_rw/extSdCard 0700 media_rw media_rw
     mkdir /mnt/media_rw/UsbDriveA 0700 media_rw media_rw
     mkdir /mnt/media_rw/UsbDriveB 0700 media_rw media_rw
@@ -67,7 +67,7 @@ on init
     mkdir /storage/UsbDriveD 0700 root root
     mkdir /storage/UsbDriveE 0700 root root
     mkdir /storage/UsbDriveF 0700 root root
-# @}
+    # @}
 
     chown system system /sys/class/power_supply/battery/hw_switch_point
     chown system system /sys/class/power_supply/battery/save_capacity
@@ -308,3 +308,515 @@ service slog /system/bin/slog -t
     user system
     group system shell radio log sdcard_r sdcard_rw media_rw
     disabled
+
+on property:ro.product.name=sp9838aea_auto_slt
+    setprop persist.sys.sprd.mtbf 0
+
+on property:ro.modem.t.count=1
+    write /proc/sim/0 t
+
+on property:ro.modem.t.count=2
+    write /proc/sim/0 t
+    write /proc/sim/1 t
+
+on property:ro.modem.t.count=3
+    write /proc/sim/0 t
+    write /proc/sim/1 t
+    write /proc/sim/2 t
+
+on property:ro.modem.w.count=1
+    write /proc/sim/0 w
+
+on property:ro.modem.w.count=2
+    write /proc/sim/0 w
+    write /proc/sim/1 w
+
+on property:ro.modem.w.count=3
+    write /proc/sim/0 w
+    write /proc/sim/1 w
+    write /proc/sim/2 w
+
+on property:sys.boot_completed=1
+    write /sys/kernel/mm/ksm/run   1
+
+
+# SPRD: add for theme setting @{
+on property:universe_ui_support=true
+    start theme_init
+
+service theme_init /system/bin/theme_init.sh
+    disabled
+    oneshot
+# @}
+
+# virtual sdcard daemon running as media_rw (1023)
+service sdcard /system/bin/sdcard -u 1023 -g 1023 -l /data/media /mnt/shell/emulated
+    class late_start
+    oneshot
+
+service fuse_extSdCard /system/bin/sdcard -u 1023 -g 1023 -w 1023 -d -f /mnt/media_rw/extSdCard /storage/extSdCard
+    class late_start
+    disabled
+    oneshot
+
+service fuse_UsbDriveA /system/bin/sdcard -u 1023 -g 1023 -d -f /mnt/media_rw/UsbDriveA /storage/UsbDriveA
+    class late_start
+    disabled
+    oneshot
+
+service fuse_UsbDriveB /system/bin/sdcard -u 1023 -g 1023 -d -f /mnt/media_rw/UsbDriveB /storage/UsbDriveB
+    class late_start
+    disabled
+    oneshot
+
+service fuse_UsbDriveC /system/bin/sdcard -u 1023 -g 1023 -d -f /mnt/media_rw/UsbDriveC /storage/UsbDriveC
+    class late_start
+    disabled
+    oneshot
+
+service fuse_UsbDriveD /system/bin/sdcard -u 1023 -g 1023 -d -f /mnt/media_rw/UsbDriveD /storage/UsbDriveD
+    class late_start
+    disabled
+    oneshot
+
+service fuse_UsbDriveE /system/bin/sdcard -u 1023 -g 1023 -d -f /mnt/media_rw/UsbDriveE /storage/UsbDriveE
+    class late_start
+    disabled
+    oneshot
+
+service fuse_UsbDriveF /system/bin/sdcard -u 1023 -g 1023 -d -f /mnt/media_rw/UsbDriveF /storage/UsbDriveF
+    class late_start
+    disabled
+    oneshot
+
+#modem_control
+service modem_control  /system/bin/modem_control
+    class core
+    user system
+    group system radio shell
+    oneshot
+
+service modemd /system/bin/modemd
+    class core
+    user system
+    group system radio shell
+    oneshot
+
+service wcnd /system/bin/wcnd
+    class core
+    #   we will start as root and wcnd will switch to user system
+    user system
+    group system shell wifi inet bluetooth net_bt_stack
+    oneshot
+
+
+service wcnd_eng /system/bin/wcnd -G
+    class core
+    group system shell wifi inet bluetooth net_bt_stack
+    disabled
+    oneshot
+
+service phoneserver_t /system/bin/phoneserver -m t
+    class core
+    user root
+    group radio system shell dhcp
+    disabled
+    oneshot
+
+service phoneserver_w /system/bin/phoneserver -m w
+    class core
+    user root
+    group radio system shell dhcp
+    disabled
+    oneshot
+
+service phoneserver_l /system/bin/phoneserver -m l
+    class core
+    user root
+    group radio system shell dhcp
+    disabled
+    oneshot
+
+service phoneserver_tl /system/bin/phoneserver -m tl
+    class core
+    user root
+    group radio system shell
+    disabled
+    oneshot
+
+service phoneserver_lf /system/bin/phoneserver -m lf
+    class core
+    user root
+    group radio system shell
+    disabled
+    oneshot
+
+service batterysrv /bin/batterysrv
+    class core
+    user system
+    group system
+    oneshot
+
+#service charge /bin/charge
+#    class charger
+#    user root
+#    oneshot
+
+##td rild service
+#service tril-daemon /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m t -n 0
+#    class core
+#    socket trild stream 660 root radio
+#    socket trild-debug stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log
+#
+#service tril-daemon1 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m t -n 1
+#    class core
+#    socket trild1 stream 660 root radio
+#    socket trild-debug1 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log
+#
+#service tril-daemon2 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m t -n 2
+#    class core
+#    socket trild2 stream 660 root radio
+#    socket trild-debug2 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log
+#
+##wcdma rild service
+#service wril-daemon /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m w -n 0
+#    class core
+#    socket wrild stream 660 root radio
+#    socket wrild-debug stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+#service wril-daemon1 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m w -n 1
+#    class core
+#    socket wrild1 stream 660 root radio
+#    socket wrild-debug1 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+#service wril-daemon2 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m w -n 2
+#    class core
+#    socket wrild2 stream 660 root radio
+#    socket wrild-debug2 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+##lte rild service
+#service lril-daemon /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m l -n 0
+#    class core
+#    socket rild stream 660 root radio
+#    socket rild-debug stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+#service lril-daemon1 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m l -n 1
+#    class core
+#    socket rild2 stream 660 root radio
+#    socket rild-debug2 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+##tl rild service
+#service tlril-daemon /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m tl -n 0
+#    class core
+#    socket rild stream 660 root radio
+#    socket rild-debug stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+#service tlril-daemon1 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m tl -n 1
+#    class core
+#    socket rild2 stream 660 root radio
+#    socket rild-debug2 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+##lf rild service
+#service lfril-daemon /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m lf -n 0
+#    class core
+#    socket rild stream 660 root radio
+#    socket rild-debug stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+#
+#service lfril-daemon1 /system/bin/rild_sp -l /system/lib/libreference-ril_sp.so -m lf -n 1
+#    class core
+#    socket rild2 stream 660 root radio
+#    socket rild-debug2 stream 660 radio system
+#    disabled
+#    user root
+#    group radio cache inet misc audio sdcard_rw log shell
+
+#cp_diskserver
+service cp_diskserver_td /system/bin/cp_diskserver t 0
+    class core
+    user system
+    disabled
+    group system radio shell
+    oneshot
+
+service cp_diskserver_w /system/bin/cp_diskserver w 0
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service cp_diskserver_l /system/bin/cp_diskserver l 0
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service cp_diskserver_tl /system/bin/cp_diskserver tl 0
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service cp_diskserver_lf /system/bin/cp_diskserver lf 0
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service slogmodem /system/bin/slogmodem -s sec
+    class main
+    user system
+    group media_rw system shell radio log sdcard_r sdcard_rw
+    disabled
+
+service refnotify_td /system/bin/refnotify -t 0
+    class main
+    disabled
+    user system
+    group system radio shell
+    oneshot
+
+service refnotify_w /system/bin/refnotify -t 1
+    class main
+    disabled
+    user system
+    group system radio shell
+    oneshot
+
+service refnotify_l /system/bin/refnotify -t 2
+    class main
+    disabled
+    user system
+    group system radio shell
+    oneshot
+
+# For CTS of slog ->
+# This action is to make sure that the shell user
+# can also enable the slog daemon
+
+# convert the debug to system
+on property:debug.slog.enabled=1
+    setprop persist.sys.slog.enabled 1
+
+# convert the debug to system
+on property:debug.slog.enabled=0
+    setprop persist.sys.slog.enabled 0
+
+# Start the daemon
+on property:persist.sys.slog.enabled=1
+    mkdir /data/local/tmp/slog 0770 system system
+	mkdir /data/local/tmp/slogmodem 0770 system system
+    start slog
+    start slogmodem
+    start sprd_res_monitor
+
+# Stop the daemon
+on property:persist.sys.slog.enabled=0
+    stop slog
+    stop slogmodem
+    stop sprd_res_monitor
+    rm /data/local/tmp/sprd_monitor.conf
+
+# For CTS of slog <-
+
+on property:persist.modem.w.enable=1
+    symlink /dev/spipe_w1 /dev/vbpipe1
+    symlink /dev/spipe_w2 /dev/vbpipe2
+    symlink /dev/spipe_w3 /dev/vbpipe3
+    symlink /dev/spipe_w6 /dev/vbpipe6
+    start refnotify_w
+    start cp_diskserver_w
+
+on property:persist.modem.t.enable=1
+    start refnotify_td
+    start cp_diskserver_td
+
+on property:persist.modem.l.enable=1
+    start refnotify_l
+    start cp_diskserver_l
+
+on property:persist.modem.lf.enable=1
+    start refnotify_l
+
+#create symlink
+service smd_symlink /system/bin/ext_symlink.sh -u
+    user root
+    disabled
+    oneshot
+
+#data on
+service data_on /system/bin/ext_data.sh  -u
+    user root
+    disabled
+    oneshot
+
+#data off
+service data_off /system/bin/ext_data.sh  -d
+    user root
+    disabled
+    oneshot
+
+#kill td app
+service kill_td_phone /system/bin/ext_kill.sh  -t
+    user root
+    disabled
+    oneshot
+
+#kill w app
+service kill_w_phone /system/bin/ext_kill.sh  -w
+    user root
+    disabled
+    oneshot
+#kill lte app
+service kill_l_phone /system/bin/ext_kill.sh  -l
+    user root
+    disabled
+    oneshot
+
+#kill td-lte app
+service kill_tl_phone /system/bin/ext_kill.sh  -tl
+    user root
+    disabled
+    oneshot
+
+#kill lte-fdd app
+service kill_lf_phone /system/bin/ext_kill.sh  -lf
+    user root
+    disabled
+    oneshot
+
+#change owner
+service chown_service /system/bin/ext_chown.sh  -c
+    class main
+    user root
+    oneshot
+
+#set mac addr
+service set_mac /system/bin/ext_chown.sh  -e
+    user root
+    disabled
+    oneshot
+
+service  inputfreq  /system/bin/inputfreq.sh
+    user root
+    disabled
+    oneshot
+
+service  recoveryfreq  /system/bin/recoveryfreq.sh
+    user root
+    disabled
+    oneshot
+
+    chmod 0666 /proc/pin_switch/iis0_sys_sel/cp0_iis0
+    chmod 0666 /proc/pin_switch/iis0_sys_sel/cp1_iis0
+    chmod 0666 /proc/pin_switch/iis0_sys_sel/cp2_iis0
+    chmod 0666 /proc/pin_switch/iis0_sys_sel/ap_iis0
+    chmod 0666 /proc/pin_switch/bt_iis_sys_sel/cp0_iis0
+    chmod 0666 /proc/pin_switch/bt_iis_sys_sel/cp1_iis0
+    chmod 0666 /proc/pin_switch/bt_iis_sys_sel/cp2_iis0
+    chmod 0666 /proc/pin_switch/bt_iis_sys_sel/ap_iis0
+
+service autotest /system/bin/autotest
+    class main
+    disabled
+    user root
+    oneshot
+
+service engpcclientt /system/bin/engpc -p t -a /dev/ttyGS0 -d /dev/ttyGS1 -l /dev/ttyGS4
+    class core
+    user system
+    group system radio shell bluetooth net_bt_stack
+    disabled
+    oneshot
+
+service engpcclientlte /system/bin/engpc -p l -a /dev/ttyGS5 -d /dev/ttyGS1 -l /dev/ttyGS1
+    class core
+    user system
+    group system radio shell bluetooth net_bt_stack
+    disabled
+    oneshot
+
+service engpcclientwcn /system/bin/engpc -p wcn -a /dev/ttyGS2 -d /dev/ttyGS3
+    class core
+    user system
+    group system radio shell bluetooth net_bt_stack
+    disabled
+    oneshot
+
+service engpcclientw /system/bin/engpc -p w -a /dev/ttyGS0 -d /dev/ttyGS1 -l /dev/ttyGS4
+    class core
+    user system
+    group system radio shell bluetooth net_bt_stack
+    disabled
+    oneshot
+
+service engpcclienttl /system/bin/engpc -p tl -a /dev/ttyGS5 -d /dev/ttyGS6
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service engpcclientlf /system/bin/engpc -p lf -a /dev/ttyGS5 -d /dev/ttyGS6 -l /dev/ttyGS7
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+#volte
+service modemDriver /system/bin/modemDriver_vpad_main
+    class core
+    user root
+    group system radio shell
+
+on property:persist.sys.volte.enable=true
+    start modemDriver
+
+service umount_service /system/bin/umount /preload
+    disabled
+    oneshot
+
+# Support Preload install apks
+on property:persist.sys.storage_preload=1
+    mount ext4 /dev/block/platform/sdio_emmc/by-name/HIDDEN /preload nosuid nodev ro barrier=1
+    setprop storage.preload.complete 1
+
+on property:persist.sys.storage_preload=0
+    start umount_service

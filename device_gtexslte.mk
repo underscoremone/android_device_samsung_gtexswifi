@@ -44,5 +44,15 @@ PRODUCT_PROPERTY_OVERRIDES += \
 		ro.secure=0 \
 		persist.sys.usb.config=mtp,adb
 
+PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
+		ro.adb.secure=0 \
+		ro.secure=0 \
+		persist.sys.usb.config=mtp,adb \
+		telephony.lteOnCdmaDevice=0 \
+		persist.radio.apm_sim_not_pwdn=1 \
+		persist.radio.add_power_save=1 \
+		rild.libpath=/system/lib/libsec-ril.so
+
+
 PRODUCT_NAME := full_gtexslte
 PRODUCT_DEVICE := gtexslte
