@@ -1,5 +1,46 @@
+# sprd file contexts
+#SEC remove: /dev/mali0		u:object_r:gpu_device:s0
+/dev/spipe_w4           u:object_r:audio_device:s0
+/dev/spipe_w6           u:object_r:audio_device:s0
+/dev/spipe_w14          u:object_r:audio_device:s0
+/dev/sprd_gsp           u:object_r:graphics_device:s0
+/dev/lis3dh_acc         u:object_r:sensors_device:s0
+/dev/ltr_558als         u:object_r:sensors_device:s0
+/dev/sprd_sensor        u:object_r:sensors_device:s0
+/dev/sprd_rotation      u:object_r:sensors_device:s0
+/dev/sprd_isp           u:object_r:camera_device:s0
+/dev/sprd_scale         u:object_r:camera_device:s0
+/dev/sprd_image         u:object_r:camera_device:s0
+/dev/ttyV1              u:object_r:gps_device:s0
+/dev/sprd_vsp           u:object_r:video_device:s0
+/dev/sprd_coda7l        u:object_r:video_device:s0
+/dev/sprd_vpp           u:object_r:video_device:s0
+/dev/sprd_jpg           u:object_r:graphics_device:s0
+#SEC remove: /dev/ttyGS[0-9]         u:object_r:serial_device:s0
+/dev/stty_w0            u:object_r:tty_device:s0
+/dev/stty_w[0-9]*       u:object_r:radio_device:s0
+/dev/vser               u:object_r:serial_device:s0
+
+/dev/sttybt0            u:object_r:hci_attach_dev:s0
+
+/dev/stty_w12            u:object_r:tty_device:s0
+/dev/stty_lte12          u:object_r:tty_device:s0
+/dev/stty_td12           u:object_r:tty_device:s0
+/dev/stty_lte31          u:object_r:tty_device:s0
+/dev/stty_lte[0-9]       u:object_r:radio_device:s0
+/dev/stty_lte10          u:object_r:radio_device:s0
+/dev/stty_lte11          u:object_r:tty_device:s0
+
+/dev/Trout_FM            u:object_r:audio_device:s0
+
+# gtexslte hardware
+
 /dev/mali	      u:object_r:gpu_device:s0
 /dev/mali[0-9]	u:object_r:gpu_device:s0
-/dev/sprd_gsp   u:object_r:graphics_device:s0
+/dev/spipe_lte4         u:object_r:audio_device:s0
+/dev/spipe_lte6         u:object_r:audio_device:s0
+/dev/stty_lte21	        u:object_r:radio_device:s0
+/dev/epl2182_pls        u:object_r:sensors_device:s0
+
 
 /mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

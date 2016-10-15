@@ -1,7 +1,7 @@
 import /init.board.rc
 import /init.gtexslte.usb.rc
 import /init.gtexslte_base.rc
-# import /init.sc8830_ss.rc
+
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug
@@ -22,7 +22,7 @@ on init
     mkdir /preload 0771 system system
 
     mkdir /productinfo 0771 system system
-    # See storage config details at http://source.android.com/tech/storage/
+ # See storage config details at http://source.android.com/tech/storage/
     mkdir /mnt/media_rw/extSdCard 0700 media_rw media_rw
     mkdir /mnt/media_rw/UsbDriveA 0700 media_rw media_rw
     mkdir /mnt/media_rw/UsbDriveB 0700 media_rw media_rw
@@ -67,7 +67,7 @@ on init
     mkdir /storage/UsbDriveD 0700 root root
     mkdir /storage/UsbDriveE 0700 root root
     mkdir /storage/UsbDriveF 0700 root root
-    # @}
+# @}
 
     chown system system /sys/class/power_supply/battery/hw_switch_point
     chown system system /sys/class/power_supply/battery/save_capacity
@@ -85,8 +85,8 @@ on fs
     mount_all /fstab.sc8830
     mount pstore pstore /sys/fs/pstore
     setprop ro.crypto.fuse_sdcard true
-  	symlink /system/res /res
-  	symlink /system/bin /bin
+	symlink /system/res /res
+	symlink /system/bin /bin
 
 #Allow others to read fb devices
     chmod 660 /dev/graphics/fb0
@@ -285,6 +285,11 @@ on property:ro.config.zram.support=true
     write /proc/sys/vm/page-cluster  0
     start zram
 
+service zram /system/xbin/zram.sh
+        disabled
+        oneshot
+
+
 on property:ro.debuggable=1
     write /sys/kernel/debug/fatal_dump/enable 1
     chmod 777 /sys/kernel/debug/sc2713-regulator/vddarm/voltage
@@ -294,20 +299,6 @@ on property:ro.debuggable=1
     chmod 755 /sys/kernel/debug
     write /proc/sys/fs/suid_dumpable 1
     write /sys/module/smsg/parameters/debug_enable 1
-
-on property:sys.boot_completed=1
-    write /sys/kernel/mm/ksm/run   1
-
-service charger /sbin/healthd -c
-    class charger
-    critical
-    seclabel u:r:healthd:s0
-
-service slog /system/bin/slog -t
-    class main
-    user system
-    group system shell radio log sdcard_r sdcard_rw media_rw
-    disabled
 
 on property:ro.product.name=sp9838aea_auto_slt
     setprop persist.sys.sprd.mtbf 0
@@ -598,6 +589,12 @@ service cp_diskserver_lf /system/bin/cp_diskserver lf 0
     group system radio shell
     disabled
     oneshot
+
+service slog /system/bin/slog -t
+    class main
+    user system
+    group system shell radio log sdcard_r sdcard_rw media_rw
+    disabled
 
 service slogmodem /system/bin/slogmodem -s sec
     class main

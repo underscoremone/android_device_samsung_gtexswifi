@@ -1,0 +1,8 @@
+allow mediaserver default_prop:property_service set;
+allow mediaserver graphics_device:dir search;
+allow mediaserver graphics_device:chr_file { read write open };
+allow mediaserver proc:file write;
+allow mediaserver sensors_device:chr_file { open read write ioctl };
+allow mediaserver system_data_file:dir { write add_name };
+allow mediaserver system_data_file:fifo_file { open read setattr };
+allow mediaserver system_data_file:file { write open create };

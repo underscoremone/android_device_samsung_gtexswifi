@@ -6,7 +6,7 @@ USE_CAMERA_STUB := true
 TARGET_ARCH := arm
 TARGET_NO_BOOTLOADER := false
 TARGET_NO_RADIOIMAGE := true
-
+TARGET_USES_ION := true
 TARGET_BOARD_PLATFORM := sc8830
 TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
@@ -14,7 +14,6 @@ TARGET_ARCH_VARIANT := armv7-a-neon
 TARGET_CPU_VARIANT := cortex-a7
 TARGET_CPU_SMP := true
 ARCH_ARM_HAVE_TLS_REGISTER := true
-TARGET_USES_ION := true
 TARGET_BOOTLOADER_BOARD_NAME := gtexslte
 
 BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8
@@ -34,6 +33,12 @@ USE_OPENGL_RENDERER := true
 
 TARGET_BOARD_INFO_FILE := device/samsung/gtexslte/board-info.txt
 BOARD_EGL_CFG := device/samsung/gtexslte/egl.cfg
+
+USE_OPENGL_RENDERER := true
+BOARD_USE_MHEAP_SCREENSHOT := true
+TARGET_BOARD_PLATFORM_GPU := ARM Mali-400
+BOARD_EGL_WORKAROUND_BUG_10194508 := true
+TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 
 # TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
 # TARGET_KERNEL_CONFIG := gtexslte_defconfig
@@ -65,7 +70,10 @@ BOARD_SEPOLICY_UNION += \
 			 rild.te \
 			 systemserver.te \
        file_contexts \
-			 netd.te
+			 netd.te \
+			 mediaserver.te \
+			 system_app.te
+
 
 TARGET_RECOVERY_FSTAB = device/samsung/gtexslte/recovery.fstab
 RECOVERY_VARIANT := twrp
