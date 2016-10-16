@@ -1,0 +1,66 @@
+diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
+index 802a193..e41f85f 100755
+--- a/media/libstagefright/ACodec.cpp
++++ b/media/libstagefright/ACodec.cpp
+@@ -41,8 +41,10 @@
+#include <OMX_Component.h>
+#include <OMX_IndexExt.h>
+
++#ifndef SPRD_HARDWARE
+ #include <sec_format.h>
+ #endif
++#endif
+
+ #ifdef USE_TI_CUSTOM_DOMX
+ #include <OMX_TI_IVCommon.h>
+@@ -910,6 +912,10 @@ void ACodec::setNativeWindowColorFormat(OMX_COLOR_FORMATTYPE &eNativeColorFormat
+ {
+     // In case of Samsung decoders, we set proper native color format for the Native Window
+     if (!strcasecmp(mComponentName.c_str(), "OMX.SEC.AVC.Decoder")
++        || !strcasecmp(mComponentName.c_str(), "OMX.sprd.mpeg4.decoder")
++        || !strcasecmp(mComponentName.c_str(), "OMX.sprd.h263.decoder")
++        || !strcasecmp(mComponentName.c_str(), "OMX.sprd.h264.decoder")
++        || !strcasecmp(mComponentName.c_str(), "OMX.sprd.vpx.decoder")
+         || !strcasecmp(mComponentName.c_str(), "OMX.SEC.FP.AVC.Decoder")) {
+         switch (eNativeColorFormat) {
+             case OMX_COLOR_FormatYUV420SemiPlanar:
+diff --git a/media/libstagefright/CameraSource.cpp b/media/libstagefright/CameraSource.cpp
+index 4978c08..191abf3 100644
+--- a/media/libstagefright/CameraSource.cpp
++++ b/media/libstagefright/CameraSource.cpp
+@@ -122,7 +122,7 @@ static int32_t getColorFormat(const char* colorFormat) {
+     }
+
+     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420SP)) {
+-#ifdef USE_SAMSUNG_COLORFORMAT
++#if defined(USE_SAMSUNG_COLORFORMAT) && !defined(SPRD_HARDWARE)
+         static const int OMX_SEC_COLOR_FormatNV12LPhysicalAddress = 0x7F000002;
+         return OMX_SEC_COLOR_FormatNV12LPhysicalAddress;
+ #else
+diff --git a/media/libstagefright/OMXCodec.cpp b/media/libstagefright/OMXCodec.cpp
+index 8816dd2..4371f6f 100644
+--- a/media/libstagefright/OMXCodec.cpp
++++ b/media/libstagefright/OMXCodec.cpp
+@@ -66,8 +66,10 @@
+ #endif
+
+ #ifdef USE_SAMSUNG_COLORFORMAT
++#ifndef SPRD_HARDWARE
+ #include <sec_format.h>
+ #endif
++#endif
+
+ #ifdef USE_TI_CUSTOM_DOMX
+ #include <OMX_TI_Video.h>
+@@ -2438,9 +2440,11 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
+     OMX_COLOR_FORMATTYPE eColorFormat;
+
+     switch (def.format.video.eColorFormat) {
++#ifndef SPRD_HARDWARE
+     case OMX_SEC_COLOR_FormatNV12TPhysicalAddress:
+         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_CUSTOM_YCbCr_420_SP_TILED;
+         break;
++#endif
+     case OMX_COLOR_FormatYUV420SemiPlanar:
+         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCbCr_420_SP;
+         break;

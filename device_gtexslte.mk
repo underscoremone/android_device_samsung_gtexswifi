@@ -53,6 +53,12 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 		persist.radio.add_power_save=1 \
 		rild.libpath=/system/lib/libsec-ril.so
 
+# HWC
+PRODUCT_PACKAGES += \
+		gralloc.sc8830 \
+		hwcomposer.sc8830 \
+		sprd_gsp.sc8830 \
+		libion
 
 PRODUCT_NAME := full_gtexslte
 PRODUCT_DEVICE := gtexslte

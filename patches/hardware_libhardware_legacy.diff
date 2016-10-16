@@ -1,0 +1,13 @@
+diff --git a/wifi/wifi.c b/wifi/wifi.c
+index d94b4a9..c40fb60 100644
+--- a/wifi/wifi.c
++++ b/wifi/wifi.c
+@@ -809,7 +809,7 @@ int wifi_start_supplicant(int p2p_supported)
+     }
+ 
+     /* Check whether already running */
+-    if (property_get(supplicant_name, supp_status, NULL)
++    if (property_get(supplicant_prop_name, supp_status, NULL)
+             && strcmp(supp_status, "running") == 0) {
+         return 0;
+     }

@@ -1,0 +1,444 @@
+diff --git a/libion/include/ion/ion.h b/libion/include/ion/ion.h
+index 018c0a1..6122539 100644
+--- a/libion/include/ion/ion.h
++++ b/libion/include/ion/ion.h
+index 018c0a1..6122539 100644
+--- a/libion/include/ion/ion.h
++++ b/libion/include/ion/ion.h
+@@ -31,6 +31,7 @@ int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
+ 	      unsigned int flags, struct ion_handle **handle);
+ int ion_alloc_fd(int fd, size_t len, size_t align, unsigned int heap_mask,
+ 		 unsigned int flags, int *handle_fd);
++int ion_invalidate_fd(int fd, int handle_fd);
+ int ion_sync_fd(int fd, int handle_fd);
+ int ion_free(int fd, struct ion_handle *handle);
+ int ion_map(int fd, struct ion_handle *handle, size_t length, int prot,
+diff --git a/include/system/audio.h b/include/system/audio.h
+index 667fe41..397870b 100644
+--- a/include/system/audio.h
++++ b/include/system/audio.h
+@@ -56,6 +56,9 @@ typedef enum {
+     AUDIO_STREAM_ENFORCED_AUDIBLE = 7, /* Sounds that cannot be muted by user and must be routed to speaker */
+     AUDIO_STREAM_DTMF             = 8,
+     AUDIO_STREAM_TTS              = 9,
++#ifdef SPRD_HARDWARE
++    AUDIO_STREAM_FM               = 10,
++#endif
+ #ifdef QCOM_HARDWARE
+     AUDIO_STREAM_INCALL_MUSIC     = 10,
+ #endif
+@@ -80,8 +83,12 @@ typedef enum {
+                                           /* An example of remote presentation is Wifi Display */
+                                           /*  where a dongle attached to a TV can be used to   */
+                                           /*  play the mix captured by this audio source.      */
++#ifdef SPRD_HARDWARE
++    AUDIO_SOURCE_RECORD_NO_AUDIO     = 9, /* SPRD: add one audioSource type for slow motion */
++#else
+     AUDIO_SOURCE_FM_RX               = 9,
+     AUDIO_SOURCE_FM_RX_A2DP          = 10,
++#endif
+     AUDIO_SOURCE_CNT,
+     AUDIO_SOURCE_MAX                 = AUDIO_SOURCE_CNT - 1,
+     AUDIO_SOURCE_HOTWORD             = 1999, /* A low-priority, preemptible audio source for
+@@ -425,6 +432,10 @@ enum {
+     AUDIO_DEVICE_OUT_FM_TX                     = 0x100000,
+     AUDIO_DEVICE_OUT_SPDIF                     = 0x200000,
+ #endif
++#if defined(SPRD_HARDWARE)
++    AUDIO_DEVICE_OUT_FM_HEADSET                = 0x1000000,
++    AUDIO_DEVICE_OUT_FM_SPEAKER                = 0x2000000,
++#endif
+     AUDIO_DEVICE_OUT_DEFAULT                   = AUDIO_DEVICE_BIT_DEFAULT,
+     AUDIO_DEVICE_OUT_ALL      = (AUDIO_DEVICE_OUT_EARPIECE |
+                                  AUDIO_DEVICE_OUT_SPEAKER |
+@@ -450,6 +461,10 @@ enum {
+                                  AUDIO_DEVICE_OUT_FM_TX |
+                                  AUDIO_DEVICE_OUT_SPDIF |
+ #endif
++#if defined(SPRD_HARDWARE)
++                                 AUDIO_DEVICE_OUT_FM_HEADSET |
++                                 AUDIO_DEVICE_OUT_FM_SPEAKER |
++#endif
+                                  AUDIO_DEVICE_OUT_DEFAULT),
+     AUDIO_DEVICE_OUT_ALL_A2DP = (AUDIO_DEVICE_OUT_BLUETOOTH_A2DP |
+                                  AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
+@@ -459,6 +474,10 @@ enum {
+                                  AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT),
+     AUDIO_DEVICE_OUT_ALL_USB  = (AUDIO_DEVICE_OUT_USB_ACCESSORY |
+                                  AUDIO_DEVICE_OUT_USB_DEVICE),
++#if defined(SPRD_HARDWARE)
++    AUDIO_DEVICE_OUT_ALL_FM   = (AUDIO_DEVICE_OUT_FM_HEADSET |
++                                 AUDIO_DEVICE_OUT_FM_SPEAKER),
++#endif
+
+     /* input devices */
+ #if defined(ICS_AUDIO_BLOB) || defined(MR0_AUDIO_BLOB)
+diff --git a/include/system/graphics.h b/include/system/graphics.h
+index 946073f..2c9bf0d 100644
+--- a/include/system/graphics.h
++++ b/include/system/graphics.h
+@@ -250,7 +250,21 @@ enum {
+     /* Legacy formats (deprecated), used by ImageFormat.java */
+     HAL_PIXEL_FORMAT_YCbCr_422_SP       = 0x10, // NV16
+     HAL_PIXEL_FORMAT_YCrCb_420_SP       = 0x11, // NV21
++#ifdef SPRD_HARDWARE
++    HAL_PIXEL_FORMAT_YCbCr_422_P        = 0x12,
++    HAL_PIXEL_FORMAT_YCbCr_420_P        = 0x13,
++#endif
+     HAL_PIXEL_FORMAT_YCbCr_422_I        = 0x14, // YUY2
++#ifdef SPRD_HARDWARE
++    HAL_PIXEL_FORMAT_YCbCr_420_I        = 0x15,
++    HAL_PIXEL_FORMAT_CbYCrY_422_I       = 0x16,
++    HAL_PIXEL_FORMAT_CbYCrY_420_I       = 0x17,
++    HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED = 0x18,
++    HAL_PIXEL_FORMAT_YCbCr_420_SP       = 0x19,
++    HAL_PIXEL_FORMAT_YCrCb_420_SP_TILED = 0x1A,
++    HAL_PIXEL_FORMAT_YCrCb_422_SP       = 0x1B,
++    HAL_PIXEL_FORMAT_YCrCb_420_P        = 0x1C,
++#endif
+ };
+
+ /*
+diff --git a/init/Android.mk b/init/Android.mk
+index 138f92b..74e9944 100644
+--- a/init/Android.mk
++++ b/init/Android.mk
+@@ -69,6 +69,8 @@ LOCAL_STATIC_LIBRARIES := \
+ 	libselinux \
+ 	libmincrypt \
+ 	libext4_utils_static
++LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
++LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/mtd
+
+ ifneq ($(strip $(TARGET_PLATFORM_DEVICE_BASE)),)
+ LOCAL_CFLAGS += -D_PLATFORM_BASE="\"$(TARGET_PLATFORM_DEVICE_BASE)\""
+diff --git a/init/builtins.c b/init/builtins.c
+index 4070578..b32845f 100644
+--- a/init/builtins.c
++++ b/init/builtins.c
+@@ -50,6 +50,8 @@
+ #include "log.h"
+
+ #include <private/android_filesystem_config.h>
++#include <sys/ioctl.h>
++#include "ubi-user.h"
+
+ void add_environment(const char *name, const char *value);
+
+@@ -391,6 +393,34 @@ int do_mkdir(int nargs, char **args)
+     return 0;
+ }
+
++#define UBI_CTRL_DEV "/dev/ubi_ctrl"
++int do_ubiAttach(int nargs, char **args)
++{
++    struct ubi_attach_req req;
++    int fd;
++    int ret;
++
++    ERROR("do_ubiAttach %s %s\n",args[1],args[2]);
++
++    memset(&req, 0, sizeof(struct ubi_attach_req));
++    req.ubi_num =(typeof(req.ubi_num))atoi(args[1]);
++    if(-1 == req.ubi_num){
++        req.ubi_num = UBI_DEV_NUM_AUTO;
++    }
++    req.mtd_num = (typeof(req.mtd_num))mtd_name_to_number( args[2]);
++
++    fd = open(UBI_CTRL_DEV, O_RDONLY);
++    if(-1 == fd){
++        return -1;
++    }
++    ret = ioctl(fd, UBI_IOCATT, &req);
++    close(fd);
++    if(-1 == ret){
++        return -1;
++    }
++    return 0;
++}
++
+ static struct {
+     const char *name;
+     unsigned flag;
+@@ -515,6 +545,93 @@ exit_success:
+
+ }
+
++/* SPRD: add for storage manage  @{ */
++
++#define PROC_MOUNTS_FILENAME   "/proc/mounts"
++
++static int enusure_data_mounted()
++{
++    char buf[2048];
++    const char *bufp;
++    int fd;
++    ssize_t nbytes;
++    int res = -1;
++
++    /* Open and read the file contents.
++     */
++    fd = open(PROC_MOUNTS_FILENAME, O_RDONLY);
++    if (fd < 0) {
++        goto bail;
++    }
++    nbytes = read(fd, buf, sizeof(buf) - 1);
++    close(fd);
++    if (nbytes < 0) {
++        goto bail;
++    }
++    buf[nbytes] = '\0';
++
++    /* Parse the contents of the file, which looks like:
++     *
++     *     # cat /proc/mounts
++     *     rootfs / rootfs rw 0 0
++     *     /dev/pts /dev/pts devpts rw 0 0
++     *     /proc /proc proc rw 0 0
++     *     /sys /sys sysfs rw 0 0
++     *     /dev/block/mtdblock4 /system yaffs2 rw,nodev,noatime,nodiratime 0 0
++     *     /dev/block/mtdblock5 /data yaffs2 rw,nodev,noatime,nodiratime 0 0
++     *     /dev/block/mmcblk0p1 /sdcard vfat rw,sync,dirsync,fmask=0000,dmask=0000,codepage=cp437,iocharset=iso8859-1,utf8 0 0
++     *
++     * The zeroes at the end are dummy placeholder fields to make the
++     * output match Linux's /etc/mtab, but don't represent anything here.
++     */
++    bufp = buf;
++    while (nbytes > 0) {
++        char device[64];
++        char mount_point[64];
++        char filesystem[64];
++        char flags[128];
++        int matches;
++
++        /* %as is a gnu extension that malloc()s a string for each field.
++         */
++        matches = sscanf(bufp, "%63s %63s %63s %127s",
++                         device, mount_point, filesystem, flags);
++
++        if (matches == 4) {
++            device[sizeof(device)-1] = '\0';
++            mount_point[sizeof(mount_point)-1] = '\0';
++            filesystem[sizeof(filesystem)-1] = '\0';
++            flags[sizeof(flags)-1] = '\0';
++
++            if (!strncmp(mount_point, DATA_MNT_POINT, sizeof(DATA_MNT_POINT))) {
++                res = 0;
++                ERROR("/data mounted\n");
++                break;
++            }
++        } else {
++            ERROR("matches was %d on <<%.40s>>\n", matches, bufp);
++        }
++
++        /* Eat the line.
++         */
++        while (nbytes > 0 && *bufp != '\n') {
++            bufp++;
++            nbytes--;
++        }
++        if (nbytes > 0) {
++            bufp++;
++            nbytes--;
++        }
++    }
++
++    return res;
++
++bail:
++//TODO: free the strings we've allocated.
++    return res;
++}
++/* @} */
++
+ int do_mount_all(int nargs, char **args)
+ {
+     pid_t pid;
+@@ -562,12 +679,19 @@ int do_mount_all(int nargs, char **args)
+     if (ret == 1) {
+         property_set("ro.crypto.state", "encrypted");
+         property_set("vold.decrypt", "1");
++/* SPRD: modify for storage manage  @{
++  @orig
+     } else if (ret == 0) {
++ */
++    } else {
++        if (ret == 0 || !enusure_data_mounted()) {
++/* @} */
+         property_set("ro.crypto.state", "unencrypted");
+         /* If fs_mgr determined this is an unencrypted device, then trigger
+          * that action.
+          */
+         action_for_each_trigger("nonencrypted", action_add_queue_tail);
++        }
+     }
+
+     return ret;
+@@ -968,3 +1092,13 @@ int do_wait(int nargs, char **args)
+     } else
+         return -1;
+ }
++
++int do_pipe(int nargs, char **args) {
++    mode_t mode = get_mode(args[1]);
++    if (mkfifo(args[2], mode) < 0) {
++	ERROR("peter do pipe error haha\n");
++        return -errno;
++    }
++    return 0;
++
++}
+diff --git a/init/init_parser.c b/init/init_parser.c
+index 291cf97..cc3afbc 100644
+--- a/init/init_parser.c
++++ b/init/init_parser.c
+@@ -135,6 +135,7 @@ int lookup_keyword(const char *s)
+         break;
+     case 'p':
+         if (!strcmp(s, "owerctl")) return K_powerctl;
++        if (!strcmp(s, "ipe")) return K_pipe;   //sprd add for loopback test
+     case 'r':
+         if (!strcmp(s, "estart")) return K_restart;
+         if (!strcmp(s, "estorecon")) return K_restorecon;
+@@ -165,6 +166,7 @@ int lookup_keyword(const char *s)
+         break;
+     case 'u':
+         if (!strcmp(s, "ser")) return K_user;
++        if (!strcmp(s, "biattach")) return K_ubiattach;
+         break;
+     case 'w':
+         if (!strcmp(s, "rite")) return K_write;
+diff --git a/init/keywords.h b/init/keywords.h
+index 8b3c089..983fe60 100644
+--- a/init/keywords.h
++++ b/init/keywords.h
+@@ -13,6 +13,7 @@ int do_hostname(int nargs, char **args);
+ int do_ifup(int nargs, char **args);
+ int do_insmod(int nargs, char **args);
+ int do_mkdir(int nargs, char **args);
++int do_ubiAttach(int nargs, char **args);
+ int do_mount_all(int nargs, char **args);
+ int do_mount(int nargs, char **args);
+ int do_powerctl(int nargs, char **args);
+@@ -39,6 +40,7 @@ int do_chown(int nargs, char **args);
+ int do_chmod(int nargs, char **args);
+ int do_loglevel(int nargs, char **args);
+ int do_load_persist_props(int nargs, char **args);
++int do_pipe(int nargs, char **args);
+ int do_wait(int nargs, char **args);
+ #define __MAKE_KEYWORD_ENUM__
+ #define KEYWORD(symbol, flags, nargs, func) K_##symbol,
+@@ -66,6 +68,7 @@ enum {
+     KEYWORD(import,      SECTION, 1, 0)
+     KEYWORD(keycodes,    OPTION,  0, 0)
+     KEYWORD(mkdir,       COMMAND, 1, do_mkdir)
++    KEYWORD(ubiattach,   COMMAND, 2, do_ubiAttach)
+     KEYWORD(mount_all,   COMMAND, 1, do_mount_all)
+     KEYWORD(mount,       COMMAND, 3, do_mount)
+     KEYWORD(on,          SECTION, 0, 0)
+@@ -102,6 +105,7 @@ enum {
+     KEYWORD(chmod,       COMMAND, 2, do_chmod)
+     KEYWORD(loglevel,    COMMAND, 1, do_loglevel)
+     KEYWORD(load_persist_props,    COMMAND, 0, do_load_persist_props)
++    KEYWORD(pipe,        COMMAND, 2, do_pipe)
+     KEYWORD(ioprio,      OPTION,  0, 0)
+ #ifdef __MAKE_KEYWORD_ENUM__
+     KEYWORD_COUNT,
+diff --git a/init/property_service.c b/init/property_service.c
+index 38c5248..c85d786 100644
+--- a/init/property_service.c
++++ b/init/property_service.c
+@@ -72,6 +72,7 @@ struct {
+     { "net.lte",          AID_RADIO,    0 },
+     { "net.cdma",         AID_RADIO,    0 },
+     { "ril.",             AID_RADIO,    0 },
++    { "ril.",             AID_SYSTEM,   0 },
+     { "gsm.",             AID_RADIO,    0 },
+     { "persist.radio",    AID_RADIO,    0 },
+     { "net.dns",          AID_RADIO,    0 },
+@@ -84,7 +85,7 @@ struct {
+     { "sys.powerctl",     AID_SHELL,    0 },
+     { "service.",         AID_SYSTEM,   0 },
+     { "wlan.",            AID_SYSTEM,   0 },
+-    { "bluetooth.",       AID_BLUETOOTH,    0 },
++    { "bluetooth.",       AID_BLUETOOTH,   0 },
+     { "dhcp.",            AID_SYSTEM,   0 },
+     { "dhcp.",            AID_DHCP,     0 },
+     { "debug.",           AID_SYSTEM,   0 },
+@@ -94,9 +95,11 @@ struct {
+     { "service.adb.tcp.port", AID_SHELL,    0 },
+     { "persist.mmac.", AID_SYSTEM, 0 },
+     { "persist.sys.",     AID_SYSTEM,   0 },
++    { "persist.msms.",    AID_RADIO,   0 },//SPRD: add for dsds
+     { "persist.service.", AID_SYSTEM,   0 },
+     { "persist.service.", AID_RADIO,    0 },
+     { "persist.security.", AID_SYSTEM,   0 },
++    { "media.", AID_MEDIA,   0 },
+     { "persist.service.bdroid.", AID_BLUETOOTH,   0 },
+     { "selinux."         , AID_SYSTEM,   0 },
+     { "wc_transport.",     AID_BLUETOOTH,   AID_SYSTEM },
+@@ -437,8 +440,8 @@ void handle_property_set_fd()
+             if (check_perms(msg.name, cr.uid, cr.gid, source_ctx)) {
+                 property_set((char*) msg.name, (char*) msg.value);
+             } else {
+-                ERROR("sys_prop: permission denied uid:%d  name:%s\n",
+-                      cr.uid, msg.name);
++                ERROR("sys_prop: permission denied pid:%d uid:%d name:%s\n",
++                      cr.pid, cr.uid, msg.name);
+             }
+
+             // Note: bionic's property client code assumes that the
+diff --git a/libcutils/properties.c b/libcutils/properties.c
+index 84fd96c..dac8ab3 100644
+--- a/libcutils/properties.c
++++ b/libcutils/properties.c
+@@ -15,6 +15,7 @@
+  */
+
+ #define LOG_TAG "properties"
++#define LOG_NDEBUG 0
+
+ #include <stdlib.h>
+ #include <string.h>
+diff --git a/libion/Android.mk b/libion/Android.mk
+index 0f023d6..756abc6 100644
+--- a/libion/Android.mk
++++ b/libion/Android.mk
+@@ -1,11 +1,8 @@
+ LOCAL_PATH:= $(call my-dir)
+
+ include $(CLEAR_VARS)
++LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
++LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+ LOCAL_SRC_FILES := ion.c
+ LOCAL_MODULE := libion
+ LOCAL_MODULE_TAGS := optional
+@@ -13,10 +10,10 @@ LOCAL_SHARED_LIBRARIES := liblog
+ include $(BUILD_SHARED_LIBRARY)
+
+ include $(CLEAR_VARS)
++LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
++LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+ LOCAL_SRC_FILES := ion.c ion_test.c
+ LOCAL_MODULE := iontest
+ LOCAL_MODULE_TAGS := optional tests
+ LOCAL_SHARED_LIBRARIES := liblog
+ include $(BUILD_EXECUTABLE)
+-
+-endif
+diff --git a/libion/ion.c b/libion/ion.c
+index 4cd1697..8c5ab7f 100644
+--- a/libion/ion.c
++++ b/libion/ion.c
+@@ -149,14 +147,18 @@ int ion_import(int fd, int share_fd, struct ion_handle **handle)
+         return ret;
+ }
+
++int ion_invalidate_fd(int fd, int handle_fd)
++{
++    struct ion_fd_data data = {
++        .fd = handle_fd,
++    };
++    return ion_ioctl(fd, ION_IOC_INVALIDATE, &data);
++}
++

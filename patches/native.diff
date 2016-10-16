@@ -1,0 +1,287 @@
+diff --git a/include/binder/Parcel.h b/include/binder/Parcel.h
+index 6a69761..0ba3abe 100644
+--- a/include/binder/Parcel.h
++++ b/include/binder/Parcel.h
+@@ -94,7 +94,9 @@ public:
+     void*               writeInplace(size_t len);
+     status_t            writeUnpadded(const void* data, size_t len);
+     status_t            writeInt32(int32_t val);
++    status_t            writeUint32(uint32_t val);
+     status_t            writeInt64(int64_t val);
++    status_t            writeUint64(uint64_t val);
+     status_t            writeFloat(float val);
+     status_t            writeDouble(double val);
+     status_t            writeCString(const char* str);
+@@ -152,8 +154,12 @@ public:
+     const void*         readInplace(size_t len) const;
+     int32_t             readInt32() const;
+     status_t            readInt32(int32_t *pArg) const;
++    uint32_t            readUint32() const;
++    status_t            readUint32(uint32_t *pArg) const;
+     int64_t             readInt64() const;
+     status_t            readInt64(int64_t *pArg) const;
++    uint64_t            readUint64() const;
++    status_t            readUint64(uint64_t *pArg) const;
+     float               readFloat() const;
+     status_t            readFloat(float *pArg) const;
+     double              readDouble() const;
+diff --git a/include/gui/BufferQueue.h b/include/gui/BufferQueue.h
+index 1188837..e67bef3 100644
+--- a/include/gui/BufferQueue.h
++++ b/include/gui/BufferQueue.h
+@@ -63,6 +63,7 @@ public:
+         ProxyConsumerListener(const wp<ConsumerListener>& consumerListener);
+         virtual ~ProxyConsumerListener();
+         virtual void onFrameAvailable(const android::BufferItem& item);
++	virtual void onFrameReplaced(const android::BufferItem& item);
+         virtual void onBuffersReleased();
+         virtual void onSidebandStreamChanged();
+     private:
+diff --git a/include/gui/BufferQueueConsumer.h b/include/gui/BufferQueueConsumer.h
+index 1912ed0..d29c9cc 100644
+--- a/include/gui/BufferQueueConsumer.h
++++ b/include/gui/BufferQueueConsumer.h
+@@ -47,7 +47,7 @@ public:
+     // returned.  The presentation time is in nanoseconds, and the time base
+     // is CLOCK_MONOTONIC.
+     virtual status_t acquireBuffer(BufferItem* outBuffer,
+-            nsecs_t expectedPresent);
++            nsecs_t expectedPresent, uint64_t maxFrameNumber = 0) override;
+ 
+     // See IGraphicBufferConsumer::detachBuffer
+     virtual status_t detachBuffer(int slot);
+diff --git a/include/gui/ConsumerBase.h b/include/gui/ConsumerBase.h
+index f7ab5ac..e7e7b84 100644
+--- a/include/gui/ConsumerBase.h
++++ b/include/gui/ConsumerBase.h
+@@ -47,6 +47,7 @@ public:
+         // This is called without any lock held and can be called concurrently
+         // by multiple threads.
+         virtual void onFrameAvailable(const BufferItem& item) = 0;
++        virtual void onFrameReplaced(const BufferItem& /* item */) {}
+     };
+ 
+     virtual ~ConsumerBase();
+@@ -107,6 +108,7 @@ protected:
+     // The ConsumerBase version of onSidebandStreamChanged does nothing and can
+     // be overriden by derived classes if they want the notification.
+     virtual void onFrameAvailable(const BufferItem& item);
++    virtual void onFrameReplaced(const BufferItem& item) override;
+     virtual void onBuffersReleased();
+     virtual void onSidebandStreamChanged();
+ 
+@@ -153,8 +155,8 @@ protected:
+     // initialization that must take place the first time a buffer is assigned
+     // to a slot.  If it is overridden the derived class's implementation must
+     // call ConsumerBase::acquireBufferLocked.
+-    virtual status_t acquireBufferLocked(IGraphicBufferConsumer::BufferItem *item,
+-        nsecs_t presentWhen);
++    virtual status_t acquireBufferLocked(IGraphicBufferConsumer::BufferItem *item, nsecs_t presentWhen,
++            uint64_t maxFrameNumber = 0);
+ 
+     // releaseBufferLocked relinquishes control over a buffer, returning that
+     // control to the BufferQueue.
+diff --git a/include/gui/GLConsumer.h b/include/gui/GLConsumer.h
+index 9931ec5..966cb5b 100644
+--- a/include/gui/GLConsumer.h
++++ b/include/gui/GLConsumer.h
+@@ -245,8 +245,8 @@ protected:
+ 
+     // acquireBufferLocked overrides the ConsumerBase method to update the
+     // mEglSlots array in addition to the ConsumerBase behavior.
+-    virtual status_t acquireBufferLocked(BufferQueue::BufferItem *item,
+-        nsecs_t presentWhen);
++    virtual status_t acquireBufferLocked(BufferQueue::BufferItem *item, nsecs_t presentWhen,
++            uint64_t maxFrameNumber = 0) override;
+ 
+     // releaseBufferLocked overrides the ConsumerBase method to update the
+     // mEglSlots array in addition to the ConsumerBase.
+diff --git a/include/gui/IGraphicBufferConsumer.h b/include/gui/IGraphicBufferConsumer.h
+index 3ba9e4c..be69691 100644
+--- a/include/gui/IGraphicBufferConsumer.h
++++ b/include/gui/IGraphicBufferConsumer.h
+@@ -146,7 +146,8 @@ public:
+     //
+     // Return of a negative value means an error has occurred:
+     // * INVALID_OPERATION - too many buffers have been acquired
+-    virtual status_t acquireBuffer(BufferItem* buffer, nsecs_t presentWhen) = 0;
++    virtual status_t acquireBuffer(BufferItem* buffer, nsecs_t presentWhen,
++            uint64_t maxFrameNumber = 0) = 0;
+ 
+     // detachBuffer attempts to remove all ownership of the buffer in the given
+     // slot from the buffer queue. If this call succeeds, the slot will be
+diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
+index 87ce5d0..e9f8739 100644
+--- a/libs/binder/Parcel.cpp
++++ b/libs/binder/Parcel.cpp
+@@ -645,6 +645,12 @@ status_t Parcel::writeInt32(int32_t val)
+ {
+     return writeAligned(val);
+ }
++
++status_t Parcel::writeUint32(uint32_t val)
++{
++    return writeAligned(val);
++}
++
+ status_t Parcel::writeInt32Array(size_t len, const int32_t *val) {
+     if (!val) {
+         return writeAligned(-1);
+@@ -671,6 +677,11 @@ status_t Parcel::writeInt64(int64_t val)
+     return writeAligned(val);
+ }
+ 
++status_t Parcel::writeUint64(uint64_t val)
++{
++    return writeAligned(val);
++}
++
+ status_t Parcel::writePointer(uintptr_t val)
+ {
+     return writeAligned<binder_uintptr_t>(val);
+@@ -1033,6 +1044,15 @@ int32_t Parcel::readInt32() const
+     return readAligned<int32_t>();
+ }
+ 
++status_t Parcel::readUint32(uint32_t *pArg) const
++{
++    return readAligned(pArg);
++}
++
++uint32_t Parcel::readUint32() const
++{
++    return readAligned<uint32_t>();
++}
+ 
+ status_t Parcel::readInt64(int64_t *pArg) const
+ {
+@@ -1045,6 +1065,16 @@ int64_t Parcel::readInt64() const
+     return readAligned<int64_t>();
+ }
+ 
++status_t Parcel::readUint64(uint64_t *pArg) const
++{
++    return readAligned(pArg);
++}
++
++uint64_t Parcel::readUint64() const
++{
++    return readAligned<uint64_t>();
++}
++
+ status_t Parcel::readPointer(uintptr_t *pArg) const
+ {
+     status_t ret;
+diff --git a/libs/gui/BufferQueue.cpp b/libs/gui/BufferQueue.cpp
+index 61fd8c4..0f02365 100644
+--- a/libs/gui/BufferQueue.cpp
++++ b/libs/gui/BufferQueue.cpp
+@@ -39,6 +39,14 @@ void BufferQueue::ProxyConsumerListener::onFrameAvailable(
+     }
+ }
+ 
++void BufferQueue::ProxyConsumerListener::onFrameReplaced(
++        const android::BufferItem& item) {
++    sp<ConsumerListener> listener(mConsumerListener.promote());
++    if (listener != NULL) {
++        listener->onFrameReplaced(item);
++    }
++}
++
+ void BufferQueue::ProxyConsumerListener::onBuffersReleased() {
+     sp<ConsumerListener> listener(mConsumerListener.promote());
+     if (listener != NULL) {
+diff --git a/libs/gui/BufferQueueConsumer.cpp b/libs/gui/BufferQueueConsumer.cpp
+index d46be2c..61d7754 100644
+--- a/libs/gui/BufferQueueConsumer.cpp
++++ b/libs/gui/BufferQueueConsumer.cpp
+@@ -39,7 +39,7 @@ BufferQueueConsumer::BufferQueueConsumer(const sp<BufferQueueCore>& core) :
+ BufferQueueConsumer::~BufferQueueConsumer() {}
+ 
+ status_t BufferQueueConsumer::acquireBuffer(BufferItem* outBuffer,
+-        nsecs_t expectedPresent) {
++        nsecs_t expectedPresent, uint64_t maxFrameNumber) {
+     ATRACE_CALL();
+     Mutex::Autolock lock(mCore->mMutex);
+ 
+diff --git a/libs/gui/ConsumerBase.cpp b/libs/gui/ConsumerBase.cpp
+index 210e98e..f79d0e0 100644
+--- a/libs/gui/ConsumerBase.cpp
++++ b/libs/gui/ConsumerBase.cpp
+@@ -113,6 +113,21 @@ void ConsumerBase::onFrameAvailable(const BufferItem& item) {
+     }
+ }
+ 
++void ConsumerBase::onFrameReplaced(const BufferItem &item) {
++    CB_LOGV("onFrameReplaced");
++
++    sp<FrameAvailableListener> listener;
++    {
++        Mutex::Autolock lock(mMutex);
++        listener = mFrameAvailableListener.promote();
++    }
++
++    if (listener != NULL) {
++        CB_LOGV("actually calling onFrameReplaced");
++        listener->onFrameReplaced(item);
++    }
++}
++
+ void ConsumerBase::onBuffersReleased() {
+     Mutex::Autolock lock(mMutex);
+ 
+@@ -180,8 +195,8 @@ void ConsumerBase::dumpLocked(String8& result, const char* prefix) const {
+ }
+ 
+ status_t ConsumerBase::acquireBufferLocked(BufferQueue::BufferItem *item,
+-        nsecs_t presentWhen) {
+-    status_t err = mConsumer->acquireBuffer(item, presentWhen);
++        nsecs_t presentWhen, uint64_t maxFrameNumber) {
++    status_t err = mConsumer->acquireBuffer(item, presentWhen, maxFrameNumber);
+     if (err != NO_ERROR) {
+         return err;
+     }
+diff --git a/libs/gui/GLConsumer.cpp b/libs/gui/GLConsumer.cpp
+index ca97109..b039cf8 100644
+--- a/libs/gui/GLConsumer.cpp
++++ b/libs/gui/GLConsumer.cpp
+@@ -335,8 +335,9 @@ sp<GraphicBuffer> GLConsumer::getDebugTexImageBuffer() {
+ }
+ 
+ status_t GLConsumer::acquireBufferLocked(BufferQueue::BufferItem *item,
+-        nsecs_t presentWhen) {
+-    status_t err = ConsumerBase::acquireBufferLocked(item, presentWhen);
++        nsecs_t presentWhen, uint64_t maxFrameNumber) {
++    status_t err = ConsumerBase::acquireBufferLocked(item, presentWhen,
++            maxFrameNumber);
+     if (err != NO_ERROR) {
+         return err;
+     }
+diff --git a/libs/gui/IGraphicBufferConsumer.cpp b/libs/gui/IGraphicBufferConsumer.cpp
+index f6d087d..d3346bf 100644
+--- a/libs/gui/IGraphicBufferConsumer.cpp
++++ b/libs/gui/IGraphicBufferConsumer.cpp
+@@ -215,10 +215,12 @@ public:
+     {
+     }
+ 
+-    virtual status_t acquireBuffer(BufferItem *buffer, nsecs_t presentWhen) {
++    virtual status_t acquireBuffer(BufferItem *buffer, nsecs_t presentWhen,
++            uint64_t maxFrameNumber) {
+         Parcel data, reply;
+         data.writeInterfaceToken(IGraphicBufferConsumer::getInterfaceDescriptor());
+         data.writeInt64(presentWhen);
++        data.writeUint64(maxFrameNumber);
+         status_t result = remote()->transact(ACQUIRE_BUFFER, data, &reply);
+         if (result != NO_ERROR) {
+             return result;
+@@ -427,7 +429,8 @@ status_t BnGraphicBufferConsumer::onTransact(
+             CHECK_INTERFACE(IGraphicBufferConsumer, data, reply);
+             BufferItem item;
+             int64_t presentWhen = data.readInt64();
+-            status_t result = acquireBuffer(&item, presentWhen);
++	    uint64_t maxFrameNumber = data.readUint64();
++            status_t result = acquireBuffer(&item, presentWhen, maxFrameNumber);
+             status_t err = reply->write(item);
+             if (err) return err;
+             reply->writeInt32(result);

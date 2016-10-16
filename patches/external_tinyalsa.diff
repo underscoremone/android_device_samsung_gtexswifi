@@ -1,0 +1,204 @@
+diff --git a/include/tinyalsa/asoundlib.h b/include/tinyalsa/asoundlib.h
+index c1cef00..311498e 100644
+--- a/include/tinyalsa/asoundlib.h
++++ b/include/tinyalsa/asoundlib.h
+@@ -217,6 +217,9 @@ int pcm_wait(struct pcm *pcm, int timeout);
+  */
+ int pcm_set_avail_min(struct pcm *pcm, int avail_min);
+ 
++/* SPRD: add this function to support changing samplerate */
++int pcm_set_samplerate(struct pcm *pcm, unsigned int flags, struct pcm_config *config, unsigned short samplerate);
++
+ /*
+  * MIXER API
+  */
+diff --git a/pcm.c b/pcm.c
+index b941796..d52f0ad 100644
+--- a/pcm.c
++++ b/pcm.c
+@@ -198,7 +198,7 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
+     if (errno)
+         snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
+                  ": %s", strerror(e));
+-    return -errno;
++    return -1;
+ }
+ 
+ static unsigned int pcm_format_to_alsa(enum pcm_format format)
+@@ -384,7 +384,7 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
+ 
+     if (frames < 0)
+         frames += pcm->boundary;
+-    else if (frames > (int)pcm->boundary)
++    else if (frames >= (int)pcm->boundary)
+         frames -= pcm->boundary;
+ 
+     *avail = (unsigned int)frames;
+@@ -592,6 +592,9 @@ int pcm_close(struct pcm *pcm)
+     if (pcm == &bad_pcm)
+         return 0;
+ 
++    if(!pcm)
++        return 0;
++
+     pcm_hw_munmap_status(pcm);
+ 
+     if (pcm->flags & PCM_MMAP) {
+@@ -805,7 +808,7 @@ static inline int pcm_mmap_playback_avail(struct pcm *pcm)
+ 
+     if (avail < 0)
+         avail += pcm->boundary;
+-    else if (avail > (int)pcm->boundary)
++    else if (avail >= (int)pcm->boundary)
+         avail -= pcm->boundary;
+ 
+     return avail;
+@@ -834,7 +837,7 @@ static void pcm_mmap_appl_forward(struct pcm *pcm, int frames)
+     appl_ptr += frames;
+ 
+     /* check for boundary wrap */
+-    if (appl_ptr > pcm->boundary)
++    if (appl_ptr >= pcm->boundary)
+          appl_ptr -= pcm->boundary;
+     pcm->mmap_control->appl_ptr = appl_ptr;
+ }
+@@ -896,6 +899,10 @@ int pcm_set_avail_min(struct pcm *pcm, int avail_min)
+         return -ENOSYS;
+ 
+     pcm->config.avail_min = avail_min;
++
++    if (pcm->mmap_control)
++        pcm->mmap_control->avail_min = avail_min;
++
+     return 0;
+ }
+ 
+@@ -945,22 +952,30 @@ int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
+     int err = 0, frames, avail;
+     unsigned int offset = 0, count;
+ 
++    unsigned int max_timeout = 0;
++    unsigned int total_timeout = 0;
++    unsigned int write_frames = 0;
++
+     if (bytes == 0)
+         return 0;
+ 
++    if(!pcm)
++	return -ENODEV;
++
+     count = pcm_bytes_to_frames(pcm, bytes);
++    write_frames = count;
+ 
+     while (count > 0) {
+ 
+         /* get the available space for writing new frames */
+         avail = pcm_avail_update(pcm);
+-        if (avail < 0) {
++        if ((unsigned int)avail > pcm->buffer_size) {
+             fprintf(stderr, "cannot determine available mmap frames");
+-            return err;
++            return -1;
+         }
+ 
+         /* start the audio if we reach the threshold */
+-	    if (!pcm->running &&
++        if (!pcm->running &&
+             (pcm->buffer_size - avail) >= pcm->config.start_threshold) {
+             if (pcm_start(pcm) < 0) {
+                fprintf(stderr, "start error: hw 0x%x app 0x%x avail 0x%x\n",
+@@ -981,13 +996,17 @@ int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
+ 
+             if (pcm->wait_for_avail_min && (avail < pcm->config.avail_min)) {
+                 int time = -1;
+-
+                 /* disable waiting for avail_min threshold to allow small amounts of data to be
+                  * written without waiting as long as there is enough room in buffer. */
+                 pcm->wait_for_avail_min = 0;
+-
+-                if (pcm->flags & PCM_NOIRQ)
++                if (pcm->flags & PCM_NOIRQ){
+                     time = (pcm->config.avail_min - avail) / pcm->noirq_frames_per_msec;
++                    if(!max_timeout) {
++                        max_timeout = ((pcm->buffer_size + write_frames)/pcm->noirq_frames_per_msec)*5;
++                        if(max_timeout < 3000)
++                            max_timeout = 3000;
++                    }
++                }
+ 
+                 err = pcm_wait(pcm, time);
+                 if (err < 0) {
+@@ -999,6 +1018,18 @@ int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
+                     pcm->mmap_control->appl_ptr = 0;
+                     return err;
+                 }
++
++                if(max_timeout && (0 == err)) {
++                    total_timeout += time;
++                    if(total_timeout >= max_timeout) {
++                        oops(pcm, err, "wait timeout error : hw 0x%x app 0x%x avail 0x%x\n",
++                            (unsigned int)pcm->mmap_status->hw_ptr,
++                            (unsigned int)pcm->mmap_control->appl_ptr,
++                            total_timeout);
++                        pcm->mmap_control->appl_ptr = 0;
++                        return -EPIPE;
++                    }
++                }
+                 continue;
+             }
+         }
+@@ -1054,3 +1085,54 @@ int pcm_ioctl(struct pcm *pcm, int request, ...)
+ 
+     return ioctl(pcm->fd, request, arg);
+ }
++
++/* SPRD: add this function to support changing samplerate */
++int pcm_set_samplerate(struct pcm *pcm, unsigned int flags, struct pcm_config *config, unsigned short samplerate)
++{
++    struct snd_pcm_hw_params params;
++
++    if(pcm->fd < 0){
++        fprintf(stderr, "%s, error pcm_fd (%d) ",__func__,pcm->fd);
++        return -1;
++    }
++    if(config == NULL){
++        fprintf(stderr, "%s, error pcm config ",__func__);
++        return -1;
++    }
++
++    param_init(&params);
++    param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
++                   pcm_format_to_alsa(config->format));
++    param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,
++                   SNDRV_PCM_SUBFORMAT_STD);
++    param_set_min(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, config->period_size);
++    param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
++                  pcm_format_to_bits(config->format));
++    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,
++                  pcm_format_to_bits(config->format) * config->channels);
++    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,
++                  config->channels);
++    param_set_int(&params, SNDRV_PCM_HW_PARAM_PERIODS, config->period_count);
++    param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, samplerate);
++
++    if (flags & PCM_NOIRQ) {
++        if (!(flags & PCM_MMAP)) {
++            fprintf(stderr, "%s, noirq only currently supported with mmap(). ", __func__);
++            return -1;
++        }
++        params.flags |= SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
++    }
++    if (flags & PCM_MMAP)
++        param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
++                   SNDRV_PCM_ACCESS_MMAP_INTERLEAVED);
++    else
++        param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
++                   SNDRV_PCM_ACCESS_RW_INTERLEAVED);
++
++    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
++        fprintf(stderr, "%s, SNDRV_PCM_IOCTL_HW_PARAMS failed (%s) ", __func__,strerror(errno));
++        return -1;
++    }
++//    ALOGW("%s, out,samplerate (%d) ",__func__,samplerate);
++    return 0;
++}
