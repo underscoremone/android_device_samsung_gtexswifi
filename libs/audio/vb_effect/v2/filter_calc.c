@@ -20,7 +20,7 @@
 
 #include "filter_calc.h"
 
-#include <asm/div64.h>
+//#include <asm/div64.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -43,7 +43,7 @@
  **                         const tables                                  *
  **---------------------------------------------------------------------------*/
 
- LOCAL CONST int16_t Linear_gain_Table[1801] ={//4096πÈ“ªªØ
+ LOCAL CONST int16_t Linear_gain_Table[1801] ={//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -183,7 +183,7 @@ LOCAL CONST int16_t cos_Table[2049] = {
 
 
 
-LOCAL CONST int16_t GTable[901] = {//%4096πÈ“ªªØ
+LOCAL CONST int16_t GTable[901] = {//%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
     2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
@@ -217,7 +217,7 @@ LOCAL CONST int16_t GTable[901] = {//%4096πÈ“ªªØ
 
 
 
-LOCAL CONST int16_t GextractByTwoTable[901] = {//%4096πÈ“ªªØ
+LOCAL CONST int16_t GextractByTwoTable[901] = {//%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
     64,65,65,66,66,66,67,67,67,68,68,69,69,69,70,70,71,71,72,72,72,73,73,74,74,74,75,75,76,76,
     77,77,78,78,78,79,79,80,80,81,81,82,82,83,83,84,84,85,85,86,86,87,87,88,88,89,89,90,90,91,
     91,92,92,93,93,94,94,95,96,96,97,97,98,98,99,99,100,101,101,102,102,103,104,104,105,105,106,107,107,108,
@@ -250,7 +250,7 @@ LOCAL CONST int16_t GextractByTwoTable[901] = {//%4096πÈ“ªªØ
     9713,9769,9825,9882,9939,9996,10054,10112,10170,10229,10288,10348,10407,10467,10528,10589,10650,10711,10773,10835,10898,10961,11024,11088,11152,11216,11281,11346,11411,11477,11544};
 
 
-LOCAL CONST int16_t GextractByFourTable[901] = {//%4096πÈ“ªªØ
+LOCAL CONST int16_t GextractByFourTable[901] = {//%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
     515,517,518,520,521,523,524,526,527,529,530,532,533,535,536,538,539,541,543,544,546,547,549,550,552,554,555,557,558,560,
     562,563,565,567,568,570,571,573,575,576,578,580,581,583,585,586,588,590,592,593,595,597,598,600,602,604,605,607,609,611,
     612,614,616,618,619,621,623,625,627,628,630,632,634,636,638,639,641,643,645,647,649,651,652,654,656,658,660,662,664,666,
@@ -284,7 +284,7 @@ LOCAL CONST int16_t GextractByFourTable[901] = {//%4096πÈ“ªªØ
     6876};
 
 #if 0
-LOCAL CONST int16_t BaseGTable[901] = {//%16384πÈ“ªªØ
+LOCAL CONST int16_t BaseGTable[901] = {//%16384ÔøΩÔøΩ“ªÔøΩÔøΩ
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
     2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
@@ -319,7 +319,7 @@ LOCAL CONST int16_t BaseGTable[901] = {//%16384πÈ“ªªØ
 
 #endif
 
-LOCAL CONST int16_t BaseGTable[901] = {//%32768πÈ“ªªØ
+LOCAL CONST int16_t BaseGTable[901] = {//%32768ÔøΩÔøΩ“ªÔøΩÔøΩ
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
@@ -421,12 +421,12 @@ BOOLEAN Filter_CalcEqCoeffs(
 
     qkdB          =  boostdB*5;
     qkTableIndex  = (qkdB + 7200)/5 ;
-    Qk            =  Linear_gain_Table[qkTableIndex]; //4096πÈ“ªªØ ;
+    Qk            =  Linear_gain_Table[qkTableIndex]; //4096ÔøΩÔøΩ“ªÔøΩÔøΩ ;
 
     //gama = tan(bw/2);
     if((Qdf/2)>=2048)
 		return FALSE;
-    Qgama = ((cos_Table[2048-Qdf/2])<<12)/cos_Table[Qdf/2];//4096πÈ“ªªØ
+    Qgama = ((cos_Table[2048-Qdf/2])<<12)/cos_Table[Qdf/2];//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
 
     //base gain
     if((basegaindB<-720)||
@@ -439,7 +439,7 @@ BOOLEAN Filter_CalcEqCoeffs(
     //eq_b =  [(1+gama*qk)/(1+gama/qk)   (-2*cos(w0))/(1+gama/qk)   (1-gama*qk)/(1+gama/qk)];// [b0 b1 b2]
     //eq_a =  [        1                 (-2*cos(w0))/(1+gama/qk)  (1-gama/qk)/(1+gama/qk)]; // [1 a1 a2]
 
-    //-8192 πÈ“ªªØ /4 (finally -2048πÈ“ªªØ)
+    //-8192 ÔøΩÔøΩ“ªÔøΩÔøΩ /4 (finally -2048ÔøΩÔøΩ“ªÔøΩÔøΩ)
 
     //filterPara->B0  filterPara->A0
     df_temp = -((1<<13)*Qk + (Qgama*((Qk*Qk)>>11)))/(Qk+Qgama);
@@ -533,10 +533,10 @@ BOOLEAN Filter_CalcF1f1Coeffs(
     if((Qf2fp/2)>=2048)
 		return FALSE;
 
-	//F1_wp_Q = floor(cosTable2(2048-floor(Qf1fp/2)+1)*4096/cosTable2(floor(Qf1fp/2)+1));%4096πÈ“ªªØ
-	//F2_wp_Q = floor(cosTable2(2048-floor(Qf2fp/2)+1)*4096/cosTable2(floor(Qf2fp/2)+1));%4096πÈ“ªªØ
-	F1_wp_Q = ((cos_Table[2048-Qf1fp/2])<<12)/cos_Table[Qf1fp/2];//4096πÈ“ªªØ
-	F2_wp_Q = ((cos_Table[2048-Qf2fp/2])<<12)/cos_Table[Qf2fp/2];//4096πÈ“ªªØ
+	//F1_wp_Q = floor(cosTable2(2048-floor(Qf1fp/2)+1)*4096/cosTable2(floor(Qf1fp/2)+1));%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
+	//F2_wp_Q = floor(cosTable2(2048-floor(Qf2fp/2)+1)*4096/cosTable2(floor(Qf2fp/2)+1));%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
+	F1_wp_Q = ((cos_Table[2048-Qf1fp/2])<<12)/cos_Table[Qf1fp/2];//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
+	F2_wp_Q = ((cos_Table[2048-Qf2fp/2])<<12)/cos_Table[Qf2fp/2];//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
 
 	gain_index  =  (f1_g0_dB*10 + 7200)/5;
 	F1_G0_Q     = Linear_gain_Table[gain_index];
@@ -672,12 +672,12 @@ BOOLEAN Filter_CalcEQ(
 
             qkdB          =  boostdB*5;
             qkTableIndex  = (qkdB + 7200)/5 ;
-            Qk            =  Linear_gain_Table[qkTableIndex]; //4096πÈ“ªªØ ;
+            Qk            =  Linear_gain_Table[qkTableIndex]; //4096ÔøΩÔøΩ“ªÔøΩÔøΩ ;
 
             //gama = tan(bw/2);
             if((Qdf/2)>=2048)
         		return FALSE;
-            Qgama = ((cos_Table[2048-Qdf/2])<<12)/cos_Table[Qdf/2];//4096πÈ“ªªØ
+            Qgama = ((cos_Table[2048-Qdf/2])<<12)/cos_Table[Qdf/2];//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
 
             //base gain
             if((basegaindB<-720)||
@@ -690,7 +690,7 @@ BOOLEAN Filter_CalcEQ(
             //eq_b =  [(1+gama*qk)/(1+gama/qk)   (-2*cos(w0))/(1+gama/qk)   (1-gama*qk)/(1+gama/qk)];// [b0 b1 b2]
             //eq_a =  [        1                 (-2*cos(w0))/(1+gama/qk)  (1-gama/qk)/(1+gama/qk)]; // [1 a1 a2]
 
-            //16384 πÈ“ªªØ
+            //16384 ÔøΩÔøΩ“ªÔøΩÔøΩ
             //B0 A0
             //B0 = ((1<<14)*Qk + (Qgama*((Qk*Qk)>>10)))/(Qk+Qgama);
             //B0 = (1<<14)*Qk/(Qk+Qgama) + ((Qgama*Qk)/(Qk+Qgama)*Qk)>>10;
@@ -862,10 +862,10 @@ BOOLEAN Filter_CalcLCF(
             if((Qf2fp/2)>=2048)
         		return TRUE;
 
-        	//F1_wp_Q = floor(cosTable2(2048-floor(Qf1fp/2)+1)*4096/cosTable2(floor(Qf1fp/2)+1));%4096πÈ“ªªØ
-        	//F2_wp_Q = floor(cosTable2(2048-floor(Qf2fp/2)+1)*4096/cosTable2(floor(Qf2fp/2)+1));%4096πÈ“ªªØ
-        	F1_wp_Q = ((cos_Table[2048-Qf1fp/2])<<12)/cos_Table[Qf1fp/2];//4096πÈ“ªªØ
-        	F2_wp_Q = ((cos_Table[2048-Qf2fp/2])<<12)/cos_Table[Qf2fp/2];//4096πÈ“ªªØ
+        	//F1_wp_Q = floor(cosTable2(2048-floor(Qf1fp/2)+1)*4096/cosTable2(floor(Qf1fp/2)+1));%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
+        	//F2_wp_Q = floor(cosTable2(2048-floor(Qf2fp/2)+1)*4096/cosTable2(floor(Qf2fp/2)+1));%4096ÔøΩÔøΩ“ªÔøΩÔøΩ
+        	F1_wp_Q = ((cos_Table[2048-Qf1fp/2])<<12)/cos_Table[Qf1fp/2];//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
+        	F2_wp_Q = ((cos_Table[2048-Qf2fp/2])<<12)/cos_Table[Qf2fp/2];//4096ÔøΩÔøΩ“ªÔøΩÔøΩ
 
         	gain_index  =  (f1_g0_dB*10 + 7200)/5;
         	F1_G0_Q     = Linear_gain_Table[gain_index];
@@ -923,7 +923,7 @@ BOOLEAN Filter_CalcLCF(
             Qlcffp  = (LCF_Fp<<13)/fs;  //%redefinition Qlcffp:[0,4096]
             if((Qlcffp/2)==0)
         		return TRUE;
-            K       = ((cos_Table[Qlcffp/2])<<14)/cos_Table[2048-Qlcffp/2]; //%Qk πÈ“ªªØ  int32_t
+            K       = ((cos_Table[Qlcffp/2])<<14)/cos_Table[2048-Qlcffp/2]; //%Qk ÔøΩÔøΩ“ªÔøΩÔøΩ  int32_t
 
             //get dividends and dividor
             Qk2dk = ((1<<28)/K);
@@ -1140,7 +1140,7 @@ BOOLEAN Filter_CalcEqCoeffs_Ex(
         if((Qeqfp/2)>=2048) // in para overflow
 		    return TRUE;
         WP_d   = (int64_t)(1<<26)*cos_Table[2048-Qeqfp/2];
-        WP     = (int32_t)(WP_d/(G0_ExFour_fix*cos_Table[Qeqfp/2]));//%16384 πÈ“ªªØ  int32_t
+        WP     = (int32_t)(WP_d/(G0_ExFour_fix*cos_Table[Qeqfp/2]));//%16384 ÔøΩÔøΩ“ªÔøΩÔøΩ  int32_t
 //		WP = do_sprddiv64(WP_d, (G0_ExFour_fix*cos_Table[Qeqfp/2]));
         if(WP==0)
         {
@@ -1176,7 +1176,7 @@ BOOLEAN Filter_CalcEqCoeffs_Ex(
         if((Qeqfp/2)>=2048) // in para overflow
 		    return TRUE;
         WP_d   = ((int64_t)(G0_ExFour_fix*cos_Table[2048-Qeqfp/2])<<14);
-        WP     = (int32_t)(WP_d/(cos_Table[Qeqfp/2]<<12));// %16384 πÈ“ªªØ  int32_t
+        WP     = (int32_t)(WP_d/(cos_Table[Qeqfp/2]<<12));// %16384 ÔøΩÔøΩ“ªÔøΩÔøΩ  int32_t
 //		WP = do_sprddiv64(WP_d, (cos_Table[Qeqfp/2]<<12));
         if(WP==0)
         {
@@ -1209,7 +1209,7 @@ BOOLEAN Filter_CalcEqCoeffs_Ex(
         Qeqbw  = (df<<13)/Fs;  //%redefinition Qeqfp:[0,4096]
         if((Qeqbw/2)>=2048)
 		    return TRUE;
-        GAMA   = 16384*cos_Table[2048-Qeqbw/2]/cos_Table[Qeqbw/2]; //%16384 πÈ“ªªØ  int32_t
+        GAMA   = 16384*cos_Table[2048-Qeqbw/2]/cos_Table[Qeqbw/2]; //%16384 ÔøΩÔøΩ“ªÔøΩÔøΩ  int32_t
 
         Qeqfo  = (fo<<13)/Fs;  //%redefinition
         if((Qeqfo/2)>=2048)
@@ -1312,4 +1312,3 @@ BOOLEAN Filter_CalcEqCoeffs_Ex(
     }
 
 #endif
-

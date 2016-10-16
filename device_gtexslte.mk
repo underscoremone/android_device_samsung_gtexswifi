@@ -55,9 +55,11 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 
 # HWC
 PRODUCT_PACKAGES += \
-		gralloc.sc8830 \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
+		audio.primary.sc8830 \
+		audio_policy.sc8830 \
+		lights.sc8830 \
 		libion
 
 PRODUCT_NAME := full_gtexslte

@@ -34,7 +34,7 @@
 //#include <gui/ISurfaceTexture.h>
 
 #include <linux/ion.h>
-#include <binder/MemoryHeapIon.h>
+#include <binder/MemoryHeapIon.SPRD.h>
 
 #include <dlfcn.h>
 
@@ -1266,7 +1266,7 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
                   mVideoWidth, mVideoHeight, vid_out.pOutBuf, vid_out.strmSize, width, height, x, y);
             if ((vid_out.strmSize < 0) || (ret != MMENC_OK)) {
                 ALOGE("Failed to encode frame %lld, ret=%d", mNumInputFrames, ret);
-#if 0  //removed by xiaowei, 20131017, for cr224544              
+#if 0  //removed by xiaowei, 20131017, for cr224544
                 mSignalledError = true;
                 notify(OMX_EventError, OMX_ErrorUndefined, 0, 0);
 #endif

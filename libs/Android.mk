@@ -16,6 +16,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(TARGET_DEVICE),kanas)
+ifeq ($(TARGET_DEVICE),gtexslte)
 include $(call all-makefiles-under,$(LOCAL_PATH))
 endif

@@ -12,7 +12,7 @@ LOCAL_C_INCLUDES := \
 	frameworks/native/include/ui \
 	frameworks/native/include/utils \
 	frameworks/native/include/media/hardware \
-	$(LOCAL_PATH)/../../../../../gralloc \
+	$(LOCAL_PATH)/../../../../../gralloc/$(TARGET_BOARD_PLATFORM) \
 	$(LOCAL_PATH)/../../../../../libstagefrighthw/include \
 	$(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/video
 
@@ -29,4 +29,3 @@ LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
-

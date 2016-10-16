@@ -24,7 +24,13 @@ LOCAL_SHARED_LIBRARIES := \
 	libutils \
 	libdl \
 	libsecril-client
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+
+LOCAL_C_INCLUDES := \
+	$(LOCAL_PATH)/../libsecril-client/
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+	$(LOCAL_PATH)
+
 LOCAL_MODULE := libatchannel
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
