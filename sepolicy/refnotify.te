@@ -1,0 +1,7 @@
+# refnotify
+type refnotify, domain;
+type refnotify_exec, exec_type, file_type;
+
+init_daemon_domain(refnotify)
+
+allow refnotify refnotify_device:chr_file { read write open ioctl };

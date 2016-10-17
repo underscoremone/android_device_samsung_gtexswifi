@@ -14,6 +14,11 @@ else
 	LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
 endif
 
+# Media config
+MEDIA_CONFIGS := \
+	$(LOCAL_PATH)/media/media_codecs.xml \
+	$(LOCAL_PATH)/media/media_profiles.xml
+
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
@@ -61,6 +66,28 @@ PRODUCT_PACKAGES += \
 		audio_policy.sc8830 \
 		lights.sc8830 \
 		libion
+
+# Permissions
+PERMISSION_XML_FILES := \
+	$(LOCAL_PATH)/permissions/platform.xml \
+	$(LOCAL_PATH)/permissions/handheld_core_hardware.xml \
+	frameworks/native/data/etc/android.hardware.camera.front.xml \
+	frameworks/native/data/etc/android.hardware.camera.xml \
+	frameworks/native/data/etc/android.hardware.bluetooth.xml \
+	frameworks/native/data/etc/android.hardware.location.gps.xml \
+	frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml \
+	frameworks/native/data/etc/android.hardware.touchscreen.multitouch.xml \
+	frameworks/native/data/etc/android.hardware.touchscreen.xml \
+	frameworks/native/data/etc/android.hardware.telephony.gsm.xml \
+	frameworks/native/data/etc/android.hardware.usb.accessory.xml \
+	frameworks/native/data/etc/android.software.sip.voip.xml \
+	frameworks/native/data/etc/android.software.sip.xml \
+	frameworks/native/data/etc/android.hardware.wifi.xml \
+	frameworks/native/data/etc/android.hardware.wifi.direct.xml
+
+PRODUCT_COPY_FILES += \
+	$(foreach f,$(PERMISSION_XML_FILES),$(f):system/etc/permissions/$(notdir $(f)))
+
 
 PRODUCT_NAME := full_gtexslte
 PRODUCT_DEVICE := gtexslte

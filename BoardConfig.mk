@@ -55,39 +55,70 @@ BOARD_EGL_WORKAROUND_BUG_10194508 := true
 TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 
-TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
-TARGET_KERNEL_CONFIG := gtexslte_defconfig
-TARGET_VARIANT_CONFIG := gtexslte_defconfig
-TARGET_SELINUX_CONFIG := gtexslte_defconfig
+# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
+# TARGET_KERNEL_CONFIG := gtexslte_defconfig
+# TARGET_VARIANT_CONFIG := gtexslte_defconfig
+# TARGET_SELINUX_CONFIG := gtexslte_defconfig
 
-# TARGET_PREBUILT_KERNEL := device/samsung/gtexslte/kernel
+# Bluetooth
+BOARD_HAVE_BLUETOOTH := true
+# BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
+# BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 
-SC9830_MODULES:
-	mkdir -p $(PRODUCT_OUT)/root/lib/modules
-	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
-	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
-	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
-	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi clean
-	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
-	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
-	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
+# Wifi
+# BOARD_WLAN_DEVICE := sc2331
+# BOARD_WLAN_DEVICE_REV := BCM4330B1_002.001.003.1025.1303
+# WPA_SUPPLICANT_VERSION := VER_0_8_X
+# BOARD_WPA_SUPPLICANT_DRIVER := NL80211
+# BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_bcmdhd
+# BOARD_HOSTAPD_DRIVER := NL80211
+# BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_bcmdhd
+# WIFI_DRIVER_FW_PATH_PARAM := "/sys/module/dhd/parameters/firmware_path"
+# WIFI_DRIVER_FW_PATH_STA := "/system/etc/wifi/bcmdhd_sta.bin"
+# WIFI_DRIVER_FW_PATH_AP := "/system/etc/wifi/bcmdhd_apsta.bin"
+# WIFI_DRIVER_NVRAM_PATH_PARAM := "/sys/module/dhd/parameters/nvram_path"
+# WIFI_DRIVER_NVRAM_PATH := "/system/etc/wifi/nvram_net.txt"
+# WIFI_BAND := 802_11_ABG
+# BOARD_HAVE_SAMSUNG_WIFI := true
 
-TARGET_KERNEL_MODULES := SC9830_MODULES
+
+TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
+
+# SC9830_MODULES:
+# 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
+# 	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi clean
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+# 	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
+#
+# TARGET_KERNEL_MODULES := SC9830_MODULES
 
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
 
 BOARD_SEPOLICY_UNION += \
+			 device.te \
+			 batterysrv.te \
        debuggerd.te \
        init.te \
 			 surfaceflinger.te \
 			 rild.te \
 			 systemserver.te \
-       file_contexts \
 			 netd.te \
+			 mfgloader.te \
 			 mediaserver.te \
-			 system_app.te
+			 system_app.te \
+			 at_distributor.te \
+			 download.te \
+			 engpc.te \
+			 cp_diskserver.te \
+			 refnotify.te \
+			 wlandutservice.te \
+       file_contexts
 
 
 TARGET_RECOVERY_FSTAB = device/samsung/gtexslte/recovery.fstab

@@ -1,0 +1,9 @@
+# cp_diskserver
+type cp_diskserver, domain;
+type cp_diskserver_exec, exec_type, file_type;
+
+init_daemon_domain(cp_diskserver)
+
+allow cp_diskserver block_device:dir search;
+allow cp_diskserver spipe_device:chr_file { read write open ioctl };
+allow cp_diskserver emmcblk_device:blk_file { read write open };

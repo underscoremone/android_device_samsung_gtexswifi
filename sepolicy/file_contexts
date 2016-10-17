@@ -16,12 +16,18 @@
 /dev/sprd_coda7l        u:object_r:video_device:s0
 /dev/sprd_vpp           u:object_r:video_device:s0
 /dev/sprd_jpg           u:object_r:graphics_device:s0
-#SEC remove: /dev/ttyGS[0-9]         u:object_r:serial_device:s0
 /dev/stty_w0            u:object_r:tty_device:s0
 /dev/stty_w[0-9]*       u:object_r:radio_device:s0
+/dev/ttyGS[0-9]*	       u:object_r:usb_serial_device:s0
 /dev/vser               u:object_r:serial_device:s0
+/dev/sdiag_lte          u:object_r:slog_device:s0
+/dev/slog_lte           u:object_r:slog_device:s0
+/dev/download           u:object_r:wcn_device:s0
 
 /dev/sttybt0            u:object_r:hci_attach_dev:s0
+
+/dev/pipe(/.*)?          u:object_r:audio_device:s0
+/dev/power_ctl           u:object_r:power_ctl_device:s0
 
 /dev/stty_w12            u:object_r:tty_device:s0
 /dev/stty_lte12          u:object_r:tty_device:s0
@@ -30,18 +36,39 @@
 /dev/stty_lte[0-9]       u:object_r:radio_device:s0
 /dev/stty_lte10          u:object_r:radio_device:s0
 /dev/stty_lte11          u:object_r:tty_device:s0
-
 /dev/Trout_FM            u:object_r:audio_device:s0
+
+/dev/block/mmcblk[0-9].*	   u:object_r:emmcblk_device:s0
+/dev/block/zram[0-9]		 u:object_r:ram_device:s0
+
+/dev/block/mmcblk0p17    u:object_r:efsblk_device:s0
+/dev/block/mmcblk0       u:object_r:mmc_block_device:s0
+/dev/block/mmcblk0p25    u:object_r:userdatablk_device:s0
+/dev/block/vnswap0       u:object_r:swap_device:s0
 
 # gtexslte hardware
 
+/dev/rtc[0-9]*	u:object_r:clock_device:s0
 /dev/mali	      u:object_r:gpu_device:s0
 /dev/mali[0-9]	u:object_r:gpu_device:s0
+/dev/spipe_lte1         u:object_r:spipe_device:s0
+/dev/spipe_lte2         u:object_r:radio_device:s0
 /dev/spipe_lte4         u:object_r:audio_device:s0
 /dev/spipe_lte6         u:object_r:audio_device:s0
+/dev/spipe_lte8		      u:object_r:refnotify_device:s0
 /dev/stty_lte21	        u:object_r:radio_device:s0
 /dev/epl2182_pls        u:object_r:sensors_device:s0
 
-/dev/block/mmcblk[0-9].*	   u:object_r:emmcblk_device:s0
+/system/bin/at_distributor  u:object_r:at_distributor_exec:s0
+/system/bin/download    u:object_r:download_exec:s0
+/system/bin/engpc       u:object_r:engpc_exec:s0
+/system/bin/modemd      u:object_r:rild_exec:s0
+/system/bin/modem_control      u:object_r:rild_exec:s0
+/system/bin/cp_diskserver u:object_r:cp_diskserver_exec:s0
+/system/bin/refnotify   u:object_r:refnotify_exec:s0
+/system/bin/mfgloader   u:object_r:mfgloader_exec:s0
+/system/bin/batterysrv   u:object_r:batterysrv_exec:s0
+/system/bin/wlandutservice u:object_r:wlandutservice_exec:s0
+/system/bin/
 
 /mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

@@ -1,0 +1,5 @@
+# AT distributor
+type mfgloader, domain;
+type mfgloader_exec, exec_type, file_type;
+
+init_daemon_domain(mfgloader)

@@ -1,0 +1,23 @@
+# engpc
+type engpc, domain;
+type engpc_exec, exec_type, file_type;
+
+init_daemon_domain(engpc)
+
+allow engpc usb_serial_device:chr_file { open read write ioctl };
+allow engpc devpts:chr_file setattr;
+allow engpc property_socket:sock_file write;
+allow engpc self:netlink_kobject_uevent_socket { create bind setopt read };
+allow engpc serial_device:chr_file { open read write };
+allow engpc system_data_file:file { open write lock };
+allow engpc unlabeled:dir search;
+allow engpc init:unix_stream_socket connectto;
+allow engpc serial_device:chr_file { open ioctl };
+allow engpc tty_device:chr_file { read write open };
+allow engpc unlabeled:file { open read write getattr lock setattr };
+allow engpc ctl_default_prop:property_service set;
+allow engpc system_prop:property_service set;
+allow engpc slog_device:chr_file { read write open };
+allow engpc shell_exec:file { read open execute execute_no_trans };
+allow engpc system_file:file execute_no_trans;
+allow engpc efs_file:dir search;

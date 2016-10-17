@@ -1,0 +1,13 @@
+type emmcblk_device, dev_type;
+type efsblk_device, dev_type;
+type systemblk_device, dev_type;
+type userdatablk_device, dev_type;
+type swap_device, dev_type;
+type mmc_block_device, dev_type;
+type power_ctl_device, dev_type;
+type usb_serial_device, dev_type;
+type slog_device, dev_type;
+type wcn_device, dev_type;
+type spipe_device, dev_type;
+type refnotify_device, dev_type;
+type clock_device, dev_type;
