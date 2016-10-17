@@ -1,5 +1,6 @@
 # sprd file contexts
-#SEC remove: /dev/mali0		u:object_r:gpu_device:s0
+
+
 /dev/spipe_w4           u:object_r:audio_device:s0
 /dev/spipe_w6           u:object_r:audio_device:s0
 /dev/spipe_w14          u:object_r:audio_device:s0
@@ -18,7 +19,7 @@
 /dev/sprd_jpg           u:object_r:graphics_device:s0
 /dev/stty_w0            u:object_r:tty_device:s0
 /dev/stty_w[0-9]*       u:object_r:radio_device:s0
-/dev/ttyGS[0-9]*	       u:object_r:usb_serial_device:s0
+/dev/ttyGS[0-9]*	      u:object_r:usb_serial_device:s0
 /dev/vser               u:object_r:serial_device:s0
 /dev/sdiag_lte          u:object_r:slog_device:s0
 /dev/slog_lte           u:object_r:slog_device:s0
@@ -38,7 +39,7 @@
 /dev/stty_lte11          u:object_r:tty_device:s0
 /dev/Trout_FM            u:object_r:audio_device:s0
 
-/dev/block/mmcblk[0-9].*	   u:object_r:emmcblk_device:s0
+/dev/block/mmcblk[0-9].* u:object_r:emmcblk_device:s0
 /dev/block/zram[0-9]		 u:object_r:ram_device:s0
 
 /dev/block/mmcblk0p17    u:object_r:efsblk_device:s0
@@ -69,6 +70,13 @@
 /system/bin/mfgloader   u:object_r:mfgloader_exec:s0
 /system/bin/batterysrv   u:object_r:batterysrv_exec:s0
 /system/bin/wlandutservice u:object_r:wlandutservice_exec:s0
-/system/bin/
+/system/bin/slogmodem   u:object_r:slogmodem_exec:s0
+/system/bin/macloader   u:object_r:macloader:s0
+/system/bin/ext_symlink.sh u:object_r:smd_symlink_exec:s0
+/system/bin/ext_data.sh  u:object_r:data_on_off_exec:s0
+/system/bin/hostapd  u:object_r:hostapd_exec:s0
+/system/bin/ddexe   u:object_r:ddexe_exec:s0
+/system/bin/connfwexe   u:object_r:connfwexe_exec:s0
+
 
 /mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

@@ -118,6 +118,13 @@ BOARD_SEPOLICY_UNION += \
 			 cp_diskserver.te \
 			 refnotify.te \
 			 wlandutservice.te \
+			 data_on_off.te \
+			 macloader.te \
+			 slogmodem.te \
+			 smd_symlink.te \
+			 hostapd.te \
+			 ddexe.te \
+			 connfwexe \
        file_contexts
 
 

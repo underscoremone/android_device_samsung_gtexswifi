@@ -1,0 +1,5 @@
+# AT distributor
+type data_on_off, domain;
+type data_on_off_exec, exec_type, file_type;
+
+init_daemon_domain(data_on_off)

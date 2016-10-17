@@ -1,0 +1,4 @@
+type smd_symlink, domain;
+type smd_symlink_exec, exec_type, file_type;
+
+init_daemon_domain(smd_symlink)

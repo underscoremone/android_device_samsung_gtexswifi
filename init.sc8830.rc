@@ -1,6 +1,7 @@
 import /init.board.rc
 import /init.gtexslte.usb.rc
 import /init.gtexslte_base.rc
+import /init.rilcommon.rc
 
 
 on early-init
