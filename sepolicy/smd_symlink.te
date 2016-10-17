@@ -2,3 +2,8 @@ type smd_symlink, domain;
 type smd_symlink_exec, exec_type, file_type;
 
 init_daemon_domain(smd_symlink)
+
+allow smd_symlink shell_exec:file read;
+allow smd_symlink system_file:file execute_no_trans;
+allow smd_symlink device:dir { write add_name };
+allow smd_symlink device:lnk_file create;

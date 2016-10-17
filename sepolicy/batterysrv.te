@@ -6,6 +6,6 @@ init_daemon_domain(batterysrv)
 
 allow batterysrv self:netlink_kobject_uevent_socket { bind read setopt create };
 allow batterysrv system_data_file:dir { create add_name write };
-allow batterysrv system_data_file:file create;
+allow batterysrv system_data_file:file { open  create };
 allow batterysrv unlabeled:dir { read write search };
 allow batterysrv unlabeled:file { open read write };

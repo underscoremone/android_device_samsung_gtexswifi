@@ -1,0 +1,1 @@
+allow untrusted_app cache_file:fifo_file getattr;

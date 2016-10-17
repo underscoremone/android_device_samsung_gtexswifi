@@ -7,3 +7,4 @@ init_daemon_domain(download)
 allow download power_ctl_device:chr_file { open read write ioctl };
 allow download serial_device:chr_file { open read write ioctl };
 allow download wcn_device:chr_file { read write open };
+allow download proc:file write;
