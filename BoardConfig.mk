@@ -101,6 +101,7 @@ TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
 
 BOARD_SEPOLICY_UNION += \
+			 file.te \
 			 bluetooth.te \
 			 device.te \
 			 batterysrv.te \
