@@ -77,6 +77,7 @@
 /system/bin/ext_data.sh  u:object_r:data_on_off_exec:s0
 /system/bin/ddexe   u:object_r:ddexe_exec:s0
 /system/bin/connfwexe   u:object_r:connfwexe_exec:s0
+/system/bin/wcnd  u:object_r:wcnd_exec:s0
 
 
 /mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

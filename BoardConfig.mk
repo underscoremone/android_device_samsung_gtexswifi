@@ -128,6 +128,7 @@ BOARD_SEPOLICY_UNION += \
 			 untrusted_app.te \
 			 genfs_contexts \
 			 vold.te \
+			 wcnd.te \
        file_contexts
 
 

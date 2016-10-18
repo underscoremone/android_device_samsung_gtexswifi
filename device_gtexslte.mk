@@ -30,6 +30,8 @@ PRODUCT_COPY_FILES += \
     device/samsung/gtexslte/init.gtexslte.usb.rc:root/init.gtexslte.usb.rc \
     device/samsung/gtexslte/fstab.sc8830:root/fstab.sc8830 \
     device/samsung/gtexslte/ueventd.sc8830.rc:root/ueventd.sc8830.rc \
+		device/samsung/gtexslte/init.wifi.rc:root/init.rilchip.rc \
+		device/samsung/gtexslte/init.wifi.rc:root/init.rilcommon.rc \
 		device/samsung/gtexslte/init.wifi.rc:root/init.wifi.rc \
 		device/samsung/gtexslte/init.dhcp.rc:root/init.dhcp.rc
 
@@ -70,7 +72,7 @@ PRODUCT_PACKAGES += \
 # Permissions
 PERMISSION_XML_FILES := \
 	$(LOCAL_PATH)/permissions/platform.xml \
-	$(LOCAL_PATH)/permissions/handheld_core_hardware.xml \
+	$(LOCAL_PATH)/permissions/tablet_core_hardware.xml \
 	frameworks/native/data/etc/android.hardware.camera.front.xml \
 	frameworks/native/data/etc/android.hardware.camera.xml \
 	frameworks/native/data/etc/android.hardware.bluetooth.xml \
@@ -80,6 +82,7 @@ PERMISSION_XML_FILES := \
 	frameworks/native/data/etc/android.hardware.touchscreen.xml \
 	frameworks/native/data/etc/android.hardware.telephony.gsm.xml \
 	frameworks/native/data/etc/android.hardware.usb.accessory.xml \
+	frameworks/native/data/etc/android.hardware.usb.host.xml \
 	frameworks/native/data/etc/android.software.sip.voip.xml \
 	frameworks/native/data/etc/android.software.sip.xml \
 	frameworks/native/data/etc/android.hardware.wifi.xml \

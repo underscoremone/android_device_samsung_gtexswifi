@@ -1,0 +1,3 @@
+type prod_file, file_type;
+type wifi_efs_file, file_type;
+type app_efs_file, file_type;
