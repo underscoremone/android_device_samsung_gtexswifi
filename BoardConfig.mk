@@ -127,6 +127,7 @@ BOARD_SEPOLICY_UNION += \
 			 connfwexe.te \
 			 untrusted_app.te \
 			 genfs_contexts \
+			 vold.te \
        file_contexts
 
 
