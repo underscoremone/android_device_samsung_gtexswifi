@@ -70,7 +70,7 @@ BOARD_HAVE_BLUETOOTH := true
 # BOARD_WLAN_DEVICE_REV := BCM4330B1_002.001.003.1025.1303
 # WPA_SUPPLICANT_VERSION := VER_0_8_X
 # BOARD_WPA_SUPPLICANT_DRIVER := NL80211
-# BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_bcmdhd
+# BOARD_WPA_SUPPLIC`ANT_PRIVATE_LIB := lib_driver_cmd_bcmdhd
 # BOARD_HOSTAPD_DRIVER := NL80211
 # BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_bcmdhd
 # WIFI_DRIVER_FW_PATH_PARAM := "/sys/module/dhd/parameters/firmware_path"
@@ -79,7 +79,7 @@ BOARD_HAVE_BLUETOOTH := true
 # WIFI_DRIVER_NVRAM_PATH_PARAM := "/sys/module/dhd/parameters/nvram_path"
 # WIFI_DRIVER_NVRAM_PATH := "/system/etc/wifi/nvram_net.txt"
 # WIFI_BAND := 802_11_ABG
-# BOARD_HAVE_SAMSUNG_WIFI := true
+BOARD_HAVE_SAMSUNG_WIFI := true
 
 
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
@@ -131,6 +131,7 @@ BOARD_SEPOLICY_UNION += \
 			 vold.te \
 			 wcnd.te \
 			 prepare_param.te \
+			 wpa.te \
        file_contexts
 
 

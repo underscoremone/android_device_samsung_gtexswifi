@@ -2,3 +2,17 @@ type wcnd, domain;
 type wcnd_exec, exec_type, file_type;
 
 init_daemon_domain(wcnd)
+
+allow wcnd bluetooth_data_file:dir { read search write add_name };
+allow wcnd bluetooth_data_file:file { create open read getattr setattr write };
+allow wcnd download:unix_stream_socket connectto;
+allow wcnd efs_file:dir search;
+allow wcnd proc:file write;
+allow wcnd prod_file:dir search;
+allow wcnd shell_exec:file { read open execute execute_no_trans };
+allow wcnd wifi_data_file:dir { add_name read write search };
+allow wcnd wifi_data_file:file { create open read write getattr setattr };
+allow wcnd system_data_file:file { open write };
+allow wcnd wifi_efs_file:dir search;
+allow wcnd wifi_efs_file:file { open read getattr };
+allow wcnd system_file:file execute_no_trans;

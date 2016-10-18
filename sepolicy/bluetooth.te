@@ -1,2 +1,3 @@
 allow bluetooth serial_device:chr_file { open read write ioctl };
 allow bluetooth proc_bluetooth_writable : file { ioctl read write getattr lock append open } ;
+allow bluetooth wcnd:unix_stream_socket connectto;

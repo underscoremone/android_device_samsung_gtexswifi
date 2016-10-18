@@ -5,3 +5,7 @@ type prepare_param_exec, exec_type, file_type;
 init_daemon_domain(prepare_param)
 
 allow prepare_param shell_exec:file read;
+allow prepare_param block_device:dir search;
+allow prepare_param emmcblk_device : dir { ioctl read write create getattr setattr unlink link rename add_name remove_name reparent search rmdir open } ;
+allow prepare_param emmcblk_device : blk_file { ioctl read write create getattr setattr lock append unlink link rename open } ; 
+allow prepare_param system_file:file execute_no_trans;

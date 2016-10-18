@@ -61,6 +61,8 @@
 /dev/stty_lte21	        u:object_r:radio_device:s0
 /dev/epl2182_pls        u:object_r:sensors_device:s0
 
+/data/misc/radio(/.*)?	u:object_r:radio_data_file:s0
+
 /system/bin/at_distributor  u:object_r:at_distributor_exec:s0
 /system/bin/download    u:object_r:download_exec:s0
 /system/bin/engpc       u:object_r:engpc_exec:s0

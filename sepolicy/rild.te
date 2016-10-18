@@ -3,4 +3,4 @@ allow rild system_data_file:dir { create write add_name remove_name};
 allow rild system_data_file:file { create write unlink setattr };
 allow rild ctl_default_prop:property_service set;
 allow rild ctl_rildaemon_prop:property_service set;
-allow rild unlabeled:dir search;
+allow rild prod_file:dir search;
