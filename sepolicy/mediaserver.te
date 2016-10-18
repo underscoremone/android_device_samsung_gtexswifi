@@ -6,3 +6,4 @@ allow mediaserver sensors_device:chr_file { open read write ioctl };
 allow mediaserver system_data_file:dir { write add_name };
 allow mediaserver system_data_file:fifo_file { create open read write setattr };
 allow mediaserver system_data_file:file { write open create };
+allow mediaserver audio_device:fifo_file { open read write };
