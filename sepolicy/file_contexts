@@ -75,6 +75,7 @@
 /system/bin/macloader   u:object_r:macloader_exec:s0
 /system/bin/ext_symlink.sh u:object_r:smd_symlink_exec:s0
 /system/bin/ext_data.sh  u:object_r:data_on_off_exec:s0
+/system/bin/prepare_param.sh  u:object_r:prepare_param_exec:s0
 /system/bin/ddexe   u:object_r:ddexe_exec:s0
 /system/bin/connfwexe   u:object_r:connfwexe_exec:s0
 
