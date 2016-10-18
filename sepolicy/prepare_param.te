@@ -1,0 +1,7 @@
+# refnotify
+type prepare_param, domain;
+type prepare_param_exec, exec_type, file_type;
+
+init_daemon_domain(prepare_param)
+
+allow prepare_param shell_exec:file read;

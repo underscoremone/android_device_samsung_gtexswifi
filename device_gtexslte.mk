@@ -76,6 +76,7 @@ PERMISSION_XML_FILES := \
 	frameworks/native/data/etc/android.hardware.camera.front.xml \
 	frameworks/native/data/etc/android.hardware.camera.xml \
 	frameworks/native/data/etc/android.hardware.bluetooth.xml \
+	frameworks/native/data/etc/android.hardware.bluetooth_le.xml \
 	frameworks/native/data/etc/android.hardware.location.gps.xml \
 	frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml \
 	frameworks/native/data/etc/android.hardware.touchscreen.multitouch.xml \

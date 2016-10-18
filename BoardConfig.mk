@@ -129,6 +129,7 @@ BOARD_SEPOLICY_UNION += \
 			 genfs_contexts \
 			 vold.te \
 			 wcnd.te \
+			 prepare_param.te \
        file_contexts
 
 
