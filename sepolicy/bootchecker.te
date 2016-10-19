@@ -3,3 +3,6 @@ type bootchecker, domain;
 type bootchecker_exec, exec_type, file_type;
 
 init_daemon_domain(bootchecker)
+
+allow bootchecker system_data_file:dir { add_name write };
+allow bootchecker shell_exec:file { read open execute };

@@ -135,6 +135,7 @@ BOARD_SEPOLICY_UNION += \
 			 drsd.te \
 			 bootchecker.te \
 			 smdexe.te \
+			 radio.te \
        file_contexts
 
 
