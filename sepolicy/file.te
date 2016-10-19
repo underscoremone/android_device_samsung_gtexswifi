@@ -1,3 +1,5 @@
 type prod_file, file_type;
 type wifi_efs_file, file_type;
 type app_efs_file, file_type;
+type sec_efs_file, file_type;
+type imei_efs_file, file_type;

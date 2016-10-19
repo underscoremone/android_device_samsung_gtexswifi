@@ -1,0 +1,5 @@
+# scs
+type scs, domain;
+type scs_exec, exec_type, file_type;
+
+init_daemon_domain(scs)

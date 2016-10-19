@@ -62,10 +62,14 @@ COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH := true
-# BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
-# BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
+BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 
 # Wifi
+WIFI_DRIVER_MODULE_PATH := /lib/modules/sprdwl.ko
+WIFI_DRIVER_FW_PATH_PARAM := /data/misc/wifi/fwpath
+BOARD_WPA_SUPPLICANT_DRIVER := NL80211
+WIFI_DRIVER_MODULE_NAME := sprdwl
 # BOARD_WLAN_DEVICE := sc2331
 # BOARD_WLAN_DEVICE_REV := BCM4330B1_002.001.003.1025.1303
 # WPA_SUPPLICANT_VERSION := VER_0_8_X
@@ -79,7 +83,7 @@ BOARD_HAVE_BLUETOOTH := true
 # WIFI_DRIVER_NVRAM_PATH_PARAM := "/sys/module/dhd/parameters/nvram_path"
 # WIFI_DRIVER_NVRAM_PATH := "/system/etc/wifi/nvram_net.txt"
 # WIFI_BAND := 802_11_ABG
-BOARD_HAVE_SAMSUNG_WIFI := true
+# BOARD_HAVE_SAMSUNG_WIFI := true
 
 
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
@@ -136,6 +140,8 @@ BOARD_SEPOLICY_UNION += \
 			 bootchecker.te \
 			 smdexe.te \
 			 radio.te \
+			 charon.te \
+			 scs.te \
        file_contexts
 
 

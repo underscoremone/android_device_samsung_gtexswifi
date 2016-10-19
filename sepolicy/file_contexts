@@ -38,6 +38,9 @@
 /dev/stty_lte10          u:object_r:radio_device:s0
 /dev/stty_lte11          u:object_r:tty_device:s0
 /dev/Trout_FM            u:object_r:audio_device:s0
+/sys/class/rfkill/rfkill[0-9]*/state -- u:object_r:sysfs_bluetooth_writable:s0
+/sys/class/rfkill/rfkill[0-9]*/type -- u:object_r:sysfs_bluetooth_writable:s0
+/dev/rfkill		           u:object_r:wpa_device:s0
 
 /dev/block/mmcblk[0-9].* u:object_r:emmcblk_device:s0
 /dev/block/zram[0-9]		 u:object_r:ram_device:s0
@@ -88,6 +91,7 @@
 /system/bin/connfwexe   u:object_r:connfwexe_exec:s0
 /system/bin/wcnd  u:object_r:wcnd_exec:s0
 /system/bin/smdexe  u:object_r:smdexe_exec:s0
-
+/system/bin/charon  u:object_r:charon_exec:s0
+/system/bin/scs     u:object_r:scs_exec:s0
 
 /mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

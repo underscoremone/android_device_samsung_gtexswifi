@@ -11,3 +11,4 @@ type wcn_device, dev_type;
 type spipe_device, dev_type;
 type refnotify_device, dev_type;
 type clock_device, dev_type;
+type wpa_device, dev_type;

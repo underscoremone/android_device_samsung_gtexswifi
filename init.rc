@@ -925,7 +925,6 @@ service mdnsd /system/bin/mdnsd
 service pre-recovery /system/bin/uncrypt
     class main
     disabled
-    oneshoti
 
 service cmd_services /system/bin/cmd_services
     class main

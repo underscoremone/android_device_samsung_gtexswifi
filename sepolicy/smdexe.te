@@ -3,3 +3,8 @@ type smdexe, domain;
 type smdexe_exec, exec_type, file_type;
 
 init_daemon_domain(smdexe)
+
+allow smdexe devpts:chr_file { read write open ioctl };
+allow smdexe self:capability setuid;
+allow smdexe system_data_file:sock_file write;
+allow smdexe ddexe:unix_stream_socket connectto;
