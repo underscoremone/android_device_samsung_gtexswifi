@@ -3,3 +3,7 @@ type connfwexe, domain;
 type connfwexe_exec, exec_type, file_type;
 
 init_daemon_domain(connfwexe)
+
+allow connfwexe self:capability setuid;
+allow connfwexe system_data_file:sock_file write;
+allow connfwexe ddexe:unix_stream_socket connectto;

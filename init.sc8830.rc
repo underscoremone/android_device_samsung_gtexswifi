@@ -1,8 +1,6 @@
 import /init.board.rc
-import /init.gtexslte.usb.rc
-import /init.gtexslte_base.rc
-import /init.rilcommon.rc
-
+import /init.sc8830.usb.rc
+import /init.sc8830_ss.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug
@@ -796,13 +794,6 @@ service engpcclientlf /system/bin/engpc -p lf -a /dev/ttyGS5 -d /dev/ttyGS6 -l /
     user system
     group system radio shell
     disabled
-    oneshot
-
-service prepare_param /system/bin/prepare_param.sh /dev/block/platform/sdio_emmc/by-name/PARAM
-    class core
-    user root
-    group root
-    seclabel u:r:prepare_param:s0
     oneshot
 
 #volte

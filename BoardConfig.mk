@@ -132,6 +132,9 @@ BOARD_SEPOLICY_UNION += \
 			 wcnd.te \
 			 prepare_param.te \
 			 wpa.te \
+			 drsd.te \
+			 bootchecker.te \
+			 smdexe.te \
        file_contexts
 
 

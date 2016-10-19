@@ -54,16 +54,22 @@
 /dev/mali	      u:object_r:gpu_device:s0
 /dev/mali[0-9]	u:object_r:gpu_device:s0
 /dev/spipe_lte1         u:object_r:spipe_device:s0
-/dev/spipe_lte2         u:object_r:radio_device:s0
 /dev/spipe_lte4         u:object_r:audio_device:s0
 /dev/spipe_lte6         u:object_r:audio_device:s0
 /dev/spipe_lte8		      u:object_r:refnotify_device:s0
 /dev/stty_lte21	        u:object_r:radio_device:s0
 /dev/epl2182_pls        u:object_r:sensors_device:s0
+/dev/spipe_w[0-9]        u:object_r:spipe_device:s0
+/dev/spipe_wcn[0-9]*     u:object_r:spipe_device:s0
+/dev/spipe_lte2          u:object_r:spipe_device:s0
+/dev/spipe_lte9          u:object_r:spipe_device:s0
+/dev/spipe_lte10          u:object_r:spipe_device:s0
 
 /data/misc/radio(/.*)?	u:object_r:radio_data_file:s0
 
 /system/bin/at_distributor  u:object_r:at_distributor_exec:s0
+/system/bin/bootchecker  u:object_r:bootchecker_exec:s0
+/system/bin/drsd    u:object_r:drsd_exec:s0
 /system/bin/download    u:object_r:download_exec:s0
 /system/bin/engpc       u:object_r:engpc_exec:s0
 /system/bin/modemd      u:object_r:rild_exec:s0
@@ -81,6 +87,7 @@
 /system/bin/ddexe   u:object_r:ddexe_exec:s0
 /system/bin/connfwexe   u:object_r:connfwexe_exec:s0
 /system/bin/wcnd  u:object_r:wcnd_exec:s0
+/system/bin/smdexe  u:object_r:smdexe_exec:s0
 
 
 /mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

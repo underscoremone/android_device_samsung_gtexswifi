@@ -23,15 +23,18 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
 PRODUCT_COPY_FILES += \
+		device/samsung/gtexslte/init.rc:root/init.rc \
 		device/samsung/gtexslte/init.board.rc:root/init.board.rc \
 		device/samsung/gtexslte/init.sc8830.rc:root/init.sc8830.rc \
+		device/samsung/gtexslte/init.sc8830.usb.rc:root/init.sc8830.usb.rc \
+		device/samsung/gtexslte/init.gtexslte.rc:root/init.gtexslte.rc \
 		device/samsung/gtexslte/init.gtexslte_base.rc:root/init.gtexslte_base.rc \
     device/samsung/gtexslte/init.sc8830_ss.rc:root/init.sc8830_ss.rc \
     device/samsung/gtexslte/init.gtexslte.usb.rc:root/init.gtexslte.usb.rc \
     device/samsung/gtexslte/fstab.sc8830:root/fstab.sc8830 \
     device/samsung/gtexslte/ueventd.sc8830.rc:root/ueventd.sc8830.rc \
-		device/samsung/gtexslte/init.wifi.rc:root/init.rilchip.rc \
-		device/samsung/gtexslte/init.wifi.rc:root/init.rilcommon.rc \
+		device/samsung/gtexslte/init.rilchip.rc:root/init.rilchip.rc \
+		device/samsung/gtexslte/init.rilcommon.rc:root/init.rilcommon.rc \
 		device/samsung/gtexslte/init.wifi.rc:root/init.wifi.rc \
 		device/samsung/gtexslte/init.dhcp.rc:root/init.dhcp.rc
 

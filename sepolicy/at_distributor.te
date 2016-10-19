@@ -3,3 +3,19 @@ type at_distributor, domain;
 type at_distributor_exec, exec_type, file_type;
 
 init_daemon_domain(at_distributor)
+
+allow at_distributor efs_file:dir search;
+allow at_distributor engpc:unix_stream_socket connectto;
+allow at_distributor radio_data_file:dir { add_name write search };
+allow at_distributor radio_data_file:file { create open read write getattr setattr };
+allow at_distributor app_efs_file:dir { search getattr };
+allow at_distributor unlabeled:dir { read open search setattr };
+allow at_distributor app_efs_file:file { create open read write getattr setattr };
+allow at_distributor property_socket:sock_file write;
+allow at_distributor init:unix_stream_socket connectto;
+allow at_distributor self:capability { fowner chown setuid dac_override };
+allow at_distributor radio_prop:property_service set;
+allow at_distributor rild:unix_stream_socket connectto;
+allow at_distributor system_data_file:sock_file write;
+allow at_distributor ddexe:unix_stream_socket connectto;
+allow at_distributor sysfs_wake_lock:file { read write open };
