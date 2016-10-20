@@ -55,10 +55,7 @@ BOARD_EGL_WORKAROUND_BUG_10194508 := true
 TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 
-# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
-# TARGET_KERNEL_CONFIG := gtexslte_defconfig
-# TARGET_VARIANT_CONFIG := gtexslte_defconfig
-# TARGET_SELINUX_CONFIG := gtexslte_defconfig
+
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH := true
@@ -70,11 +67,15 @@ WIFI_DRIVER_MODULE_PATH := /lib/modules/sprdwl.ko
 WIFI_DRIVER_FW_PATH_PARAM := /data/misc/wifi/fwpath
 BOARD_WPA_SUPPLICANT_DRIVER := NL80211
 WIFI_DRIVER_MODULE_NAME := sprdwl
-# BOARD_WLAN_DEVICE := sc2331
-# BOARD_WLAN_DEVICE_REV := BCM4330B1_002.001.003.1025.1303
-# WPA_SUPPLICANT_VERSION := VER_0_8_X
-# BOARD_WPA_SUPPLICANT_DRIVER := NL80211
-# BOARD_WPA_SUPPLIC`ANT_PRIVATE_LIB := lib_driver_cmd_bcmdhd
+BOARD_WLAN_DEVICE := qcwcn
+BOARD_WLAN_DEVICE_REV := MARLIN_15C_SS_W16.09.3
+WPA_SUPPLICANT_VERSION := VER_0_8_X
+BOARD_WPA_SUPPLICANT_DRIVER := NL80211
+BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_qcwcn
+BOARD_HOSTAPD_DRIVER := NL80211
+BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_qcwcn
+WIFI_BAND := 802_11_ABG
+# BOARD_WPA_SUPPLICNANT_PRIVATE_LIB := lib_driver_cmd_bcmdhd
 # BOARD_HOSTAPD_DRIVER := NL80211
 # BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_bcmdhd
 # WIFI_DRIVER_FW_PATH_PARAM := "/sys/module/dhd/parameters/firmware_path"
@@ -82,11 +83,18 @@ WIFI_DRIVER_MODULE_NAME := sprdwl
 # WIFI_DRIVER_FW_PATH_AP := "/system/etc/wifi/bcmdhd_apsta.bin"
 # WIFI_DRIVER_NVRAM_PATH_PARAM := "/sys/module/dhd/parameters/nvram_path"
 # WIFI_DRIVER_NVRAM_PATH := "/system/etc/wifi/nvram_net.txt"
-# WIFI_BAND := 802_11_ABG
+
 # BOARD_HAVE_SAMSUNG_WIFI := true
 
 
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
+
+# Integrated kernel building configs
+
+# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
+# TARGET_KERNEL_CONFIG := gtexslte_defconfig
+# TARGET_VARIANT_CONFIG := gtexslte_defconfig
+# TARGET_SELINUX_CONFIG := gtexslte_defconfig
 
 # SC9830_MODULES:
 # 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
@@ -94,7 +102,7 @@ TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 # 	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
 # 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
 # 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi clean
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
 # 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
 # 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
 # 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
