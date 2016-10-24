@@ -17,7 +17,7 @@
 #define LOG_NDEBUG 0
 #define LOG_TAG "SPRDAVCEncoder"
 #include <utils/Log.h>
-
+#include <arm_neon.h>
 #include "avc_enc_api.h"
 
 #include <media/stagefright/foundation/ADebug.h>
@@ -25,6 +25,7 @@
 #include <media/stagefright/MediaErrors.h>
 #include <media/stagefright/MetaData.h>
 #include <media/stagefright/Utils.h>
+#include <media/IOMX.h>
 
 #include <MetadataBufferType.h>
 #include <HardwareAPI.h>
@@ -34,16 +35,77 @@
 //#include <gui/ISurfaceTexture.h>
 
 #include <linux/ion.h>
-#include <binder/MemoryHeapIon.SPRD.h>
+#include <MemoryHeapIon_SPRD.h>
 
 #include <dlfcn.h>
 
 #include "SPRDAVCEncoder.h"
 #include "ion_sprd.h"
+#include "gralloc_priv.h"
+#include "OMX_Index.h"
+#ifdef CONVERT_THREAD
+#include <media/stagefright/foundation/ALooper.h>
+#include <media/stagefright/foundation/AMessage.h>
+
+#endif
 
 #define VIDEOENC_CURRENT_OPT
 
 namespace android {
+
+static const CodecProfileLevel kProfileLevels[] = {
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel1  },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel1b },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel11 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel12 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel13 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel2  },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel21 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel22 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel3  },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel31 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel32 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel4  },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel41 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel42 },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel5  },
+    { OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel51 },
+
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel1  },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel1b },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel11 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel12 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel13 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel2  },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel21 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel22 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel3  },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel31 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel32 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel4  },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel41 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel42 },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel5  },
+    { OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel51 },
+
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel1  },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel1b },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel11 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel12 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel13 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel2  },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel21 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel22 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel3  },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel31 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel32 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel4  },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel41 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel42 },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel5  },
+    { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel51 },
+};
+
 
 template<class T>
 static void InitOMXParams(T *params) {
@@ -182,16 +244,17 @@ inline static void inittable()
         RGB_b_cr[i] = ((18 * i) >> 8);
     }
 }
-inline static void ConvertARGB888ToYUV420SemiPlanar(uint8_t *inrgb, uint8_t* outyuv,
+inline static void ConvertARGB888ToYUV420SemiPlanar(uint8_t *inrgb, uint8_t* outy,uint8_t* outuv,
         int32_t width_org, int32_t height_org, int32_t width_dst, int32_t height_dst) {
 #define RGB2Y(_r, _g, _b)    (  *(RGB_r_y +_r)      +   *(RGB_g_y+_g)   +    *(RGB_b_y+_b))
 #define RGB2CB(_r, _g, _b)   ( -*(RGB_r_cb +_r)     -   *(RGB_g_cb+_g)  +    *(RGB_r_cr_b_cb+_b))
 #define RGB2CR(_r, _g, _b)   (  *(RGB_r_cr_b_cb +_r)-   *(RGB_g_cr+_g)  -    *(RGB_b_cr+_b))
     uint8_t *argb_ptr = inrgb;
-    uint8_t *y_p = outyuv;
-    uint8_t *vu_p = outyuv + width_dst * height_dst;
+    uint8_t *y_p = outy;
+    //uint8_t *vu_p = outyuv + width_dst * height_dst;
+    uint8_t *vu_p = outuv;
 
-    if (NULL == inrgb || NULL ==  outyuv)
+    if (NULL == inrgb || NULL ==  outy || NULL == outuv)
         return;
     if (0 != (width_org & 1) || 0 != (height_org & 1))
         return;
@@ -234,6 +297,154 @@ inline static void ConvertARGB888ToYUV420SemiPlanar(uint8_t *inrgb, uint8_t* out
     int64_t end_encode = systemTime();
     ALOGI("rgb2yuv time: %d",(unsigned int)((end_encode-start_encode) / 1000000L));
 }
+extern "C" void neon_intrinsics_ARGB888ToYUV420Semi(uint8_t *inrgb, uint8_t* outy,uint8_t* outuv,
+                    int32_t width_org, int32_t height_org, int32_t width_dst, int32_t height_dst);
+
+#if 0
+void neon_intrinsics_ARGB888ToYUV420Semi(uint8_t *inrgb, uint8_t* outy,uint8_t* outuv,
+                    int32_t width_org, int32_t height_org, int32_t width_dst, int32_t height_dst){
+   uint32_t i, j;
+   uint8_t *argb_ptr = inrgb;
+   uint8_t *y_ptr = outy;
+   uint8_t *temp_y_ptr = y_ptr;
+   uint8_t *uv_ptr = outuv;
+   uint8_t *argb_tmpptr ;
+   uint8x8_t r1fac = vdup_n_u8(66);
+
+   uint8x8_t g1fac = vdup_n_u8(129);
+   ///////// uint8x8_t g11fac = vdup_n_u8(1);   ///////128+1 =129
+
+   uint8x8_t b1fac = vdup_n_u8(25);
+   uint8x8_t r2fac = vdup_n_u8(38);
+   uint8x8_t g2fac = vdup_n_u8(74);
+   uint8x8_t b2fac = vdup_n_u8(112);
+   // int8x8_t r3fac = vdup_n_s16(112);
+   uint8x8_t g3fac = vdup_n_u8(94);
+   uint8x8_t b3fac = vdup_n_u8(18);
+
+   uint8x8_t y_base = vdup_n_u8(16);
+   uint8x8_t uv_base = vdup_n_u8(128);
+
+
+
+   for (i=height_org; i>0; i-=2)    /////  line
+
+   {
+      for (j=(width_org>>3); j>0; j-=2)   ///// col
+      {
+          uint8 y, cb, cr;
+          int8 r, g, b;
+          uint8 p_r[16],p_g[16],p_b[16];
+          uint16x8_t temp;
+          uint8x8_t result;
+          uint8x8_t result_cr;
+          uint8x8x2_t result_uv;
+
+          // y = RGB2Y(r, g, b);
+          uint8x8x4_t argb = vld4_u8(argb_ptr);
+          temp = vmull_u8(argb.val[0],r1fac);    ///////////////////////y  0,1,2
+          temp = vmlal_u8(temp,argb.val[1],g1fac);
+          temp = vmlal_u8(temp,argb.val[2],b1fac);
+          result = vshrn_n_u16(temp,8);
+          result = vadd_u8(result,y_base);
+          vst1_u8(y_ptr,result);     ////*y_ptr = y;
+
+          argb_tmpptr= argb_ptr + 32;
+          temp_y_ptr = y_ptr + 8;
+          uint8x8x4_t argb1 = vld4_u8(argb_tmpptr);
+          // y = RGB2Y(r, g, b);
+          temp = vmull_u8(argb1.val[0],r1fac);    ///////////////////////y
+          temp = vmlal_u8(temp,argb1.val[1],g1fac);
+          temp = vmlal_u8(temp,argb1.val[2],b1fac);
+          result = vshrn_n_u16(temp,8);
+          result = vadd_u8(result,y_base);
+          vst1_u8(temp_y_ptr,result);     ////*y_ptr = y;
+
+          vst1_u8(p_r,argb.val[0]);
+          vst1_u8(p_r+8,argb1.val[0]);
+          vst1_u8(p_g,argb.val[1]);
+          vst1_u8(p_g+8,argb1.val[1]);
+          vst1_u8(p_b,argb.val[2]);
+          vst1_u8(p_b+8,argb1.val[2]);
+          uint8x8x2_t rgb_r = vld2_u8(p_r);
+          uint8x8x2_t rgb_g = vld2_u8(p_g);
+          uint8x8x2_t rgb_b = vld2_u8(p_b);
+
+          //cb = RGB2CR(r, g, b);
+          temp = vmull_u8(rgb_b.val[0],b2fac);    ///////////////////////cb
+          temp = vmlsl_u8(temp,rgb_g.val[0],g2fac);
+          temp = vmlsl_u8(temp,rgb_r.val[0],r2fac);
+          result = vshrn_n_u16(temp,8);
+          result = vadd_u8(result,uv_base);
+
+          //cr = RGB2CB(r, g, b);
+          temp = vmull_u8(rgb_r.val[0],b2fac);    ///////////////////////cr
+          temp = vmlsl_u8(temp,rgb_g.val[0],g3fac);
+          temp = vmlsl_u8(temp,rgb_b.val[0],b3fac);
+          result_cr = vshrn_n_u16(temp,8);
+          result_cr = vadd_u8(result_cr,uv_base);
+
+          result_uv = vzip_u8(result_cr,result);  /////uuuuuuuuvvvvvvvv -->> uvuvuvuvuvuvuvuvuv
+          vst1_u8(uv_ptr,result_uv.val[0]);
+          uv_ptr += 8;
+          vst1_u8(uv_ptr,result_uv.val[1]);
+          uv_ptr += 8;
+
+          argb_tmpptr= argb_ptr + (width_org<<2);
+          temp_y_ptr = y_ptr + width_dst;
+          argb = vld4_u8(argb_tmpptr);
+
+          // y = RGB2Y(r, g, b);
+          temp = vmull_u8(argb.val[0],r1fac);    ///////////////////////y
+          temp = vmlal_u8(temp,argb.val[1],g1fac);
+          temp = vmlal_u8(temp,argb.val[2],b1fac);
+          result = vshrn_n_u16(temp,8);
+          result = vadd_u8(result,y_base);
+          vst1_u8(temp_y_ptr,result);     ////*y_ptr = y;
+
+          argb_tmpptr =argb_ptr +( width_org<<2)+32;
+          temp_y_ptr = y_ptr + width_dst + 8;
+          argb = vld4_u8(argb_tmpptr);
+
+          // y = RGB2Y(r, g, b);
+          temp = vmull_u8(argb.val[0],r1fac);    ///////////////////////y
+          temp = vmlal_u8(temp,argb.val[1],g1fac);
+          temp = vmlal_u8(temp,argb.val[2],b1fac);
+          result = vshrn_n_u16(temp,8);
+          result = vadd_u8(result,y_base);
+          vst1_u8(temp_y_ptr,result);     ////*y_ptr = y;
+
+          y_ptr += 16;
+          argb_ptr += 64;
+      }
+      y_ptr += width_dst;
+      argb_ptr += width_org<<2;
+   }
+}
+#endif
+inline static void ConvertARGB888ToYUV420SemiPlanar_neon(uint8_t *inrgb, uint8_t* outy,uint8_t* outuv,
+                    int32_t width_org, int32_t height_org, int32_t width_dst, int32_t height_dst) {
+#define RGB2Y(_r, _g, _b) (((66 * (_r) + 129 * (_g) + 25 * (_b)) >> 8) + 16)
+#define RGB2CB(_r, _g, _b) (((-38 * (_r) - 74 * (_g) + 112 * (_b)) >> 8) + 128)
+#define RGB2CR(_r, _g, _b) (((112 * (_r) - 94 * (_g) - 18 * (_b)) >> 8) + 128)
+    //ALOGI("RGB DATA:%x-%x-%x-%x-%x-%x-%x-%x-%x-%x-%x-%x-%x-%x-%x-%x",inrgb[0],inrgb[1],inrgb[2],inrgb[3],inrgb[4],inrgb[5],inrgb[6],inrgb[7],inrgb[8],inrgb[9],inrgb[10],inrgb[11],inrgb[12],inrgb[13],inrgb[14],inrgb[15]);
+    uint32_t i, j;
+    uint32_t *argb_ptr = (uint32_t *)inrgb;
+    uint8_t *y_ptr = outy;
+    uint8_t *vu_ptr = outuv;
+
+    if (NULL == inrgb || NULL == outuv || NULL==outy)
+        return;
+
+    if (0 != (width_org & 1) || 0 != (height_org & 1))
+        return;
+
+    int64_t start_encode = systemTime();
+    neon_intrinsics_ARGB888ToYUV420Semi(inrgb,  y_ptr, vu_ptr,                         //  1280*720  =>  22ms in padv2
+                                        width_org,  height_org,  width_dst,  height_dst);
+    int64_t end_encode = systemTime();
+    ALOGI("wfd: ConvertARGB888ToYUV420SemiPlanar_neon:  rgb2yuv cost time: %d",(unsigned int)((end_encode-start_encode) / 1000000L));
+}
 
 #ifdef VIDEOENC_CURRENT_OPT
 inline static void set_ddr_freq(const char* freq_in_khz)
@@ -262,9 +473,9 @@ SPRDAVCEncoder::SPRDAVCEncoder(
       mVideoFrameRate(30),
       mVideoBitRate(192000),
       mVideoColorFormat(OMX_COLOR_FormatYUV420SemiPlanar),
-      mIDRFrameRefreshIntervalInSec(1),
       mAVCEncProfile(AVC_BASELINE),
       mAVCEncLevel(AVC_LEVEL2),
+      mPFrames(29),
       mNumInputFrames(-1),
       mPrevTimestampUs(-1),
       mStarted(false),
@@ -273,6 +484,7 @@ SPRDAVCEncoder::SPRDAVCEncoder(
       mSawInputEOS(false),
       mSignalledError(false),
       mStoreMetaData(OMX_FALSE),
+      mPrependSPSPPS(OMX_FALSE),
       mIOMMUEnabled(false),
       mPbuf_yuv_v(NULL),
       mPbuf_yuv_p(0),
@@ -297,7 +509,8 @@ SPRDAVCEncoder::SPRDAVCEncoder(
       mH264EncGetConf(NULL),
       mH264EncStrmEncode(NULL),
       mH264EncGenHeader(NULL),
-      mH264EncRelease(NULL) {
+      mH264EncRelease(NULL),
+      mKeyFrameRequested(false) {
 
     ALOGI("Construct SPRDAVCEncoder, this: %0x", (void *)this);
 
@@ -320,6 +533,7 @@ SPRDAVCEncoder::SPRDAVCEncoder(
     int32 size_inter = H264ENC_INTERNAL_BUFFER_SIZE;
 
     mPbuf_inter = (uint8 *)malloc(size_inter);
+    CHECK(mPbuf_inter != NULL);
     InterMemBfr.common_buffer_ptr = (uint8 *)mPbuf_inter;
     InterMemBfr.common_buffer_ptr_phy= 0;
     InterMemBfr.size = size_inter;
@@ -338,6 +552,38 @@ SPRDAVCEncoder::SPRDAVCEncoder(
 
 #ifdef SPRD_DUMP_BS
     mFile_bs = fopen("/data/video.h264", "wb");
+#endif
+
+
+
+#ifdef CONVERT_THREAD
+
+
+    mIncomingBufNum = 0;
+    mCurrentNeedBufNum = 0;
+    mBufIndex = 0;
+    mLooper_enc = new ALooper;
+    mHandler_enc = new AHandlerReflector<SPRDAVCEncoder>(this);
+    mLooper_enc->setName("convert_looper");
+    mLooper_enc->registerHandler(mHandler_enc);
+    mLooper_enc->start(
+        false, // runOnCallingThread
+        false, // canCallJava
+        ANDROID_PRIORITY_AUDIO);
+
+    for (int i=0;i<CONVERT_MAX_THREAD_NUM;i++)
+    {
+        mLooper_rgb2yuv[i] = new ALooper;
+        mHandler_rgb2yuv[i] = new MyRGB2YUVThreadHandle(this,i);
+        mLooper_rgb2yuv[i]->setName("rgb2yuv_looper"+i);
+        mLooper_rgb2yuv[i]->registerHandler(mHandler_rgb2yuv[i]);
+        mLooper_rgb2yuv[i]->start(
+        false, // runOnCallingThread
+        false, // canCallJava
+        ANDROID_PRIORITY_AUDIO);
+        rgb2yuv_thread_status[i] = RGB2YUR_THREAD_READY;
+        //ALOGI("wfd: start rgb2yuv_looper%d",i);
+    }
 #endif
 }
 
@@ -370,6 +616,17 @@ SPRDAVCEncoder::~SPRDAVCEncoder() {
     if (mFile_bs) {
         fclose(mFile_bs);
         mFile_bs = NULL;
+    }
+#endif
+
+#ifdef CONVERT_THREAD
+    mLooper_enc->unregisterHandler(mHandler_enc->id());
+    mLooper_enc->stop();
+    for (int i=0;i<CONVERT_MAX_THREAD_NUM;i++)
+    {
+        mLooper_rgb2yuv[i]->unregisterHandler(mHandler_rgb2yuv[i]->id());
+        mLooper_rgb2yuv[i]->stop();
+        rgb2yuv_thread_status[i] = RGB2YUR_THREAD_STOPED;
     }
 #endif
 }
@@ -419,6 +676,11 @@ OMX_ERRORTYPE SPRDAVCEncoder::initEncParams() {
 #ifdef VIDEOENC_CURRENT_OPT
     if (((mVideoWidth <= 720) && (mVideoHeight <= 480)) || ((mVideoWidth <= 480) && (mVideoHeight <= 720))) {
         set_ddr_freq("200000");
+        mSetFreqCount ++;
+    }
+    else
+    {
+        set_ddr_freq("300000");
         mSetFreqCount ++;
     }
 #endif
@@ -499,7 +761,6 @@ OMX_ERRORTYPE SPRDAVCEncoder::initEncParams() {
     mEncInfo.is_h263 = 0;
     mEncInfo.frame_width = mVideoWidth;
     mEncInfo.frame_height = mVideoHeight;
-//    mEncInfo.uv_interleaved = 1;
     mEncInfo.yuv_format = MMENC_YUV420SP_NV21;
     mEncInfo.time_scale = 1000;
 #ifdef ANTI_SHAKE
@@ -507,6 +768,7 @@ OMX_ERRORTYPE SPRDAVCEncoder::initEncParams() {
 #else
     mEncInfo.b_anti_shake = 0;
 #endif
+    mEncInfo.cabac_en = 0;
 
     if ((*mH264EncInit)(mHandle, &ExtraMemBfr,&StreamMemBfr, &mEncInfo)) {
         ALOGE("Failed to init mp4enc");
@@ -522,10 +784,12 @@ OMX_ERRORTYPE SPRDAVCEncoder::initEncParams() {
     mEncConfig->RateCtrlEnable = 1;
     mEncConfig->targetBitRate = mVideoBitRate;
     mEncConfig->FrameRate = mVideoFrameRate;
+    mEncConfig->PFrames = mPFrames;
     mEncConfig->QP_IVOP = 28;
     mEncConfig->QP_PVOP = 28;
     mEncConfig->vbv_buf_size = mVideoBitRate/2;
     mEncConfig->profileAndLevel = 1;
+    mEncConfig->PrependSPSPPSEnalbe = ((mPrependSPSPPS == OMX_FALSE) ? 0 : 1);
 
     if ((*mH264EncSetConf)(mHandle, mEncConfig)) {
         ALOGE("Failed to set default encoding parameters");
@@ -537,16 +801,6 @@ OMX_ERRORTYPE SPRDAVCEncoder::initEncParams() {
     mEncParams->bitrate = mVideoBitRate;
     mEncParams->frame_rate = 1000 * mVideoFrameRate;  // In frames/ms!
     mEncParams->CPB_size = (uint32_t) (mVideoBitRate >> 1);
-
-    // Set IDR frame refresh interval
-    if (mIDRFrameRefreshIntervalInSec < 0) {
-        mEncParams->idr_period = -1;
-    } else if (mIDRFrameRefreshIntervalInSec == 0) {
-        mEncParams->idr_period = 1;  // All I frames
-    } else {
-        mEncParams->idr_period =
-            (mIDRFrameRefreshIntervalInSec * mVideoFrameRate);
-    }
 
     // Set profile and level
     mEncParams->profile = mAVCEncProfile;
@@ -654,7 +908,7 @@ void SPRDAVCEncoder::initPorts() {
 
     def.nPortIndex = 0;
     def.eDir = OMX_DirInput;
-    def.nBufferCountMin = kNumBuffers;
+    def.nBufferCountMin = 4;//kNumBuffers;
     def.nBufferCountActual = def.nBufferCountMin;
     def.nBufferSize = kInputBufferSize;
     def.bEnabled = OMX_TRUE;
@@ -677,7 +931,7 @@ void SPRDAVCEncoder::initPorts() {
 
     def.nPortIndex = 1;
     def.eDir = OMX_DirOutput;
-    def.nBufferCountMin = kNumBuffers;
+    def.nBufferCountMin = 4;//kNumBuffers;
     def.nBufferCountActual = def.nBufferCountMin;
     def.nBufferSize = kOutputBufferSize;
     def.bEnabled = OMX_TRUE;
@@ -793,27 +1047,40 @@ OMX_ERRORTYPE SPRDAVCEncoder::internalGetParameter(
             return OMX_ErrorUndefined;
         }
 
-        const size_t size =
-            sizeof(ConversionTable) / sizeof(ConversionTable[0]);
-
-        if (profileLevel->nProfileIndex >= size) {
+        size_t index = profileLevel->nProfileIndex;
+        size_t nProfileLevels =
+            sizeof(kProfileLevels) / sizeof(kProfileLevels[0]);
+        if (index >= nProfileLevels) {
             return OMX_ErrorNoMore;
         }
 
-        if (mCapability.profile == AVC_BASELINE) {
-            profileLevel->eProfile = OMX_VIDEO_AVCProfileBaseline;
-        } else if (mCapability.profile == AVC_MAIN) {
-            profileLevel->eProfile = OMX_VIDEO_AVCProfileMain;
-        } else if (mCapability.profile == AVC_HIGH) {
-            profileLevel->eProfile = OMX_VIDEO_AVCProfileHigh;
-        } else {
-            profileLevel->eProfile = OMX_VIDEO_AVCProfileBaseline;
+        profileLevel->eProfile = kProfileLevels[index].mProfile;
+        profileLevel->eLevel = kProfileLevels[index].mLevel;
+
+        if (profileLevel->eProfile == OMX_VIDEO_AVCProfileHigh) {
+            if (mCapability.profile < AVC_HIGH) {
+                profileLevel->eProfile = OMX_VIDEO_AVCProfileMain;
+            }
         }
 
-        if (ConversionTable[profileLevel->nProfileIndex].avcLevel > mCapability.level) {
-            return OMX_ErrorUnsupportedIndex;
-        } else {
-            profileLevel->eLevel = ConversionTable[profileLevel->nProfileIndex].omxLevel;
+        if (profileLevel->eProfile == OMX_VIDEO_AVCProfileMain) {
+            if (mCapability.profile < AVC_MAIN) {
+                profileLevel->eProfile = OMX_VIDEO_AVCProfileBaseline;
+            }
+        }
+
+        const size_t size =
+            sizeof(ConversionTable) / sizeof(ConversionTable[0]);
+
+        for (index = 0; index < size; index++) {
+            if (ConversionTable[index].avcLevel > mCapability.level) {
+                index--;
+                break;
+            }
+        }
+
+        if (profileLevel->eLevel > ConversionTable[index].omxLevel) {
+            profileLevel->eLevel = ConversionTable[index].omxLevel;
         }
         //ALOGI("Query supported profile level = %d, %d",profileLevel->eProfile, profileLevel->eLevel);
         return OMX_ErrorNone;
@@ -958,6 +1225,9 @@ OMX_ERRORTYPE SPRDAVCEncoder::internalSetParameter(
             return OMX_ErrorUndefined;
         }
 
+        mPFrames = avcType->nPFrames;
+        ALOGI("%s, mPFrames: %d",__FUNCTION__,mPFrames);
+#if 0
         // PV's AVC encoder only supports baseline profile
         if (avcType->eProfile != OMX_VIDEO_AVCProfileBaseline ||
                 avcType->nRefFrames != 1 ||
@@ -974,7 +1244,7 @@ OMX_ERRORTYPE SPRDAVCEncoder::internalSetParameter(
                 avcType->nCabacInitIdc != 0) {
             return OMX_ErrorUndefined;
         }
-
+#endif
         if (OK != ConvertOmxAvcLevelToAvcSpecLevel(avcType->eLevel, &mAVCEncLevel)) {
             return OMX_ErrorUndefined;
         }
@@ -985,15 +1255,54 @@ OMX_ERRORTYPE SPRDAVCEncoder::internalSetParameter(
     case OMX_IndexParamStoreMetaDataBuffer:
     {
         StoreMetaDataInBuffersParams *pStoreMetaData = (StoreMetaDataInBuffersParams *)params;
-        mStoreMetaData = pStoreMetaData->bStoreMetaData;
+        if(0 == pStoreMetaData->nPortIndex)   /// input buffer
+        {
+           mStoreMetaData = pStoreMetaData->bStoreMetaData;
+           return OMX_ErrorNone;
+        }
+        else
+        {
+           //modified by mjx.due to I donot want to ACodec set mUseMetadataOnEncoderOutput
+           //trigger ACodec using  ACodec::allocateBuffersOnPort-->mOMX->useBuffer
+           return OMX_ErrorUndefined; ////currently not support output meta data buffer
+        }
+    }
+    case OMX_IndexParamPrependSPSPPSToIDR:
+    {
+        PrependSPSPPSToIDRFramesParams *pPrependSPSPPS = (PrependSPSPPSToIDRFramesParams *)params;
+        mPrependSPSPPS = pPrependSPSPPS->bEnable; // currently avcenc driver will PrependSPSPPS defaultly
+        ALOGI("OMX_IndexParamPrependSPSPPSToIDR return ok");
         return OMX_ErrorNone;
     }
-
+    case OMX_IndexParamVideoIntraRefresh:
+    {
+        return OMX_ErrorNone;   ///hw encoder may not support this mode
+    }
     default:
         return SprdSimpleOMXComponent::internalSetParameter(index, params);
     }
 }
 
+OMX_ERRORTYPE SPRDAVCEncoder::setConfig(
+    OMX_INDEXTYPE index, const OMX_PTR params) {
+    switch (index) {
+        case OMX_IndexConfigVideoIntraVOPRefresh:
+        {
+            OMX_CONFIG_INTRAREFRESHVOPTYPE *pConfigIntraRefreshVOP =
+                (OMX_CONFIG_INTRAREFRESHVOPTYPE *)params;
+
+            if (pConfigIntraRefreshVOP->nPortIndex != kOutputPortIndex) {
+                return OMX_ErrorBadPortIndex;
+            }
+
+            mKeyFrameRequested = pConfigIntraRefreshVOP->IntraRefreshVOP;
+            return OMX_ErrorNone;
+        }
+
+        default:
+            return SprdSimpleOMXComponent::setConfig(index, params);
+    }
+}
 
 OMX_ERRORTYPE SPRDAVCEncoder::getExtensionIndex(
     const char *name, OMX_INDEXTYPE *index)
@@ -1002,9 +1311,198 @@ OMX_ERRORTYPE SPRDAVCEncoder::getExtensionIndex(
         *index = (OMX_INDEXTYPE) OMX_IndexParamStoreMetaDataBuffer;
         return OMX_ErrorNone;
     }
-
+    if(strcmp(name, "OMX.google.android.index.prependSPSPPSToIDRFrames") == 0) {
+        *index = (OMX_INDEXTYPE) OMX_IndexParamPrependSPSPPSToIDR;
+        return OMX_ErrorNone;
+    }
     return SprdSimpleOMXComponent::getExtensionIndex(name, index);
 }
+
+
+
+#ifdef CONVERT_THREAD
+
+SPRDAVCEncoder::MyRGB2YUVThreadHandle::MyRGB2YUVThreadHandle(SPRDAVCEncoder *poutEnc,char relatedthreadNum)
+{
+    mPoutEnc = poutEnc;
+    mRelatedthreadNum = relatedthreadNum;
+}
+void SPRDAVCEncoder::MyRGB2YUVThreadHandle::onMessageReceived(const sp<AMessage> &msg)
+{
+    switch (msg->what()) {
+
+    case kWhatRgb2Yuv:
+    {
+
+        int64_t mBufNum = 0;
+        sp<RefBase> obj;
+        CHECK(msg->findObject("addr_object", &obj));
+        sp<msg_addr_for_convert>addr_object = static_cast<msg_addr_for_convert *>(obj.get());
+        //ALOGE("wfd:thread%d get msg.py:%p.puv:%p,vaddr:%p",mRelatedthreadNum,addr_object->py,addr_object->puv,addr_object->vaddr);
+        ConvertARGB888ToYUV420SemiPlanar_neon((uint8_t*)addr_object->vaddr, addr_object->py, addr_object->puv,mPoutEnc->mVideoWidth, mPoutEnc->mVideoHeight/CONVERT_MAX_THREAD_NUM, (mPoutEnc->mVideoWidth+15)&(~15), (mPoutEnc->mVideoHeight/CONVERT_MAX_THREAD_NUM+15)&(~15));
+        //ConvertARGB888ToYUV420SemiPlanar((uint8_t*)addr_object->vaddr, addr_object->py, addr_object->puv,mPoutEnc->mVideoWidth, mPoutEnc->mVideoHeight/CONVERT_MAX_THREAD_NUM, (mPoutEnc->mVideoWidth+15)&(~15), (mPoutEnc->mVideoHeight/CONVERT_MAX_THREAD_NUM+15)&(~15));
+        mPoutEnc->rgb2yuv_thread_status[mRelatedthreadNum] = RGB2YUR_THREAD_READY;
+        mPoutEnc->mConvertedBufAvailableCondition.signal();
+        break;
+    }
+
+    default:
+
+        TRESPASS();
+        break;
+    }
+}
+
+void SPRDAVCEncoder::sendConvertMessage(OMX_BUFFERHEADERTYPE *buffer)
+
+{
+    sp<AMessage> msg = new AMessage(kWhatConvert, mHandler_enc->id());
+    msg->setPointer("header", buffer);
+    msg->post();
+}
+
+
+
+void SPRDAVCEncoder::onMessageReceived(const sp<AMessage> &msg) {
+    switch (msg->what()) {
+    case kWhatConvert:
+    {
+        OMX_BUFFERHEADERTYPE *header;
+        CHECK(msg->findPointer("header", (void **)&header));
+
+        PortInfo *port = editPortInfo(OMX_DirInput);
+
+        if (mPbuf_yuv_v == NULL) {
+           int32 yuv_size = ((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15)) *3*CONVERT_MAX_ION_NUM/2;
+           if (mIOMMUEnabled) {
+               mYUVInPmemHeap = new MemoryHeapIon("/dev/ion", yuv_size, MemoryHeapBase::NO_CACHING, ION_HEAP_ID_MASK_SYSTEM);
+           } else {
+               mYUVInPmemHeap = new MemoryHeapIon("/dev/ion", yuv_size, MemoryHeapBase::NO_CACHING, ION_HEAP_ID_MASK_MM);
+           }
+           if (mYUVInPmemHeap->getHeapID() < 0) {
+               ALOGE("Failed to alloc yuv buffer");
+               return;
+           }
+           int ret,phy_addr, buffer_size;
+           if(mIOMMUEnabled) {
+               ret = mYUVInPmemHeap->get_mm_iova(&phy_addr, &buffer_size);
+           } else {
+               ret = mYUVInPmemHeap->get_phy_addr_from_ion(&phy_addr, &buffer_size);
+           }
+           if(ret) {
+               ALOGE("Failed to get_phy_addr_from_ion %d", ret);
+               return;
+           }
+           mPbuf_yuv_v =(uint8_t *) mYUVInPmemHeap->base();
+           mPbuf_yuv_p = (int32)phy_addr;
+           //mPbuf_yuv_size = (int32)buffer_size; //mjx note:buffer_size not equal the yuv_size.if used buffersize would make memory crash
+           mPbuf_yuv_size = (int32)yuv_size;
+           //ALOGI("wfd: yuv_size is %d, buffer_size is %d",yuv_size,buffer_size);
+        }
+        for (size_t j = 0; j < port->mBuffers.size(); ++j) {
+            BufferInfo *buffer = &port->mBuffers.editItemAt(j);
+
+            if (buffer->mHeader == header) {
+                OMX_BUFFERHEADERTYPE *inHeader = buffer->mHeader;
+                const void *inData = inHeader->pBuffer + inHeader->nOffset;
+                uint8_t *inputData = (uint8_t *) inData;
+                CHECK(inputData != NULL);
+                unsigned int type = *(unsigned int *) inputData;
+
+                if(mStoreMetaData &&(type == kMetadataBufferTypeGrallocSource))
+                {
+                    Mutex::Autolock autoLock(mLock_receive);
+                    //ALOGE("wfd: kWhatConvertThisBuffer,incoming buffer number:%llu",mIncomingBufNum);
+                    uint8_t* py;
+                    uint8_t* py_phy;
+                    const void *inData = inHeader->pBuffer + inHeader->nOffset;
+                    uint8_t *inputData = (uint8_t *) inData;
+                    CHECK(inputData != NULL);
+                    py = mPbuf_yuv_v+mPbuf_yuv_size*mBufIndex/CONVERT_MAX_ION_NUM;
+                    py_phy = (uint8_t*)(mPbuf_yuv_p+mPbuf_yuv_size*mBufIndex/CONVERT_MAX_ION_NUM);
+                    //ALOGE("wfd: mBufIndex:%d,mPbuf_yuv_size:%d.base_py:%p",mBufIndex,mPbuf_yuv_size,py);
+                    void* vaddr = NULL;
+                    GraphicBufferMapper &mapper = GraphicBufferMapper::get();
+                    buffer_handle_t buf = *((buffer_handle_t *)(inputData + 4));
+                    Rect bounds((mVideoWidth+15)&(~15), (mVideoHeight+15)&(~15));
+                    if (mapper.lock(buf, GRALLOC_USAGE_SW_READ_OFTEN|GRALLOC_USAGE_SW_WRITE_NEVER, bounds, &vaddr)) {
+                        return;
+                    }
+                    //send to multi threads
+                    int32 single_rgb_size = mVideoWidth * mVideoHeight*4;
+                    int32 single_yuv_size = ((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15)) *3/2;
+                    int64_t start_encode = systemTime();
+                    for(int j=0;j<CONVERT_MAX_THREAD_NUM;j++)
+                    {
+                        //ALOGI("wfd: send msg to:Thread%d.",j);
+                        rgb2yuv_thread_status[j] = RGB2YUR_THREAD_BUSY;
+                        sp<AMessage> msg = new AMessage(kWhatRgb2Yuv, mHandler_rgb2yuv[j]->id());
+                        sp<msg_addr_for_convert> addr_object = new msg_addr_for_convert;
+                        addr_object->buf_number = mIncomingBufNum;
+                        addr_object->internal_index = j;
+                        addr_object->py = py+((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15))*j/CONVERT_MAX_THREAD_NUM;
+                        addr_object->puv = py+((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15))+((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15))*j/(CONVERT_MAX_THREAD_NUM*2);
+                        addr_object->vaddr = (uint8_t*)vaddr+(single_rgb_size*j)/CONVERT_MAX_THREAD_NUM;
+                        msg->setObject("addr_object",addr_object);
+                        msg->post();
+                    }
+                    // check threads status.
+                    int ready_thread_num = 0;
+                    int64_t end_encode = systemTime();
+                    //ALOGI("wfd: total rgb-yuv send msg cost time: %d",(unsigned int)((end_encode-start_encode) / 1000000L));
+                    while(ready_thread_num<CONVERT_MAX_THREAD_NUM)
+                    {
+                        //mConvertedBufAvailableCondition.wait(mLock_con);
+                        mConvertedBufAvailableCondition.waitRelative(mLock_con, 5*1000*1000); //5ms
+                        for(int j=0;j<CONVERT_MAX_THREAD_NUM;j++)
+                        {
+                            if(rgb2yuv_thread_status[j] == RGB2YUR_THREAD_READY)
+                            ready_thread_num++;
+                        }
+                        //ALOGI("wfd: ready thread num:%d",ready_thread_num);
+                        if(ready_thread_num == CONVERT_MAX_THREAD_NUM)
+                        {
+                            break;
+                        }else
+                        {
+                            ready_thread_num=0;
+                        }
+                    }
+                    if (mapper.unlock(buf)) {
+                        return;
+                    }
+                    end_encode = systemTime();
+                    ALOGI("wfd: total rgb-yuv cost time: %d",(unsigned int)((end_encode-start_encode) / 1000000L));
+                    ConvertOutBufferInfo* info = new ConvertOutBufferInfo;
+                    if(info == NULL)
+                    {
+                        ALOGE("wfd:can not new ConvertOutBufferInfo buffer");
+                        return;
+                    }
+                    info->buf_number = mIncomingBufNum;
+                    info->py = py;
+                    info->py_phy = py_phy;
+                    mConvertOutBufQueue.push_back(info);
+                    mIncomingBufNum++;
+                    mBufIndex =(mBufIndex+1)%CONVERT_MAX_ION_NUM;
+                    mOutBufAvailableCondition.signal();
+                }
+                break;
+            }
+        }
+
+        break;
+    }
+
+    default:
+        TRESPASS();
+        break;
+    }
+}
+
+#endif
+
+
 
 void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
     if (mSignalledError || mSawInputEOS) {
@@ -1067,7 +1565,6 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
 
             memcpy(outPtr, sps_header.pOutBuf, sps_header.strmSize);
             outPtr+= sps_header.strmSize;
-
             ++mNumInputFrames;
             ret = (*mH264EncGenHeader)(mHandle, &pps_header, 0);
             ALOGI("%s, %d, pps_header.strmSize: %d", __FUNCTION__, __LINE__, pps_header.strmSize);
@@ -1089,7 +1586,6 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
 
             outHeader->nFilledLen += pps_header.strmSize;
             memcpy(outPtr, pps_header.pOutBuf, pps_header.strmSize);
-
             mSpsPpsHeaderReceived = true;
             CHECK_EQ(0, mNumInputFrames);  // 1st video frame is 0
             outHeader->nFlags = OMX_BUFFERFLAG_CODECCONFIG;
@@ -1139,6 +1635,18 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
                     x = (uint32_t)(*((int *) inputData + 5));
                     y = (uint32_t)(*((int *) inputData + 6));
                 } else if (type == kMetadataBufferTypeGrallocSource) {
+#ifdef CONVERT_THREAD
+                while(mConvertOutBufQueue.empty())
+                {
+                    mOutBufAvailableCondition.wait(mLock_convert);
+                }
+                ConvertOutBufferInfo *BufInfo = *mConvertOutBufQueue.begin();
+                py = BufInfo->py;
+                py_phy = BufInfo->py_phy;
+                mConvertOutBufQueue.erase(mConvertOutBufQueue.begin());
+                delete BufInfo;
+                mCurrentNeedBufNum++;
+#else
                     if (mPbuf_yuv_v == NULL) {
                         int32 yuv_size = ((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15)) *3/2;
                         if (mIOMMUEnabled) {
@@ -1181,14 +1689,38 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
                         ConvertYUV420PlanarToYUV420SemiPlanar((uint8_t*)vaddr, py, mVideoWidth, mVideoHeight,
                                                               (mVideoWidth + 15) & (~15), (mVideoHeight + 15) & (~15));
                     } else if(mVideoColorFormat == OMX_COLOR_FormatAndroidOpaque) {
-                        ConvertARGB888ToYUV420SemiPlanar((uint8_t*)vaddr, py, mVideoWidth, mVideoHeight, (mVideoWidth+15)&(~15), (mVideoHeight+15)&(~15));
-                    } else {
+                        struct private_handle_t *pH = (struct private_handle_t *)buf;
+                        private_handle_t* pBuf = (private_handle_t* )buf;
+                        ALOGI("OMX_COLOR_FormatAndroidOpaque.pBuf->format:%d",pBuf->format);
+                        ConvertARGB888ToYUV420SemiPlanar_neon((uint8_t*)vaddr, py, py+(((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15))),mVideoWidth, mVideoHeight, (mVideoWidth+15)&(~15), (mVideoHeight+15)&(~15));
+                    } else if(mVideoColorFormat == OMX_COLOR_FormatYUV420SemiPlanar) {
+                        struct private_handle_t *pH = (struct private_handle_t *)buf;
+                        int64_t start_queue = systemTime();
+                        int size = 0;
+                        private_handle_t* pBuf = (private_handle_t* )buf;
+                        //ALOGI("meijiaxi:pBuf->format:%d",pBuf->format);
+                        if(HAL_PIXEL_FORMAT_YCbCr_420_SP == pBuf->format){
+                            if (mIOMMUEnabled) {
+                                MemoryHeapIon::Get_mm_iova(pBuf->share_fd, &(pBuf->phyaddr), &size);
+                            }else{
+                                MemoryHeapIon::Get_phy_addr_from_ion(pBuf->share_fd, &(pBuf->phyaddr), &size);
+                            }
+                            py_phy = (uint8_t*)(pBuf->phyaddr);
+                            py = (uint8_t*)vaddr;
+                            int64_t end_queue = systemTime();
+                            ALOGI("wfd: get yuv data directly. OMX_COLOR_FormatYUV420SemiPlanar.color format:%d,queue yuv buffer time: %d ms",pBuf->format,(unsigned int)((end_queue-start_queue) / 1000000L));
+                        }else{
+                            ALOGI("wfd:color not match.OMX_COLOR_FormatYUV420SemiPlanar,we need HAL_PIXEL_FORMAT_YCbCr_420_SP.but get color format:%d",pBuf->format);
+                        }
+                    }
+                    else {
                         memcpy(py, vaddr, ((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15)) * 3/2);
                     }
 
                     if (mapper.unlock(buf)) {
                         return;
                     }
+#endif //end CONVERT_THREAD
                 } else {
                     ALOGE("Error MetadataBufferType %d", type);
                     return;
@@ -1227,7 +1759,8 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
                     ConvertYUV420PlanarToYUV420SemiPlanar(inputData, py, mVideoWidth, mVideoHeight,
                                                           (mVideoWidth + 15) & (~15), (mVideoHeight + 15) & (~15));
                 } else if(mVideoColorFormat == OMX_COLOR_FormatAndroidOpaque) {
-                    ConvertARGB888ToYUV420SemiPlanar(inputData, py, mVideoWidth, mVideoHeight, (mVideoWidth+15)&(~15), (mVideoHeight+15)&(~15));
+                    //ConvertARGB888ToYUV420SemiPlanar(inputData, py, mVideoWidth, mVideoHeight, (mVideoWidth+15)&(~15), (mVideoHeight+15)&(~15));
+                    ConvertARGB888ToYUV420SemiPlanar_neon(inputData, py, py+(((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15))),mVideoWidth, mVideoHeight, (mVideoWidth+15)&(~15), (mVideoHeight+15)&(~15));
                 } else {
                     memcpy(py, inputData, ((mVideoWidth+15)&(~15)) * ((mVideoHeight+15)&(~15)) * 3/2);
                 }
@@ -1235,7 +1768,13 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
 
             vid_in.time_stamp = (inHeader->nTimeStamp + 500) / 1000;  // in ms;
             vid_in.channel_quality = 1;
-            vid_in.vopType = (mNumInputFrames % mVideoFrameRate) ? 1 : 0;
+
+            vid_in.needIVOP = false;    // default P frame
+            if (mKeyFrameRequested || (mNumInputFrames == 0)) {
+                vid_in.needIVOP = true;    // I frame
+                ALOGI("Request an IDR frame");
+            }
+
             vid_in.p_src_y = py;
             vid_in.p_src_v = 0;
             vid_in.p_src_y_phy = py_phy;
@@ -1261,12 +1800,12 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
             int64_t start_encode = systemTime();
             int ret = (*mH264EncStrmEncode)(mHandle, &vid_in, &vid_out);
             int64_t end_encode = systemTime();
-            ALOGI("H264EncStrmEncode[%lld] %dms, in {%p-%p, %dx%d}, out {%p-%d}, wh{%d, %d}, xy{%d, %d}",
+            ALOGI("H264EncStrmEncode[%lld] %dms, in {%p-%p, %dx%d}, out {%p-%d, %d}, wh{%d, %d}, xy{%d, %d}",
                   mNumInputFrames, (unsigned int)((end_encode-start_encode) / 1000000L), py, py_phy,
-                  mVideoWidth, mVideoHeight, vid_out.pOutBuf, vid_out.strmSize, width, height, x, y);
+                  mVideoWidth, mVideoHeight, vid_out.pOutBuf, vid_out.strmSize,vid_out.vopType, width, height, x, y);
             if ((vid_out.strmSize < 0) || (ret != MMENC_OK)) {
                 ALOGE("Failed to encode frame %lld, ret=%d", mNumInputFrames, ret);
-#if 0  //removed by xiaowei, 20131017, for cr224544
+#if 0  //removed by xiaowei, 20131017, for cr224544              
                 mSignalledError = true;
                 notify(OMX_EventError, OMX_ErrorUndefined, 0, 0);
 #endif
@@ -1294,13 +1833,14 @@ void SPRDAVCEncoder::onQueueFilled(OMX_U32 portIndex) {
                 dataLength = vid_out.strmSize;
                 memcpy(outPtr, vid_out.pOutBuf, dataLength);
 
-                if (vid_in.vopType == 0) {
+                if (vid_out.vopType == 0) { //I VOP
+                    mKeyFrameRequested = false;
                     outHeader->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
                 }
+                ++mNumInputFrames;
             } else {
                 dataLength = 0;
             }
-            ++mNumInputFrames;
         } else {
             dataLength = 0;
         }

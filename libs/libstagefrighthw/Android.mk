@@ -1,29 +1,30 @@
+#
+# Copyright (C) 2016 The Android Open Source Project
+# Copyright (C) 2016 The CyanogenMod Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 LOCAL_PATH := $(call my-dir)
-include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := \
-	SprdOMXPlugin.cpp \
-	SprdOMXComponent.cpp \
-	SprdSimpleOMXComponent.cpp
+supported_boards := \
+	sc8830 \
+	scx15 \
 
-LOCAL_CFLAGS := $(PV_CFLAGS_MINUS_VISIBILITY)
+ifneq (,$(filter $(supported_boards),$(TARGET_BOARD_PLATFORM)))
 
-LOCAL_C_INCLUDES:= \
-	frameworks/native/include/media/openmax \
-	frameworks/native/include/media/hardware \
-	$(LOCAL_PATH)/include \
-	$(LOCAL_PATH)/../gralloc/$(TARGET_BOARD_PLATFORM)
+ifneq (,$(filter scx15 sc8830,$(TARGET_BOARD_PLATFORM)))
+include $(call all-subdir-makefiles,sc8830)
+endif
 
-LOCAL_SHARED_LIBRARIES :=       \
-        libbinder               \
-        libutils                \
-        libcutils               \
-        libui                   \
-        libdl			\
-	libstagefright_foundation
-
-LOCAL_MODULE := libstagefrighthw
-
-LOCAL_CFLAGS:= -DLOG_TAG=\"$(TARGET_BOARD_PLATFORM).libstagefright\"
-
-include $(BUILD_SHARED_LIBRARY)
+endif

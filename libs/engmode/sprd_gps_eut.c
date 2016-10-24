@@ -29,7 +29,9 @@ static int start_gpseut(char *result)
 	eng_thread_t t1;
 	
 	ALOGI("start_gpseut");
-	eng_thread_create(&t1,start_gps_thread,NULL);
+	if (0 != eng_thread_create(&t1,start_gps_thread,NULL)){
+         ALOGI("start_gps_thread start error");
+       }
 	eut_gps_state=1;
 	strcpy(result,EUT_GPS_OK);
 	return 0;
@@ -65,7 +67,9 @@ static int start_gpssearch(char * result)
 	int pid = 0;
 	eng_thread_t t1;
 	ALOGI("start_gpssearch");
-	eng_thread_create( &t1, start_gps_thread, NULL);
+	if (0 != eng_thread_create(&t1,start_gps_thread,NULL)){
+         ALOGI("start_gps_thread start error");
+       }
 	gps_search_state=1;
 	strcpy(result,EUT_GPS_OK);
 	return 0;

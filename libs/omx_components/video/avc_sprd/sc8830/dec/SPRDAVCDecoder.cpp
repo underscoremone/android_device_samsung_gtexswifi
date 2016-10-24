@@ -369,6 +369,7 @@ status_t SPRDAVCDecoder::initDecoder() {
 
     int32 size_inter = H264_DECODER_INTERNAL_BUFFER_SIZE;
     mCodecInterBuffer = (uint8 *)malloc(size_inter);
+    CHECK(mCodecInterBuffer != NULL);
 
     MMCodecBuffer codec_buf;
     MMDecVideoFormat video_format;
@@ -385,7 +386,7 @@ status_t SPRDAVCDecoder::initDecoder() {
     video_format.p_extra = NULL;
     video_format.p_extra_phy = 0;
     video_format.i_extra = 0;
-    video_format.uv_interleaved = 1;
+    video_format.yuv_format = YUV420SP_NV12;
 
     if ((*mH264DecInit)(mHandle, &codec_buf,&video_format) != MMDEC_OK) {
         ALOGE("Failed to init AVCDEC");
@@ -1057,6 +1058,7 @@ void SPRDAVCDecoder::onQueueFilled(OMX_U32 portIndex) {
         MMDecRet ret;
         ret = (*mH264DecGetInfo)(mHandle, &decoderInfo);
         if(ret == MMDEC_OK) {
+#if 0
             if (!((decoderInfo.picWidth<= mMaxWidth&& decoderInfo.picHeight<= mMaxHeight)
                     || (decoderInfo.picWidth <= mMaxHeight && decoderInfo.picHeight <= mMaxWidth))) {
                 ALOGE("[%d,%d] is out of range [%d, %d], failed to support this format.",
@@ -1065,6 +1067,7 @@ void SPRDAVCDecoder::onQueueFilled(OMX_U32 portIndex) {
                 mSignalledError = true;
                 return;
             }
+#endif
 
             if (handlePortSettingChangeEvent(&decoderInfo)) {
                 return;
@@ -1145,7 +1148,7 @@ bool SPRDAVCDecoder::handlePortSettingChangeEvent(const H264SwDecInfo *info) {
 
         updatePortDefinitions();
         (*mH264Dec_ReleaseRefBuffers)(mHandle);
-        notify(OMX_EventPortSettingsChanged, 1, 0, NULL);
+        notify(OMX_EventPortSettingsChanged, kOutputPortIndex, 0, NULL);
         mOutputPortSettingsChange = AWAITING_DISABLED;
         return true;
     }
@@ -1280,21 +1283,21 @@ void SPRDAVCDecoder::onPortFlushPrepare(OMX_U32 portIndex) {
 }
 
 void SPRDAVCDecoder::updatePortDefinitions() {
-    OMX_PARAM_PORTDEFINITIONTYPE *def = &editPortInfo(0)->mDef;
-    def->format.video.nFrameWidth = mWidth;
-    def->format.video.nFrameHeight = mHeight;
-    def->format.video.nStride = def->format.video.nFrameWidth;
-    def->format.video.nSliceHeight = def->format.video.nFrameHeight;
+    OMX_PARAM_PORTDEFINITIONTYPE *outDef = &editPortInfo(kOutputPortIndex)->mDef;
+    outDef->format.video.nFrameWidth = mWidth;
+    outDef->format.video.nFrameHeight = mHeight;
+    outDef->format.video.nStride = outDef->format.video.nFrameWidth;
+    outDef->format.video.nSliceHeight = outDef->format.video.nFrameHeight;
 
-    def = &editPortInfo(1)->mDef;
-    def->format.video.nFrameWidth = mWidth;
-    def->format.video.nFrameHeight = mHeight;
-    def->format.video.nStride = def->format.video.nFrameWidth;
-    def->format.video.nSliceHeight = def->format.video.nFrameHeight;
+    outDef->nBufferSize =
+        (outDef->format.video.nStride * outDef->format.video.nSliceHeight * 3) / 2;
 
-    def->nBufferSize =
-        (def->format.video.nFrameWidth
-         * def->format.video.nFrameHeight * 3) / 2;
+    OMX_PARAM_PORTDEFINITIONTYPE *inDef = &editPortInfo(kInputPortIndex)->mDef;
+    inDef->format.video.nFrameWidth = mWidth;
+    inDef->format.video.nFrameHeight = mHeight;
+    // input port is compressed, hence it has no stride
+    inDef->format.video.nStride = 0;
+    inDef->format.video.nSliceHeight = 0;
 }
 
 

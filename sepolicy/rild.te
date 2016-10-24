@@ -1,13 +1,11 @@
 allow rild proc_net:file write;
 allow rild system_data_file:dir { create write add_name remove_name};
-allow rild system_data_file:file { create write unlink setattr };
 allow rild ctl_default_prop:property_service set;
 allow rild ctl_rildaemon_prop:property_service set;
 allow rild prod_file:dir search;
 allow rild spipe_device:chr_file { open read write ioctl };
 allow rild app_efs_file:dir { search };
 allow rild app_efs_file:file { open read write ioctl getattr };
-allow rild default_prop:property_service set;
 allow rild mediaserver:dir search;
 allow rild mediaserver:file { open read write ioctl getattr };
 allow rild imei_efs_file:dir search;

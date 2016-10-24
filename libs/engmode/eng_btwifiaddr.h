@@ -1,6 +1,8 @@
 #ifndef _ENG_BTWIFIMAC_H_
 #define _ENG_BTWIFIMAC_H_
 
+#define SPRD_MAC			"40:45:DA"                    //fixed,represent spreadtrum label
+
 typedef enum
 {
     ENG_BT_MAC,

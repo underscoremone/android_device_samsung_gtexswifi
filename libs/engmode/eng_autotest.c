@@ -205,7 +205,16 @@ void * acceptThread( void * param )
 
 		ENG_LOG("accept sock = %d\n", sck);
 		flags = fcntl(sck, F_GETFL);
-		fcntl(sck, F_SETFL, flags | O_NONBLOCK);
+		if(flags < 0) {
+			ENG_LOG("get sck flags error with fcntl\n");
+			close(sck);
+			continue;
+		}
+		if(fcntl(sck, F_SETFL, flags | O_NONBLOCK) < 0) {
+			ENG_LOG("set sck flags error with fcntl\n");
+			close(sck);
+			continue;
+		}		
 
 		if( asynRead(sck, (uchar *)buffer, sizeof(buffer), 1000) > 0 &&
 			0 == strncmp(buffer, hs, strlen(hs)) ) {

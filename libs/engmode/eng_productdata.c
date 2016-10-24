@@ -55,6 +55,7 @@ int eng_write_productnvdata(char *databuf,  int data_len)
 			ret = 1;
 			ENG_LOG("%s read fail PRODUCTINFO_FILE = %s ",__FUNCTION__ , PRODUCTINFO_FILE);
 		}
+		fsync(fd);
 		close(fd);
 	} else {
 		ENG_LOG("%s open fail PRODUCTINFO_FILE = %s ",__FUNCTION__ , PRODUCTINFO_FILE);
@@ -74,6 +75,8 @@ int eng_write_productnvdata(char *databuf,  int data_len)
 			if (len <= 0){
 				ENG_LOG("%s read fail PRODUCTINFO_FILE = %s ",__FUNCTION__ , PRODUCTINFO_FILE0);
 			}
+
+			fsync(fd);
 			close(fd);
 		} else {
 			ENG_LOG("%s open fail PRODUCTINFO_FILE = %s ",__FUNCTION__ , PRODUCTINFO_FILE0);

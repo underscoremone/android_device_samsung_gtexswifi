@@ -6,7 +6,7 @@ init_daemon_domain(bootchecker)
 
 allow bootchecker system_data_file:dir { add_name write };
 allow bootchecker shell_exec:file { read open execute execute_no_trans };
-allow bootchecker system_data_file:file { setattr create read write open append };
+allow bootchecker system_data_file:file { read open };
 allow bootchecker kernel:system syslog_read;
 allow bootchecker system_file:file execute_no_trans;
 allow bootchecker logdr_socket:sock_file write;

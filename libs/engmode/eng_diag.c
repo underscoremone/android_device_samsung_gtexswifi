@@ -7,10 +7,13 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/wait.h> //-- for system command
+#include <semaphore.h>
 #include "engopt.h"
 #include "eng_attok.h"
 #include "eng_pcclient.h"
-#include "eng_autotest.h" 
+#include "eng_autotest.h" //-- for autotest 20130220
 #include "eng_diag.h"
 #include "eng_sqlite.h"
 #include "vlog.h"
@@ -32,11 +35,20 @@
 #include "calibration.h"
 #include "eng_cmd4linuxhdlr.h"
 
+#include "wifi_eut_shark.h"
+#include "bt_eut.h"
+
 #define NUM_ELEMS(x) (sizeof(x)/sizeof(x[0]))
 #define NVITEM_ERROR_E  int
 #define NVERR_NONE 0
+#define IMEI_NUM   4
+#define CMD_REGISTERSTRING "regvaluesis:"
 
 
+#define CMD_SECURESTRING "securesha1="
+#define CMD_PUBLICKEYPATH "primpukpath="
+#define CMD_PUBLICKEYSTART "primpukstart="
+#define CMD_PUBLICKEYLEN "primpuklen="
 
 // SIPC interfaces in AP linux for AT CMD
 char *at_sipc_devname[] = {
@@ -45,8 +57,11 @@ char *at_sipc_devname[] = {
 };
 
 int g_reset = 0;
+sem_t g_gps_sem;
+int g_gps_log_enable = 0;
 int g_assert_cmd = 0;
 extern int g_run_mode;
+extern int g_ap_cali_flag;
 extern AUDIO_TOTAL_T *audio_total;
 extern void eng_check_factorymode(int normal_cali);
 extern int parse_vb_effect_params(void *audio_params_ptr, unsigned int params_size);
@@ -58,6 +73,11 @@ extern void enable_calibration(void);
 extern void stringfile2nvstruct(char *filename, void *para_ptr, int lenbytes);
 extern void  nvstruct2stringfile(char* filename,void *para_ptr, int lenbytes);
 extern char* get_ser_diag_path(void);
+extern int	disconnect_vbus_charger(void);
+extern int	connect_vbus_charger(void);
+extern int  start_fm_test(char *,int,char *);
+
+
 
 extern  struct eng_bt_eutops bt_eutops;
 extern  struct eng_wifi_eutops wifi_eutops;
@@ -77,29 +97,62 @@ static int eq_or_tun_type,eq_mode_sel_type;
 static int s_cmd_index = -1;
 static int s_cp_ap_proc = 0;
 static int s_cur_filepos = 0;
+static eng_thread_t gps_thread_hdlr;
 
 static int write_productnvdata(char* buffer , int size);
 static int read_productnvdata(char* buffer , int size);
 static int eng_diag_getver(unsigned char *buf,int len, char *rsp);
 static int eng_diag_bootreset(unsigned char *buf,int len, char *rsp);
 static int eng_diag_getband(char *buf,int len, char *rsp);
-static int eng_diag_btwifi(char *buf,int len, char *rsp, int rsplen);
+static int eng_diag_btwifiimei(char *buf,int len, char *rsp, int rsplen);
 static int eng_diag_audio(char *buf,int len, char *rsp);
 static int eng_diag_product_ctrl(char *buf,int len, char *rsp, int rsplen);
 static int eng_diag_direct_phschk(char *buf,int len, char *rsp, int rsplen);
 static void eng_diag_reboot(int reset);
 static int eng_diag_deep_sleep(char *buf,int len, char *rsp);
+
+static int eng_diag_gps_autotest_hdlr(char *buf, int len, char *rsp, int rsplen);
 static int eng_diag_fileoper_hdlr(char *buf, int len, char *rsp);
 static int eng_diag_ap_req(char *buf, int len);
+static int eng_diag_read_imei(REF_NVWriteDirect_T* direct, int num);
+static int eng_diag_write_imei(REF_NVWriteDirect_T* direct, int num);
+static void ImeiConvStr2NV(unsigned char* szImei, unsigned char* nvImei);
+static void ImeiConvNV2Str(unsigned char* nvImei, unsigned char* szImei);
+static char MAKE1BYTE2BYTES(unsigned char high4bit, unsigned char low4bit);
 int is_audio_at_cmd_need_to_handle(char *buf,int len);
-int is_btwifi_addr_need_to_handle(char *buf,int len);
+int is_rm_cali_nv_need_to_handle(char *buf,int len);
 int eng_diag_factorymode(char *buf,int len, char *rsp);
 int eng_diag_mmicit_read(char *buf,int len, char *rsp, int rsplen);
+#if defined(ENGMODE_EUT_BCM)
 int get_sub_str(char *buf,char **revdata, char a, char b);
+#elif defined(ENGMODE_EUT_SPRD)
+int get_sub_str(const char *buf, char **revdata, char a, char *delim, unsigned char count, unsigned char substr_max_len);
+#endif
 int get_cmd_index(char *buf);
-int eng_diag_decode7d7e(char *buf,int len);
 int eng_diag_adc(char *buf, int * Irsp); //add by kenyliu on 2013 07 12 for get ADCV  bug 188809
 void At_cmd_back_sig(void);//add by kenyliu on 2013 07 15 for set calibration enable or disable  bug 189696
+static void eng_diag_cft_switch_hdlr(char *buf,int len, char *rsp, int rsplen);
+static int eng_diag_enable_charge(char *buf, int len, char *rsp, int rsplen);
+static int eng_diag_get_charge_current(char *buf, int len, char *rsp, int rsplen);
+static int get_charging_current(int *value);
+static int get_battery_current(int *value);
+static int eng_diag_get_modem_mode(char *buf, int len, char *rsp, int rsplen);
+static int eng_detect_process(char *process_name);
+static int eng_open_wifi_switch();
+static int eng_diag_set_backlight(char *buf, int len, char *rsp, int rsplen);
+static int eng_diag_set_powermode(char *buf, int len, char *rsp, int rsplen);
+static int eng_diag_set_ipconfigure(char *buf, int len, char *rsp, int rsplen);
+static int eng_diag_read_register(char *buf, int len, char *rsp, int rsplen);
+static int eng_diag_write_register(char *buf, int len, char *rsp, int rsplen);
+
+static int eng_diag_read_efuse(char *buf,int len,char *rsp, int rsplen);
+static int eng_diag_write_efuse(char *buf,int len,char *rsp, int rsplen);
+static int eng_parse_hash_cmdline(unsigned char cmdvalue[]);
+static int eng_parse_publickey_cmdline(char *path,int* pos,int* len);
+static int eng_diag_read_publickey(char *buf,int len,char *rsp, int rsplen);
+static int eng_diag_enable_secure(char *buf,int len,char *rsp, int rsplen);
+static int eng_diag_read_enable_secure_bit(char *buf,int len,char *rsp, int rsplen);
+
 
 static const char *at_sadm="AT+SADM4AP";
 static const char *at_spenha="AT+SPENHA";
@@ -111,7 +164,6 @@ static int at_sadm_cmd_to_handle[] = {7,8,9,10,11,12,-1};
 //static int at_spenha_cmd_to_handle[] = {0,1,2,3,4,-1};
 static int at_spenha_cmd_to_handle[] = {0,1,2,3,4,-1};
 
-#define AUDFIFO "/data/local/media/audiopara_tuning"
 static int eng_autotest_dummy(char *req, char *rsp);
 static int eng_autotest_keypad(char *req, char *rsp);
 static int eng_autotest_lcd_parallel(char *req, char *rsp);
@@ -164,7 +216,7 @@ static struct eng_autotestcmd_str eng_autotestcmd[] = {
 	//-- ]]
     {CMD_AUTOTEST_GPS,             eng_autotest_gps},
 };
-
+#if defined(ENGMODE_EUT_BCM)
 struct eut_cmd eut_cmds[]={
     {EUT_REQ_INDEX,ENG_EUT_REQ},
     {EUT_INDEX,ENG_EUT},
@@ -177,8 +229,8 @@ struct eut_cmd eut_cmds[]={
     {WIFIRATIO_INDEX,ENG_WIFIRATIO},
     {WIFITX_FACTOR_REQ_INDEX,ENG_WIFITX_FACTOR_REQ},
     {WIFITX_FACTOR_INDEX,ENG_WIFITX_FACTOR},
-	{ENG_WIFITXGAININDEX_REQ_INDEX, ENG_WIFITXGAININDEX_REQ},
-	{ENG_WIFITXGAININDEX_INDEX, ENG_WIFITXGAININDEX},
+    {ENG_WIFITXGAININDEX_REQ_INDEX, ENG_WIFITXGAININDEX_REQ},
+    {ENG_WIFITXGAININDEX_INDEX, ENG_WIFITXGAININDEX},
     {WIFITX_REQ_INDEX,ENG_WIFITX_REQ},
     {WIFITX_INDEX,ENG_WIFITX},
     {WIFIRX_PACKCOUNT_INDEX,ENG_WIFIRX_PACKCOUNT},
@@ -188,11 +240,143 @@ struct eut_cmd eut_cmds[]={
     {GPSPRNSTATE_REQ_INDEX,ENG_GPSPRNSTATE_REQ},
     {GPSSNR_REQ_INDEX,ENG_GPSSNR_REQ},
     {GPSPRN_INDEX,ENG_GPSPRN},
-	{ENG_WIFIRATE_REQ_INDEX, ENG_WIFIRATE_REQ},
+    {ENG_WIFIRATE_REQ_INDEX, ENG_WIFIRATE_REQ},
     {ENG_WIFIRATE_INDEX,ENG_WIFIRATE},
-    {ENG_WIFIRSSI_REQ_INDEX, ENG_WIFIRSSI_REQ},  
+    {ENG_WIFIRSSI_REQ_INDEX, ENG_WIFIRSSI_REQ},
 };
+#elif defined(ENGMODE_EUT_SPRD)
+struct eut_cmd eut_cmds[] =
+{
+    {EUT_REQ_INDEX,ENG_EUT_REQ},
+    {EUT_INDEX,ENG_EUT},
+    {GPSSEARCH_REQ_INDEX,ENG_GPSSEARCH_REQ},
+    {GPSSEARCH_INDEX,ENG_GPSSEARCH},
+    {WIFICH_REQ_INDEX,ENG_WIFICH_REQ},
+    {WIFICH_INDEX,ENG_WIFICH},
 
+    {WIFIRATIO_REQ_INDEX,ENG_WIFIRATIO_REQ},
+    {WIFIRATIO_INDEX,ENG_WIFIRATIO},
+
+    /* Tx Power Level */
+    {WIFITXPWRLV_REQ_INDEX, ENG_WIFITXPWRLV_REQ},
+    {WIFITXPWRLV_INDEX, ENG_WIFITXPWRLV},
+
+    /* Tx FAC */
+    {WIFITX_FACTOR_REQ_INDEX,ENG_WIFITX_FACTOR_REQ},
+    {WIFITX_FACTOR_INDEX,ENG_WIFITX_FACTOR},
+
+    /* TX Mode */
+    {WIFITXMODE_REQ_INDEX, ENG_WIFITXMODE_REQ},
+    {WIFITXMODE_INDEX, ENG_WIFITXMODE},
+
+    /* TX Gain */
+    {ENG_WIFITXGAININDEX_REQ_INDEX, ENG_WIFITXGAININDEX_REQ},
+    {ENG_WIFITXGAININDEX_INDEX, ENG_WIFITXGAININDEX},
+
+    /* TX */
+    {TX_REQ_INDEX, ENG_TX_REQ},
+    {TX_INDEX, ENG_TX},
+
+    /* RX */
+    {RX_REQ_INDEX, ENG_RX_REQ},
+    {RX_INDEX, ENG_RX},
+
+    /* Mode, is not TX Mode*/
+    {WIFIMODE_INDEX, ENG_WIFIMODE},
+
+    {WIFIRX_PACKCOUNT_INDEX,ENG_WIFIRX_PACKCOUNT},
+    {WIFICLRRXPACKCOUNT_INDEX,ENG_WIFI_CLRRXPACKCOUNT},
+    {GPSPRNSTATE_REQ_INDEX,ENG_GPSPRNSTATE_REQ},
+    {GPSSNR_REQ_INDEX,ENG_GPSSNR_REQ},
+    {GPSPRN_INDEX,ENG_GPSPRN},
+    {ENG_WIFIRATE_REQ_INDEX, ENG_WIFIRATE_REQ},
+    {ENG_WIFIRATE_INDEX,ENG_WIFIRATE},
+    {ENG_WIFIRSSI_REQ_INDEX, ENG_WIFIRSSI_REQ},
+
+    /* LNA */
+    {WIFILNA_REQ_INDEX, ENG_WIFILNA_REQ},
+    {WIFILNA_INDEX, ENG_WIFILNA},
+
+    /* Band */
+    {WIFIBAND_REQ_INDEX, ENG_WIFIBAND_REQ},
+    {WIFIBAND_INDEX, ENG_WIFIBAND},
+
+    /* Band Width */
+    {WIFIBANDWIDTH_REQ_INDEX, ENG_WIFIBANDWIDTH_REQ},
+    {WIFIBANDWIDTH_INDEX, ENG_WIFIBANDWIDTH},
+
+
+    /* Pkt Length */
+    {WIFIPKTLEN_REQ_INDEX, ENG_WIFIPKTLEN_REQ},
+    {WIFIPKTLEN_INDEX, ENG_WIFIPKTLEN},
+
+
+    /* Preamble */
+    {WIFIPREAMBLE_REQ_INDEX, ENG_WIFIPREAMBLE_REQ},
+    {WIFIPREAMBLE_INDEX, ENG_WIFIPREAMBLE},
+
+    /* Payload */
+    {WIFIPAYLOAD_REQ_INDEX, ENG_WIFIPAYLOAD_REQ},
+    {WIFIPAYLOAD_INDEX, ENG_WIFIPAYLOAD},
+
+    /* Guard Interval */
+    {WIFIGUARDINTERVAL_REQ_INDEX, ENG_GUARDINTERVAL_REQ},
+    {WIFIGUARDINTERVAL_INDEX, ENG_GUARDINTERVAL},
+
+    /* MAC Filter */
+    {WIFIMACFILTER_REQ_INDEX, ENG_MACFILTER_REQ},
+    {WIFIMACFILTER_INDEX, ENG_MACFILTER},
+
+
+    //以下是BT的
+    /* BT TXCH*/
+    {BT_TXCH_REQ_INDEX, ENG_BT_TXCH_REQ},
+    {BT_TXCH_INDEX, ENG_BT_TXCH},
+
+    /* BT RXCH*/
+    {BT_RXCH_REQ_INDEX, ENG_BT_RXCH_REQ},
+    {BT_RXCH_INDEX, ENG_BT_RXCH},
+
+    /* BT TX PATTERN */
+    {BT_TXPATTERN_REQ_INDEX, ENG_BT_TXPATTERN_REQ},
+    {BT_TXPATTERN_INDEX, ENG_BT_TXPATTERN},
+
+    /* BT RX PATTERN */
+    {BT_RXPATTERN_REQ_INDEX, ENG_BT_RXPATTERN_REQ},
+    {BT_RXPATTERN_INDEX,ENG_BT_RXPATTERN},
+
+    /* TXPKTTYPE */
+    {BT_TXPKTTYPE_REQ_INDEX, ENG_BT_TXPKTTYPE_REQ},
+    {BT_TXPKTTYPE_INDEX, ENG_BT_TXPKTTYPE},
+
+    /* RXPKTTYPE */
+    {BT_RXPKTTYPE_REQ_INDEX, ENG_BT_RXPKTTYPE_REQ},
+    {BT_RXPKTTYPE_INDEX, ENG_BT_RXPKTTYPE},
+
+    /* TXPKTLEN */
+    {BT_TXPKTLEN_REQ_INDEX, ENG_BT_TXPKTLEN_REQ},
+    {BT_TXPKTLEN_INDEX, ENG_BT_TXPKTLEN},
+
+    /* TXPWR */
+    {BT_TXPWR_REQ_INDEX, ENG_BT_TXPWR_REQ},
+    {BT_TXPWR_INDEX, ENG_BT_TXPWR},
+
+    /* RX Gain */
+    {BT_RXGAIN_REQ_INDEX, ENG_BT_RXGAIN_REQ},
+    {BT_RXGAIN_INDEX, ENG_BT_RXGAIN},
+
+    /* ADDRESS */
+    {BT_ADDRESS_REQ_INDEX, ENG_BT_ADDRESS_REQ},
+    {BT_ADDRESS_INDEX, ENG_BT_ADDRESS},
+
+    /* RXDATA */
+    {BT_RXDATA_REQ_INDEX, ENG_BT_RXDATA_REQ},
+
+    /* TESTMODE */
+    {BT_TESTMODE_REQ_INDEX, ENG_BT_TESTMODE_REQ},
+    {BT_TESTMODE_INDEX, ENG_BT_TESTMODE},
+};
+#endif
 static int eng_diag_write2pc(unsigned char* buf, unsigned int len)
 {
     int ret;
@@ -223,10 +407,14 @@ static void print_log(char* log_data,int cnt)
         cnt = ENG_DIAG_SIZE;
 
     ENG_LOG("vser receive:\n");
-    for(i = 0; i < cnt; i++) {
-        if (isalnum(log_data[i])){
+    for(i = 0; i < cnt; i++)
+    {
+        if (isalnum(log_data[i]))
+        {
             ENG_LOG("%c ", log_data[i]);
-        }else{
+        }
+        else
+        {
             ENG_LOG("%2x ", log_data[i]);
         }
     }
@@ -238,14 +426,13 @@ char* eng_diag_at_channel()
     return at_sipc_devname[g_run_mode];
 }
 
-int eng_diag_parse(char *buf,int len)
+int eng_diag_parse(char *buf,int len,int *num)
 {
     int i;
     int ret = CMD_COMMON;
     MSG_HEAD_T *head_ptr=NULL;
-    eng_diag_decode7d7e((char *)(buf + 1), (len - 1));
+    *num=eng_diag_decode7d7e((char *)(buf + 1), (len - 2));         //remove the start 0x7e and the last 0x7e
     head_ptr =(MSG_HEAD_T *)(buf+1);
-
     ENG_LOG("%s: cmd=0x%x; subcmd=0x%x\n",__FUNCTION__, head_ptr->type, head_ptr->subtype);
     //ENG_LOG("%s: cmd is:%s \n", __FUNCTION__, (buf + DIAG_HEADER_LENGTH + 1));
 
@@ -277,9 +464,14 @@ int eng_diag_parse(char *buf,int len)
             ENG_LOG("%s: Handle DIAG_CMD_DIRECT_PHSCHK\n",__FUNCTION__);
             ret =CMD_USER_DIRECT_PHSCHK;
             break;
+#if 0
         case DIAG_CMD_ADC_F:
             ret =CMD_USER_ADC;
             break;
+#endif
+	case DIAG_FM_TEST_F:
+		ret=CMD_USER_FM;
+		break;
         case DIAG_CMD_AT:
             if(is_audio_at_cmd_need_to_handle(buf,len)){
                 ENG_LOG("%s: Handle DIAG_CMD_AUDIO\n",__FUNCTION__);
@@ -299,14 +491,14 @@ int eng_diag_parse(char *buf,int len)
         case DIAG_CMD_APCALI:
             ret = eng_diag_ap_req(buf, len);
             break;
-	    case DIAG_CMD_AUTOTEST:
-			ENG_LOG("%s: Handle DIAG_CMD_AUTOTEST , eng_autotestIsConnect = %d \n",__FUNCTION__,  eng_autotestIsConnect());
-			if(head_ptr->subtype == 0x1c) {
-				ret = CMD_USER_AUTOTEST_PATH_CONFIRM;
-			} else {
-				ret = CMD_USER_AUTOTEST;
-			}
-			break;
+	case DIAG_CMD_AUTOTEST:
+	    ENG_LOG("%s: Handle DIAG_CMD_AUTOTEST , eng_autotestIsConnect = %d \n",__FUNCTION__,  eng_autotestIsConnect());
+	    if(head_ptr->subtype == 0x1c) {
+		ret = CMD_USER_AUTOTEST_PATH_CONFIRM;
+	    } else {
+		ret = CMD_USER_AUTOTEST;
+	    }
+	    break;
         case DIAG_CMD_VER:
             ENG_LOG("%s: Handle DIAG_CMD_VER",__FUNCTION__);
             if(head_ptr->subtype==0x2) {
@@ -314,12 +506,12 @@ int eng_diag_parse(char *buf,int len)
             }
             break;
         case DIAG_CMD_IMEIBTWIFI:
-            ret = is_btwifi_addr_need_to_handle(buf,len);
+            ret = is_rm_cali_nv_need_to_handle(buf,len);
             if(ret){
                 if(2 == ret){
                     s_cp_ap_proc = 1; // This command should send to AP and CP.
                 }
-                ret = CMD_USER_BTWIFI;
+                ret = CMD_USER_BTWIFIIMEI;
             }else{
                 ret = CMD_COMMON;
             }
@@ -332,11 +524,33 @@ int eng_diag_parse(char *buf,int len)
                 ret = CMD_USER_SHUT_DOWN;
             }
             break;
-        case DIAG_CMD_ASSERT:
+        case DIAG_CMD_GPS_AUTO_TEST:
+            ENG_LOG("%s: Handle DIAG_CMD_GPS_AUTO_TEST", __FUNCTION__);
+            ret = CMD_USER_GPS_AUTO_TEST;
+            break;
+        case DIAG_CMD_WIFI_TEST_F:
+	    if(head_ptr->subtype== 0x10){
+		ret = CMD_USER_SET_CONFIGURE_IP;
+	    }else if(head_ptr->subtype== 0x0E){
+		ret = CMD_USER_READ_REGISTER;
+	    }else if(head_ptr->subtype== 0x0F){
+		ret = CMD_USER_WRITE_REGISTER;
+	    }
+	    break;
+        case DIAG_SYSTEM_F:
             if(head_ptr->subtype==0x4) {
                 ENG_LOG("%s: Handle DIAG_CMD_ASSERT", __FUNCTION__);
                 g_assert_cmd = 1;
-            }
+	    }else if(head_ptr->subtype==0x20)
+                ret = CMD_USER_READ_EFUSE;
+            else if(head_ptr->subtype==0x21)
+                ret = CMD_USER_WRITE_EFUSE;
+            else if(head_ptr->subtype==0x22)
+                ret = CMD_USER_ENABLE_SECURE;
+            else if (head_ptr->subtype==0x23)
+                ret = CMD_USER_READ_PUBLICKEY;
+            else if (head_ptr->subtype==0x24)
+                ret = CMD_USER_READ_ENABLE_SECURE_BIT;
             break;
         default:
             ENG_LOG("%s: Default\n",__FUNCTION__);
@@ -380,7 +594,7 @@ static int eng_diag_attest(char *data,int count,char *out_msg)
                 ENG_LOG("%s: no handler for CMD_USER_AUTOTEST sub_type = %d",__FUNCTION__, sub_type);
                 return -1;
        }
-	//-- [[ for autotest 
+	//-- [[ for autotest 20120220
 	if( eng_autotestIsConnect() >= 0 ) {
 		rlen = eng_autotestDoTest((const uchar *)data+1, count-1, (uchar *)rsp, ENG_BUFFER_SIZE);
 	} else {
@@ -423,8 +637,8 @@ int eng_diag_user_handle(int type, char *buf,int len)
             rlen=eng_diag_bootreset((unsigned char*)buf,len, rsp);
             g_reset = 1;
             break;
-        case CMD_USER_BTWIFI:
-            rlen=eng_diag_btwifi(buf, len, rsp, sizeof(rsp));
+        case CMD_USER_BTWIFIIMEI:
+            rlen=eng_diag_btwifiimei(buf, len, rsp, sizeof(rsp));
             eng_diag_write2pc(rsp, rlen);
             return 0;
         case CMD_USER_FACTORYMODE:
@@ -433,24 +647,33 @@ int eng_diag_user_handle(int type, char *buf,int len)
         case CMD_USER_ADC:
             rlen=eng_diag_adc(buf, adc_rsp);
             break;
-	 case CMD_USER_AUTOTEST:
-		memset(eng_diag_buf, 0, sizeof(eng_diag_buf));
-		rlen=eng_diag_attest(buf, len, eng_diag_buf);
-		eng_diag_len = rlen;
-		for(i=0;i<eng_diag_len;i++)
-		{
-			ENG_LOG("%s: eng_diag_buf[%d]=%x\n",__FUNCTION__, i,eng_diag_buf[i]);
+/* add FM pandora for marlin */
+	case CMD_USER_FM:
+            rlen=start_fm_test(buf,len,rsp);
+            eng_diag_write2pc(rsp,rlen);
+
+	    return 0;
+	    break;
+	case CMD_USER_AUTOTEST:
+	    memset(eng_diag_buf, 0, sizeof(eng_diag_buf));
+	    rlen=eng_diag_attest(buf, len, eng_diag_buf);
+	    eng_diag_len = rlen;
+		if(eng_diag_len > 0) {
+			for(i=0;i<eng_diag_len;i++)
+		    {
+				ENG_LOG("%s: eng_diag_buf[%d]=%x\n",__FUNCTION__, i,eng_diag_buf[i]);
+		    }
+		    eng_diag_write2pc(eng_diag_buf, eng_diag_len);
 		}
-		eng_diag_write2pc(eng_diag_buf, eng_diag_len);
-		return 0;
-	  break;
-	  case CMD_USER_AUTOTEST_PATH_CONFIRM:
-		/*eng_attest_build_rsphead(buf, &head, 0);
-		memcpy(eng_diag_buf, &head, sizeof(MSG_HEAD_T));
-		rlen = eng_hex2ascii(eng_diag_buf, eng_atdiag_buf, head.len);
-		ENG_LOG("%s: after hex rlen=%d\n",__FUNCTION__, rlen);
-		rlen = eng_atdiag_rsp(eng_get_csclient_fd(), eng_atdiag_buf, rlen);*/
-	     break;
+	    return 0;
+	    break;
+	case CMD_USER_AUTOTEST_PATH_CONFIRM:
+	    /*eng_attest_build_rsphead(buf, &head, 0);
+	    memcpy(eng_diag_buf, &head, sizeof(MSG_HEAD_T));
+	    rlen = eng_hex2ascii(eng_diag_buf, eng_atdiag_buf, head.len);
+	    ENG_LOG("%s: after hex rlen=%d\n",__FUNCTION__, rlen);
+	    rlen = eng_atdiag_rsp(eng_get_csclient_fd(), eng_atdiag_buf, rlen);*/
+	    break;
         case CMD_USER_AUDIO:
             memset(eng_audio_diag_buf,0,sizeof(eng_audio_diag_buf));
             rlen=eng_diag_audio(buf, len, eng_audio_diag_buf);
@@ -504,9 +727,97 @@ int eng_diag_user_handle(int type, char *buf,int len)
             ENG_LOG("%s: CMD_USER_SHUT_DOWN Req!\n", __FUNCTION__);
             reboot(LINUX_REBOOT_CMD_POWER_OFF);
             break;
+        case CMD_USER_CFT_SWITCH:
+            ENG_LOG("%s: CMD_USER_CFT_SWITCHReq!\n", __FUNCTION__);
+            eng_diag_cft_switch_hdlr(buf,len,eng_diag_buf,sizeof(eng_diag_buf));
+            break;
+        case CMD_USER_GPS_AUTO_TEST:
+            ENG_LOG("%s: CMD_USER_GPS_AUTO_TEST Req!\n", __FUNCTION__);
+            rlen = eng_diag_gps_autotest_hdlr(buf, len, eng_diag_buf, sizeof(eng_diag_buf));
+            eng_diag_len = rlen;
+            eng_diag_write2pc(eng_diag_buf, eng_diag_len);
+            return 0;
+	case CMD_USER_ENABLE_CHARGE_ONOFF:
+            rlen = eng_diag_enable_charge(buf, len, rsp, sizeof(rsp));
+            eng_diag_write2pc(rsp, rlen);
+            return 0;
+	case CMD_USER_GET_CHARGE_CURRENT:
+	    rlen = eng_diag_get_charge_current(buf, len, rsp, sizeof(rsp));
+	    eng_diag_write2pc(rsp, rlen);
+	    return 0;
+	case CMD_USER_GET_MODEM_MODE:
+	    rlen = eng_diag_get_modem_mode(buf, len, rsp, sizeof(rsp));
+	    eng_diag_write2pc(rsp, rlen);
+	    return 0;
+	case CMD_USER_BKLIGHT:
+	    ENG_LOG("%s: CMD_USER_BKLIGHT Req!\n", __FUNCTION__);
+	    rlen = eng_diag_set_backlight(buf, len, eng_diag_buf, sizeof(eng_diag_buf));
+	    eng_diag_len = rlen;
+	    eng_diag_write2pc(eng_diag_buf, eng_diag_len);
+	    return 0;
+	case CMD_USER_PWMODE:
+	    ENG_LOG("%s: CMD_USER_PWMODE Req!\n", __FUNCTION__);
+	    rlen = eng_diag_set_powermode(buf, len, eng_diag_buf, sizeof(eng_diag_buf));
+	    eng_diag_len = rlen;
+	    eng_diag_write2pc(eng_diag_buf, eng_diag_len);
+	    return 0;
+	case CMD_USER_SET_CONFIGURE_IP:
+	    ENG_LOG("%s: CMD_USER_SET_CONFIGURE_IP Req!\n", __FUNCTION__);
+	    rlen = eng_diag_set_ipconfigure(buf, len, eng_diag_buf, sizeof(eng_diag_buf));
+	    eng_diag_len = rlen;
+	    eng_diag_write2pc(eng_diag_buf, eng_diag_len);
+	    return 0;
+	case CMD_USER_READ_REGISTER:
+	    ENG_LOG("%s: CMD_USER_READ_REGISTER Req!\n", __FUNCTION__);
+	    rlen = eng_diag_read_register(buf, len, eng_diag_buf, sizeof(eng_diag_buf));
+	    eng_diag_len = rlen;
+	    eng_diag_write2pc(eng_diag_buf, eng_diag_len);
+	    return 0;
+	case CMD_USER_WRITE_REGISTER:
+	    ENG_LOG("%s: CMD_USER_WRITE_REGISTER Req!\n", __FUNCTION__);
+	    rlen = eng_diag_write_register(buf, len, eng_diag_buf, sizeof(eng_diag_buf));
+	    eng_diag_len = rlen;
+	    eng_diag_write2pc(eng_diag_buf, eng_diag_len);
+	    return 0;
+	case CMD_USER_READ_EFUSE:
+            ENG_LOG("%s: CMD_USER_READ_EFUSE Req!\n", __FUNCTION__);
+            memset(eng_diag_buf,0,sizeof(eng_diag_buf));
+            rlen = eng_diag_read_efuse(buf, len, eng_diag_buf,sizeof(eng_diag_buf));
+            eng_diag_len = rlen;
+            eng_diag_write2pc(eng_diag_buf,eng_diag_len);
+            return 0;
+        case CMD_USER_WRITE_EFUSE:
+            ENG_LOG("%s: CMD_USER_WRITE_EFUSE Req!\n", __FUNCTION__);
+            memset(eng_diag_buf,0,sizeof(eng_diag_buf));
+            rlen = eng_diag_write_efuse(buf, len, eng_diag_buf,sizeof(eng_diag_buf));
+            eng_diag_len = rlen;
+            eng_diag_write2pc(eng_diag_buf,eng_diag_len);
+            return 0;
+        case CMD_USER_READ_PUBLICKEY:
+            ENG_LOG("%s: CMD_USER_READ_PUBLICKEY Req!\n", __FUNCTION__);
+            memset(eng_diag_buf,0,sizeof(eng_diag_buf));
+            rlen = eng_diag_read_publickey(buf, len, eng_diag_buf,sizeof(eng_diag_buf));
+            eng_diag_len = rlen;
+            eng_diag_write2pc(eng_diag_buf,eng_diag_len);
+            return 0;
+        case CMD_USER_ENABLE_SECURE:
+            ENG_LOG("%s: CMD_USER_SCURE_ENABLE Req!\n", __FUNCTION__);
+            memset(eng_diag_buf,0,sizeof(eng_diag_buf));
+            rlen = eng_diag_enable_secure(buf, len, eng_diag_buf,sizeof(eng_diag_buf));
+            eng_diag_len = rlen;
+            eng_diag_write2pc(eng_diag_buf,eng_diag_len);
+            return 0;
+        case CMD_USER_READ_ENABLE_SECURE_BIT:
+            ENG_LOG("%s: CMD_USER_SCURE_ENABLE Req!\n", __FUNCTION__);
+            memset(eng_diag_buf,0,sizeof(eng_diag_buf));
+            rlen = eng_diag_read_enable_secure_bit(buf, len, eng_diag_buf,sizeof(eng_diag_buf));
+            eng_diag_len = rlen;
+            eng_diag_write2pc(eng_diag_buf,eng_diag_len);
+            return 0;
         default:
             break;
     }
+
 
     memcpy((char*)&head,buf+1,sizeof(MSG_HEAD_T));
     head.len = sizeof(MSG_HEAD_T)+rlen-extra_len;
@@ -588,20 +899,42 @@ int eng_hex2ascii(char *input, char *output, int length)
         strcat(output, tmp);
     }
 
-    ENG_LOG("%s: %s",__FUNCTION__, output);
+    ENG_LOG("%s: %s", __func__, output);
     return strlen(output);
 }
 
-int eng_atdiag_euthdlr(char * buf, int len, char * rsp,int module_index)
+/********************************************************************
+*   name   eng_atdiag_euthdlr
+*   ---------------------------
+*   description: 入口函数.
+*   ----------------------------
+*   para        IN/OUT      type            note
+*   ----------------------------------------------------
+*   return
+*   ------------------
+*   other:
+*   注意,这里包含2套方案
+*   ENGMODE_EUT_BCM是BRCM的方案,
+*   ENGMODE_EUT_SPRD是SPRD方案,在engmode的mk中控制编译
+********************************************************************/
+#if defined(ENGMODE_EUT_BCM)
+int eng_atdiag_euthdlr(char *buf, int len, char *rsp, int module_index)
 {
+    //brcm
     char args0[15] = {0};
     char args1[15] = {0};
     char *data[2] = {args0,args1};
     int cmd_index = -1;
     get_sub_str(buf,data ,'=' ,',');
     cmd_index = get_cmd_index(buf);
-	ENG_LOG("\r\n");
+    ENG_LOG("\r\n");
     ENG_LOG("eng_atdiag_euthdlr(), args0 =%s, args1=%s, cmd_index=%d\n",args0,args1,cmd_index);
+
+    if(module_index == GPS_MODULE_INDEX)
+    {
+	gps_eut_parse(buf,rsp);
+	return 0;
+    }
     switch(cmd_index){
         case EUT_REQ_INDEX:
             if(module_index == BT_MODULE_INDEX){
@@ -610,11 +943,15 @@ int eng_atdiag_euthdlr(char * buf, int len, char * rsp,int module_index)
             }
             else if(module_index == WIFI_MODULE_INDEX){
                 ENG_LOG("case WIFIEUT_INDEX");
-                wifi_eut_get(rsp);
+                //wifi_eut_get(rsp);
+                if (wifi_eutops.wifieut_req != NULL)
+                    wifi_eutops.wifieut_req(rsp);
+                else
+                    ALOGE("wifi_eutops.wifieut_req not support!");
             }
             else {
                 ALOGD("case GPS_INDEX");
-                gps_eutops.gpseut_req(rsp);
+               // gps_eutops.gpseut_req(rsp);
             }
             break;
         case EUT_INDEX:
@@ -624,92 +961,154 @@ int eng_atdiag_euthdlr(char * buf, int len, char * rsp,int module_index)
             }
             else if(module_index == WIFI_MODULE_INDEX){
                 ENG_LOG("case WIFIEUT_INDEX");
-                wifi_eut_set(atoi(data[1]), rsp);
+                //wifi_eut_set(atoi(data[1]), rsp);
+                if (wifi_eutops.wifieut != NULL)
+                    wifi_eutops.wifieut(atoi(data[1]), rsp);
+                else
+                    ALOGE("wifi_eutops.wifieut not support!");
             }
             else {
                 ALOGD("case GPS_INDEX");
-                gps_eutops.gpseut(atoi(data[1]),rsp);
+               // gps_eutops.gpseut(atoi(data[1]),rsp);
             }
             break;
         case WIFICH_REQ_INDEX:
-            wifi_channel_get(rsp);
+            ENG_LOG("case WIFIEUT_INDEX");
+            //wifi_channel_get(rsp);
+            if (wifi_eutops.wifi_ch_req != NULL)
+                wifi_eutops.wifi_ch_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_ch_req not support!");
             break;
         case WIFICH_INDEX:
-            ENG_LOG("case WIFICH_INDEX   %d",WIFICH_INDEX);
-            wifi_channel_set(atoi(data[1]),rsp);
+            //wifi_channel_set(atoi(data[1]),rsp);
+            if (wifi_eutops.set_wifi_ch != NULL)
+                wifi_eutops.set_wifi_ch(atoi(data[1]),rsp);
+            else
+                ALOGE("wifi_eutops.set_wifi_ch not support!");
             break;
         case WIFIMODE_INDEX:
             //wifi_eutops.set_wifi_mode(data[1],rsp);
+            if (wifi_eutops.set_wifi_mode != NULL)
+                wifi_eutops.set_wifi_mode(data[1],rsp);
+            else
+                ALOGE("wifi_eutops.set_wifi_mode not support!");
             break;
         case WIFIRATIO_INDEX:
             ALOGD("case WIFIRATIO_INDEX   %d",WIFIRATIO_INDEX);
             //wifi_eutops.set_wifi_ratio(atof(data[1]),rsp);
+            if (wifi_eutops.set_wifi_ratio != NULL)
+                wifi_eutops.set_wifi_ratio(atof(data[1]),rsp);
+            else
+                ALOGE("wifi_eutops.set_wifi_ratio not support!");
             break;
         case WIFITX_FACTOR_INDEX:
             //wifi_eutops.set_wifi_tx_factor(atol(data[1]),rsp);
+            if (wifi_eutops.set_wifi_tx_factor != NULL)
+                wifi_eutops.set_wifi_tx_factor(atol(data[1]),rsp);
+            else
+                ALOGE("wifi_eutops.set_wifi_tx_factor not support!");
             break;
         case WIFITX_INDEX:
-			ENG_LOG("case WIFITX_INDEX   %d",WIFITX_INDEX);
-            wifi_tx_set(atoi(data[1]),rsp);
+            ENG_LOG("case WIFITX_INDEX   %d",WIFITX_INDEX);
+            //wifi_tx_set(atoi(data[1]),rsp);
+            if (wifi_eutops.wifi_tx != NULL)
+                wifi_eutops.wifi_tx(atoi(data[1]),rsp);
+            else
+                ALOGE("wifi_eutops.wifi_tx not support!");
             break;
         case WIFIRX_INDEX:
-            wifi_rx_set(atoi(data[1]),rsp);
+            //wifi_rx_set(atoi(data[1]),rsp);
+            if (wifi_eutops.wifi_rx != NULL)
+                wifi_eutops.wifi_rx(atoi(data[1]),rsp);
+            else
+                ALOGE("wifi_eutops.wifi_rx not support!");
             break;
         case WIFITX_REQ_INDEX:
-            wifi_tx_get(rsp);
+            //wifi_tx_get(rsp);
+            if (wifi_eutops.wifi_tx_req != NULL)
+                wifi_eutops.wifi_tx_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_tx_req not support!");
             break;
         case WIFIRX_REQ_INDEX:
-            wifi_rx_get(rsp);
+            //wifi_rx_get(rsp);
+            if (wifi_eutops.wifi_rx_req != NULL)
+                wifi_eutops.wifi_rx_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_rx_req not support!");
             break;
         case WIFITX_FACTOR_REQ_INDEX:
             //wifi_eutops.wifi_tx_factor_req(rsp);
+            if (wifi_eutops.wifi_tx_factor_req != NULL)
+                wifi_eutops.wifi_tx_factor_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_tx_factor_req not support!");
             break;
         case WIFIRATIO_REQ_INDEX:
             //wifi_eutops.wifi_ratio_req(rsp);
+            if (wifi_eutops.wifi_ratio_req != NULL)
+                wifi_eutops.wifi_ratio_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_ratio_req not support!");
             break;
         case WIFIRX_PACKCOUNT_INDEX:
-            wifi_rxpktcnt_get(rsp);
+            //wifi_rxpktcnt_get(rsp);
+            if (wifi_eutops.wifi_rxpackcount != NULL)
+                wifi_eutops.wifi_rxpackcount(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_rxpackcount not support!");
             break;
         case WIFICLRRXPACKCOUNT_INDEX:
             //wifi_eutops.wifi_clr_rxpackcount(rsp);
+//            if (wifi_eutops.wifi_clr_rxpackcount != NULL)
+//                wifi_eutops.wifi_clr_rxpackcount(rsp);
+//            else
+//                ALOGE("wifi_eutops.wifi_clr_rxpackcount not support!");
             break;
-        case GPSSEARCH_REQ_INDEX:
-            gps_eutops.gps_search_req(rsp);
+
+            //-----------------------------------------------------
+        case ENG_WIFIRATE_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFIRATE_INDEX\n", __FUNCTION__);
+            //wifi_rate_set(data[1], rsp);
+            if (wifi_eutops.set_wifi_rate != NULL)
+                wifi_eutops.set_wifi_rate(data[1], rsp);
+            else
+                ALOGE("wifi_eutops.set_wifi_rate not support!");
             break;
-        case GPSSEARCH_INDEX:
-            gps_eutops.gps_search(atoi(data[1]),rsp);
+        case ENG_WIFIRATE_REQ_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFIRATE_REQ_INDEX\n", __FUNCTION__);
+            //wifi_rate_get(rsp);
+            if (wifi_eutops.wifi_rate_req != NULL)
+                wifi_eutops.wifi_rate_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_rate_req not support!");
             break;
-        case GPSPRNSTATE_REQ_INDEX:
-            gps_eutops.gps_prnstate_req(rsp);
+        case ENG_WIFITXGAININDEX_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFITXGAININDEX_INDEX\n", __FUNCTION__);
+            //wifi_txgainindex_set(atoi(data[1]),rsp);
+            if (wifi_eutops.set_wifi_txgainindex != NULL)
+                wifi_eutops.set_wifi_txgainindex(atoi(data[1]),rsp);
+            else
+                ALOGE("wifi_eutops.set_wifi_txgainindex not support!");
             break;
-        case GPSSNR_REQ_INDEX:
-            gps_eutops.gps_snr_req(rsp);
+        case ENG_WIFITXGAININDEX_REQ_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFITXGAININDEX_REQ_INDEX\n", __FUNCTION__);
+            //wifi_txgainindex_get(rsp);
+            if (wifi_eutops.wifi_txgainindex_req != NULL)
+                wifi_eutops.wifi_txgainindex_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_txgainindex_req not support!");
             break;
-        case GPSPRN_INDEX:
-            gps_eutops.gps_setprn(atoi(data[1]),rsp);
+        case ENG_WIFIRSSI_REQ_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFIRSSI_REQ_INDEX\n", __FUNCTION__);
+            //wifi_rssi_get(rsp);
+            if (wifi_eutops.wifi_rssi_req != NULL)
+                wifi_eutops.wifi_rssi_req(rsp);
+            else
+                ALOGE("wifi_eutops.wifi_rssi_req not support!");
             break;
-//-----------------------------------------------------
-		case ENG_WIFIRATE_INDEX:
-			ENG_LOG("%s(), case:ENG_WIFIRATE_INDEX\n", __FUNCTION__);
-			wifi_rate_set(data[1], rsp);
-			break;
-		case ENG_WIFIRATE_REQ_INDEX:
-			ENG_LOG("%s(), case:ENG_WIFIRATE_REQ_INDEX\n", __FUNCTION__);
-			wifi_rate_get(rsp);
-			break;
-		case ENG_WIFITXGAININDEX_INDEX:
-			ENG_LOG("%s(), case:ENG_WIFITXGAININDEX_INDEX\n", __FUNCTION__);
-			wifi_txgainindex_set(atoi(data[1]),rsp);
-			break;
-		case ENG_WIFITXGAININDEX_REQ_INDEX:
-			ENG_LOG("%s(), case:ENG_WIFITXGAININDEX_REQ_INDEX\n", __FUNCTION__);
-			wifi_txgainindex_get(rsp);
-			break;
-		case ENG_WIFIRSSI_REQ_INDEX:
-			ENG_LOG("%s(), case:ENG_WIFIRSSI_REQ_INDEX\n", __FUNCTION__);
-			wifi_rssi_get(rsp);
-			break;
-//-----------------------------------------------------
+            //-----------------------------------------------------
         default:
             strcpy(rsp,"can not match the at command");
             return 0;
@@ -752,7 +1151,7 @@ int get_cmd_index(char *buf)
     int index = -1;
     int i;
     for(i=0;i<(int)NUM_ELEMS(eut_cmds);i++){
-       if(strstr(buf,eut_cmds[i].name) != NULL)
+        if(strstr(buf,eut_cmds[i].name) != NULL)
         {
             index = eut_cmds[i].index;
             break;
@@ -760,6 +1159,670 @@ int get_cmd_index(char *buf)
     }
     return index;
 }
+
+#elif defined(ENGMODE_EUT_SPRD)
+int eng_atdiag_euthdlr(char *buf, int len, char *rsp, int module_index)
+{
+    //spreadtrum
+    char args0[32+1] = {0x00};
+    char args1[32+1] = {0x00};
+    char args2[32+1] = {0x00};
+    char args3[32+1] = {0x00};
+
+    char *data[4] = {args0, args1, args2, args3};
+    int cmd_index = -1;
+
+    ENG_LOG("\r\n");
+    ENG_LOG("ADL entry %s(), buf = %s", __func__, buf);
+
+    get_sub_str(buf, data, '=', ",", 4, 32);
+    cmd_index = get_cmd_index(buf);
+    ENG_LOG("ADL %s(), args0 = %s, args1 = %s, args2 = %s, args3 = %s cmd_index = %d, module_index = %d", __func__, args0, args1, args2, args3, cmd_index, module_index);
+
+    if(module_index == GPS_MODULE_INDEX)
+    {
+	gps_eut_parse(buf,rsp);
+        return 0;
+    }
+
+    switch(cmd_index)
+    {
+        case EUT_REQ_INDEX:
+            if(module_index == WIFI_MODULE_INDEX)
+            {
+                ENG_LOG("case WIFIEUT_INDEX");
+                wifi_eut_get(rsp);
+            }
+
+            break;
+
+        case EUT_INDEX:
+            if(module_index == WIFI_MODULE_INDEX)
+            {
+                ENG_LOG("case WIFIEUT_INDEX");
+                wifi_eut_set(atoi(data[1]), rsp);
+            }
+
+            break;
+        case WIFICH_REQ_INDEX:
+            wifi_channel_get(rsp);
+            break;
+        case WIFICH_INDEX:
+            ENG_LOG("case WIFICH_INDEX   %d",WIFICH_INDEX);
+            wifi_channel_set(atoi(data[1]),rsp);
+            break;
+        case WIFIMODE_INDEX:
+            //wifi_eutops.set_wifi_mode(data[1],rsp);
+            break;
+        case WIFIRATIO_INDEX:
+            ALOGD("case WIFIRATIO_INDEX   %d",WIFIRATIO_INDEX);
+            //wifi_eutops.set_wifi_ratio(atof(data[1]),rsp);
+            break;
+        case WIFITX_FACTOR_INDEX:
+            //wifi_eutops.set_wifi_tx_factor(atol(data[1]),rsp);
+            break;
+
+        case TX_INDEX:
+        {
+            ENG_LOG("ADL %s(), case TX_INDEX, module_index = %d", __func__, module_index);
+
+            if(BT_MODULE_INDEX == module_index || BLE_MODULE_INDEX == module_index)
+            {
+                int pktcnt = 0;
+
+                if (0 != strlen(data[3]))
+                {
+                    pktcnt = atoi(data[3]);
+                }
+
+                ENG_LOG("ADL %s(), case TX_INDEX, call bt_tx_set(), pktcnt = %d", __func__, pktcnt);
+                bt_tx_set(atoi(data[1]), atoi(data[2]), pktcnt, rsp);
+            }
+            else if(module_index == WIFI_MODULE_INDEX)
+            {
+                ENG_LOG("ADL %s(), case TX_INDEX, call wifi_tx_set()", __func__);
+                wifi_tx_set(atoi(data[1]), atoi(data[2]), atoi(data[3]), rsp);
+            }
+            else
+            {
+                ENG_LOG("ADL %s(), case TX_INDEX, module_index is ERROR", __func__);
+            }
+        }
+        break;
+
+        case RX_INDEX:
+        {
+            ENG_LOG("ADL %s(), case RX_INDEX, module_index = %d", __func__, module_index);
+
+            if(BT_MODULE_INDEX == module_index || BLE_MODULE_INDEX == module_index)
+            {
+                ENG_LOG("ADL %s(), case RX_INDEX, call bt_rx_set()", __func__);
+                bt_rx_set(atoi(data[1]), rsp);
+            }
+            else if(module_index == WIFI_MODULE_INDEX)
+            {
+                ENG_LOG("ADL %s(), case RX_INDEX, call wifi_rx_set()", __func__);
+                wifi_rx_set(atoi(data[1]), rsp);
+            }
+            else
+            {
+                ENG_LOG("ADL %s(), case RX_INDEX, module_index is ERROR", __func__);
+            }
+        }
+        break;
+
+        case TX_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case TX_REQ_INDEX, module_index = %d", __func__, module_index);
+
+            if (BT_MODULE_INDEX == module_index || BLE_MODULE_INDEX == module_index)
+            {
+                ENG_LOG("ADL %s(), case TX_REQ_INDEX, call bt_tx_get()", __func__);
+                bt_tx_get(rsp);
+            }
+            else if (WIFI_MODULE_INDEX == module_index)
+            {
+                ENG_LOG("ADL %s(), case TX_REQ_INDEX, call wifi_tx_get()", __func__);
+                wifi_tx_get(rsp);
+            }
+            else
+            {
+                ENG_LOG("ADL %s(), case TX_REQ_INDEX, module_index is ERROR", __func__);
+            }
+        }
+        break;
+
+        case RX_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case RX_REQ_INDEX, module_index = %d", __func__, module_index);
+
+            if (BT_MODULE_INDEX == module_index || BLE_MODULE_INDEX == module_index)
+            {
+                ENG_LOG("ADL %s(), case RX_REQ_INDEX, call bt_rx_get()", __func__);
+                bt_rx_get(rsp);
+            }
+            else if (WIFI_MODULE_INDEX == module_index)
+            {
+                ENG_LOG("ADL %s(), case RX_REQ_INDEX, call wifi_rx_get()", __func__);
+                wifi_rx_get(rsp);
+            }
+            else
+            {
+                ENG_LOG("ADL %s(), case RX_REQ_INDEX, module_index is ERROR", __func__);
+            }
+        }
+        break;
+
+        case WIFITX_FACTOR_REQ_INDEX:
+            //wifi_eutops.wifi_tx_factor_req(rsp);
+
+            break;
+        case WIFIRATIO_REQ_INDEX:
+            //wifi_eutops.wifi_ratio_req(rsp);
+
+            break;
+        case WIFIRX_PACKCOUNT_INDEX:
+            wifi_rxpktcnt_get(rsp);
+            break;
+        case WIFICLRRXPACKCOUNT_INDEX:
+            //wifi_eutops.wifi_clr_rxpackcount(rsp);
+            break;
+
+            //-----------------------------------------------------
+        case ENG_WIFIRATE_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFIRATE_INDEX\n", __FUNCTION__);
+            wifi_rate_set(data[1], rsp);
+            break;
+        case ENG_WIFIRATE_REQ_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFIRATE_REQ_INDEX\n", __FUNCTION__);
+            wifi_rate_get(rsp);
+            break;
+        case ENG_WIFITXGAININDEX_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFITXGAININDEX_INDEX\n", __FUNCTION__);
+            wifi_txgainindex_set(atoi(data[1]),rsp);
+            break;
+        case ENG_WIFITXGAININDEX_REQ_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFITXGAININDEX_REQ_INDEX\n", __FUNCTION__);
+            wifi_txgainindex_get(rsp);
+            break;
+        case ENG_WIFIRSSI_REQ_INDEX:
+            ENG_LOG("%s(), case:ENG_WIFIRSSI_REQ_INDEX\n", __FUNCTION__);
+            wifi_rssi_get(rsp);
+            break;
+
+        /* lna */
+        case WIFILNA_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFILNA_REQ_INDEX", __func__);
+            wifi_lna_get(rsp);
+        }
+        break;
+
+        case WIFILNA_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFILNA_INDEX", __func__);
+            wifi_lna_set(atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Band */
+        case WIFIBAND_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIBAND_REQ_INDEX", __func__);
+            wifi_band_get(rsp);
+        }
+        break;
+
+        case WIFIBAND_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIBAND_INDEX", __func__);
+            wifi_band_set((wifi_band)atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Band Width */
+        case WIFIBANDWIDTH_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIBANDWIDTH_REQ_INDEX", __func__);
+            wifi_bandwidth_get(rsp);
+        }
+        break;
+
+        case WIFIBANDWIDTH_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIBANDWIDTH_INDEX", __func__);
+            wifi_bandwidth_set((wifi_bandwidth)atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Tx Power Level */
+        case WIFITXPWRLV_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFITXPWRLV_REQ_INDEX", __func__);
+            wifi_tx_power_level_get(rsp);
+        }
+        break;
+
+        case WIFITXPWRLV_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFITXPWRLV_INDEX", __func__);
+            wifi_tx_power_level_set(atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Pkt Length */
+        case WIFIPKTLEN_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPKTLEN_REQ_INDEX", __func__);
+            wifi_pkt_length_get(rsp);
+        }
+        break;
+
+        case WIFIPKTLEN_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPKTLEN_INDEX", __func__);
+            wifi_pkt_length_set(atoi(data[1]), rsp);
+        }
+        break;
+
+        /* TX Mode */
+        case WIFITXMODE_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFITXMODE_REQ_INDEX", __func__);
+            wifi_tx_mode_get(rsp);
+        }
+        break;
+
+        case WIFITXMODE_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPKTLEN_INDEX", __func__);
+            wifi_tx_mode_set((wifi_tx_mode)atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Preamble */
+        case WIFIPREAMBLE_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPREAMBLE_REQ_INDEX", __func__);
+            wifi_preamble_get(rsp);
+        }
+        break;
+
+        case WIFIPREAMBLE_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPREAMBLE_INDEX", __func__);
+            wifi_preamble_set((wifi_tx_mode)atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Payload */
+        case WIFIPAYLOAD_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPAYLOAD_REQ_INDEX", __func__);
+            wifi_payload_get(rsp);
+        }
+        break;
+
+        case WIFIPAYLOAD_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIPAYLOAD_INDEX", __func__);
+            wifi_payload_set((wifi_payload)atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Payload */
+        case WIFIGUARDINTERVAL_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIGUARDINTERVAL_REQ_INDEX", __func__);
+            wifi_guardinterval_get(rsp);
+        }
+        break;
+
+        case WIFIGUARDINTERVAL_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIGUARDINTERVAL_INDEX", __func__);
+            wifi_guardinterval_set((wifi_guard_interval)atoi(data[1]), rsp);
+        }
+        break;
+
+        /* MAC Filter */
+        case WIFIMACFILTER_REQ_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIMACFILTER_REQ_INDEX", __func__);
+            wifi_mac_filter_get(rsp);
+        }
+        break;
+
+        case WIFIMACFILTER_INDEX:
+        {
+            ENG_LOG("%s(), case:WIFIMACFILTER_INDEX", __func__);
+            wifi_mac_filter_set(atoi(data[1]), data[2], rsp);
+        }
+        break;
+
+
+        //以下为BT
+        /* TX Channel */
+        case BT_TXCH_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXCH_REQ_INDEX", __func__);
+            bt_channel_get(BTEUT_CMD_TYPE_TX, rsp);
+        }
+        break;
+
+        case BT_TXCH_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXCH_INDEX", __func__);
+            bt_channel_set(BTEUT_CMD_TYPE_TX, atoi(data[1]), rsp);
+        }
+        break;
+
+        /* RX Channel */
+        case BT_RXCH_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXCH_REQ_INDEX", __func__);
+            bt_channel_get(BTEUT_CMD_TYPE_RX, rsp);
+        }
+        break;
+
+        case BT_RXCH_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXCH_INDEX", __func__);
+            bt_channel_set(BTEUT_CMD_TYPE_RX, atoi(data[1]), rsp);
+        }
+        break;
+
+        /* Pattern */
+        case BT_TXPATTERN_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPATTERN_REQ_INDEX", __func__);
+            bt_pattern_get(BTEUT_CMD_TYPE_TX, rsp);
+        }
+        break;
+
+        case BT_TXPATTERN_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPATTERN_INDEX", __func__);
+            bt_pattern_set(BTEUT_CMD_TYPE_TX, atoi(data[1]), rsp);
+        }
+        break;
+
+        case BT_RXPATTERN_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXPATTERN_REQ_INDEX", __func__);
+            bt_pattern_get(BTEUT_CMD_TYPE_RX, rsp);
+        }
+        break;
+
+        case BT_RXPATTERN_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXPATTERN_INDEX", __func__);
+            bt_pattern_set(BTEUT_CMD_TYPE_RX, atoi(data[1]), rsp);
+        }
+        break;
+
+        /* PKT Type */
+        case BT_TXPKTTYPE_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPKTTYPE_REQ_INDEX", __func__);
+            bt_pkttype_get(BTEUT_CMD_TYPE_TX, rsp);
+        }
+        break;
+
+        case BT_TXPKTTYPE_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPATTERN_INDEX", __func__);
+            bt_pkttype_set(BTEUT_CMD_TYPE_TX, atoi(data[1]), rsp);
+        }
+        break;
+
+        case BT_RXPKTTYPE_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXPATTERN_REQ_INDEX", __func__);
+            bt_pkttype_get(BTEUT_CMD_TYPE_RX, rsp);
+        }
+        break;
+
+        case BT_RXPKTTYPE_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXPATTERN_INDEX", __func__);
+            bt_pkttype_set(BTEUT_CMD_TYPE_RX, atoi(data[1]), rsp);
+        }
+        break;
+
+        /* PKT Length */
+        case BT_TXPKTLEN_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPKTLEN_REQ_INDEX", __func__);
+            bt_txpktlen_get(rsp);
+        }
+        break;
+
+        case BT_TXPKTLEN_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPKTLEN_INDEX", __func__);
+            bt_txpktlen_set(atoi(data[1]), rsp);
+        }
+        break;
+
+        /* TX Power */
+        case BT_TXPWR_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPKTLEN_REQ_INDEX", __func__);
+            bt_txpwr_get(rsp);
+        }
+        break;
+
+        case BT_TXPWR_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TXPKTLEN_INDEX", __func__);
+            bt_txpwr_set(atoi(data[1]), atoi(data[2]), rsp);
+        }
+        break;
+
+        /* RX Gain */
+        case BT_RXGAIN_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXGAIN_REQ_INDEX", __func__);
+            bt_rxgain_get(rsp);
+        }
+        break;
+
+        case BT_RXGAIN_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXGAIN_INDEX", __func__);
+            bt_rxgain_set(atoi(data[1]), atoi(data[2]), rsp);
+        }
+        break;
+
+        /* ADDRESS */
+        case BT_ADDRESS_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_ADDRESS_REQ_INDEX", __func__);
+            bt_address_get(rsp);
+        }
+        break;
+
+        case BT_ADDRESS_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_ADDRESS_INDEX", __func__);
+            bt_address_set(data[1], rsp);
+        }
+        break;
+
+        /* RX received data */
+        case BT_RXDATA_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_RXDATA_REQ_INDEX", __func__);
+            bt_rxdata_get(rsp);
+        }
+        break;
+
+        /* Testmode */
+        case BT_TESTMODE_REQ_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TESTMODE_REQ_INDEX", __func__);
+
+            if (BT_MODULE_INDEX == module_index)
+            {
+                bt_testmode_get(BTEUT_BT_MODE_CLASSIC, rsp);
+            }
+            else if (BLE_MODULE_INDEX == module_index)
+            {
+                bt_testmode_get(BTEUT_BT_MODE_BLE, rsp);
+            }
+        }
+        break;
+
+        /* Testmode */
+        case BT_TESTMODE_INDEX:
+        {
+            ENG_LOG("ADL %s(), case BT_TESTMODE_INDEX, module_index = %d", __func__, module_index);
+            if (BT_MODULE_INDEX == module_index)
+            {
+                bt_testmode_set(BTEUT_BT_MODE_CLASSIC, atoi(data[1]), rsp);
+            }
+            else if (BLE_MODULE_INDEX == module_index)
+            {
+                bt_testmode_set(BTEUT_BT_MODE_BLE, atoi(data[1]), rsp);
+            }
+        }
+        break;
+
+
+        //-----------------------------------------------------
+        default:
+            strcpy(rsp,"can not match the at command");
+            return 0;
+    }
+
+
+    // @alvin:
+    // Here: I think it will response to pc directly outside
+    // this function and should not send to modem again.
+    ALOGD(" eng_atdiag_rsp   %s",rsp);
+
+    return 0;
+}
+
+/********************************************************************
+*   name   get_sub_str
+*   ---------------------------
+*   description: delimeter sub string from command string user inputed by AT Command
+*   ----------------------------
+*   para        IN/OUT      type            note
+*   buf         IN          char *          user inputed command string
+*   revdata     OUT         char **         receive delimeted sub string
+*   a           IN          char            get command name by this parameter
+*   delim       IN          char *          delimter sub string by this parameter
+*   count       IN          unsigned char   revdata can stored count.
+*   substr_max_len  IN      unsigned char   sub string's max length
+*   ----------------------------------------------------
+*   return
+*   0:exec successful
+*   other:error
+*   ------------------
+*   other:
+*
+********************************************************************/
+int get_sub_str(const char *buf, char **revdata, char a, char *delim, unsigned char count, unsigned char substr_max_len)
+{
+    int len, len1, len2;
+    char *start = NULL;
+    char *substr = NULL;
+    char *end = buf;
+    int str_len = strlen(buf);
+
+    start = strchr(buf, a);
+    substr = strstr(buf, delim);
+
+    if(!substr)
+    {
+        /* if current1 not exist, return this function.*/
+        return 0;
+    }
+
+    while (end && *end != '\0')
+    {
+        end++;
+    }
+
+    if((NULL != start) && (NULL != end))
+    {
+        char *tokenPtr = NULL;
+        unsigned int index = 1; /*must be inited by 1, because data[0] is command name */
+
+        start++;
+        substr++;
+        len = substr - start - 1;
+
+        /* get cmd name */
+        memcpy(revdata[0], start, len);
+
+        /* get sub str by delimeter */
+        tokenPtr = strtok(substr, delim);
+        while(NULL != tokenPtr && index < count)
+        {
+            strncpy(revdata[index++], tokenPtr, substr_max_len);
+
+            /* next */
+            tokenPtr = strtok(NULL, delim);
+        }
+    }
+
+    return 0;
+}
+
+
+int get_cmd_index(char *buf)
+{
+    int i = 0;
+    int index = -1;
+    char *start = NULL;
+    char *cur = NULL;
+    int str_len = 0;
+    char name_str[64+1] = {0x00};
+
+    start = strchr(buf, '=');
+    if (NULL == start)
+    {
+        ENG_LOG("ADL leaving %s(), start is NULL, buf = %s", __func__, buf);
+        return -1;
+    }
+
+    /* search ',' '?' '\r' */
+    /* skip '=' */
+    start++;
+
+    if (NULL != (cur = strchr(buf, '?')))
+    {
+        cur++; /* include '?' to name_str */
+        str_len = cur - start;
+        strncpy(name_str, (char *)start, str_len);
+    }
+    else if (NULL != (cur = strchr(buf, ',')) || NULL != (cur = strchr(buf, '\r')))
+    {
+        str_len = cur - start;
+        strncpy(name_str, (char *)start, str_len);
+    }
+    else
+    {
+        ENG_LOG("ADL leaving %s(), cmd is error, buf = %s", __func__, buf);
+        return -1;
+    }
+
+    for (i = 0; i < (int)NUM_ELEMS(eut_cmds); i++)
+    {
+        if (0 == strcmp(name_str, eut_cmds[i].name))
+        {
+            index = eut_cmds[i].index;
+            break;
+        }
+    }
+
+    return index;
+}
+#endif
 
 int eng_autotest_dummy(char *req, char *rsp)
 {
@@ -894,6 +1957,7 @@ int eng_autotest_charge(char *req, char *rsp)
     return ret;
 }
 
+//-- [[ 2013-01-22
 int eng_autotest_reserve(char *req, char *rsp)
 {
     int ret = 0;
@@ -907,6 +1971,7 @@ int eng_autotest_sensor(char *req, char *rsp)
     ENG_LOG("%s Enter",__FUNCTION__);
     return ret;
 }
+//-- ]]
 
 int eng_autotest_gps(char *req, char *rsp)
 {
@@ -949,7 +2014,7 @@ int eng_atdiag_hdlr(unsigned char *buf,int len, char* rsp)
 int eng_diag(char *buf,int len)
 {
     int ret = 0;
-    int type;
+    int type,num;
     int retry_time = 0;
     int ret_val = 0;
     int fd = -1;
@@ -958,13 +2023,13 @@ int eng_diag(char *buf,int len)
 
     memset(rsp, 0, sizeof(rsp));
 
-    type = eng_diag_parse(buf,len);
+    type = eng_diag_parse(buf,len,&num);
 
-    ENG_LOG("%s:write type=%d\n",__FUNCTION__, type);
+    ENG_LOG("%s:write type=%d,num=%d\n",__FUNCTION__, type,num);
 
     if (type != CMD_COMMON){
-        ret_val = eng_diag_user_handle(type, buf, len);
-        ENG_LOG("%s:ret_val=%d\n",__FUNCTION__,ret_val);
+        ret_val = eng_diag_user_handle(type, buf, len-num);
+	ENG_LOG("%s:ret_val=%d\n",__FUNCTION__,ret_val);
 
         if (ret_val) {
             eng_diag_buf[0] =0x7e;
@@ -986,7 +2051,7 @@ write_again:
             if (ret <= 0) {
                 fd = get_ser_diag_fd();
                 restart_gser(&fd, get_ser_diag_path());
-                update_ser_diag_fd();
+                update_ser_diag_fd(fd);
                 if((++retry_time) <= 10){
                     goto write_again; // try 10 times.
                 }
@@ -1151,7 +2216,7 @@ static void eng_diag_char2hex(unsigned char *hexdata, char *chardata)
 
 int eng_diag_decode7d7e(char *buf,int len)
 {
-    int i,j;
+    int i,j,m=0;
     char tmp;
     ENG_LOG("%s: len=%d",__FUNCTION__, len);
     for(i=0; i<len; i++) {
@@ -1162,15 +2227,16 @@ int eng_diag_decode7d7e(char *buf,int len)
             j = i+1;
             memcpy(&buf[j], &buf[j+1],len-j);
             len--;
+            m++;
             ENG_LOG("%s AFTER:",__FUNCTION__);
             /*
-            for(j=0; j<len; j++) {
-                ENG_LOG("%x,",buf[j]);
-            }*/
+               for(j=0; j<len; j++) {
+               ENG_LOG("%x,",buf[j]);
+               }*/
         }
     }
-
-    return 0;
+    ENG_LOG("%s: m=%d",__FUNCTION__, m);
+    return m;
 }
 
 int eng_diag_encode7d7e(char *buf, int len,int *extra_len)
@@ -1203,10 +2269,11 @@ int eng_diag_encode7d7e(char *buf, int len,int *extra_len)
 
 }
 
-int eng_diag_btwifi(char *buf,int len, char *rsp, int rsplen)
+static int eng_diag_btwifiimei(char *buf,int len, char *rsp, int rsplen)
 {
     int rlen = 0,i;
     int ret=-1;
+    int cmd_mask = 0;
     unsigned short crc=0;
     unsigned char crc1, crc2, crc3, crc4;
     char tmp;
@@ -1219,7 +2286,7 @@ int eng_diag_btwifi(char *buf,int len, char *rsp, int rsplen)
     MSG_HEAD_T *head_ptr=NULL;
     head_ptr = (MSG_HEAD_T *)(buf+1);
     direct = (REF_NVWriteDirect_T *)(buf + DIAG_HEADER_LENGTH + 1);
-
+    cmd_mask = head_ptr->subtype & 0x7f;
     ENG_LOG("Call %s, subtype=%x\n",__FUNCTION__, head_ptr->subtype);
 
     if((head_ptr->subtype&DIAG_CMD_READ)==0){ 	//write command
@@ -1231,25 +2298,39 @@ int eng_diag_btwifi(char *buf,int len, char *rsp, int rsplen)
         ENG_LOG("%s: crc [%x,%x], [%x,%x]\n",__func__,crc3,crc4,crc1,crc2);
 
         if((crc1==crc3)&&(crc2==crc4)){
-            //write bt address
-            if((head_ptr->subtype&DIAG_CMD_BTBIT)>0) {
-                sprintf(btaddr, "%02x:%02x:%02x:%02x:%02x:%02x",\
-                        direct->btaddr[5],direct->btaddr[4],direct->btaddr[3], \
-                        direct->btaddr[2],direct->btaddr[1],direct->btaddr[0]);
-                pBtAddr = btaddr;
-                ENG_LOG("%s: BTADDR:%s\n",__func__, btaddr);
+            if((cmd_mask & DIAG_CMD_BTBIT) || (cmd_mask & DIAG_CMD_WIFIBIT)){
+                //write bt address
+                if((head_ptr->subtype&DIAG_CMD_BTBIT)>0) {
+                    sprintf(btaddr, "%02x:%02x:%02x:%02x:%02x:%02x",\
+                            direct->btaddr[5],direct->btaddr[4],direct->btaddr[3], \
+                            direct->btaddr[2],direct->btaddr[1],direct->btaddr[0]);
+                    pBtAddr = btaddr;
+                    ENG_LOG("%s: BTADDR:%s\n",__func__, btaddr);
+                }
+
+                //write wifi address
+                if((head_ptr->subtype&DIAG_CMD_WIFIBIT)>0) {
+                    sprintf(wifiaddr, "%02x:%02x:%02x:%02x:%02x:%02x",\
+                            direct->wifiaddr[0],direct->wifiaddr[1],direct->wifiaddr[2], \
+                            direct->wifiaddr[3],direct->wifiaddr[4],direct->wifiaddr[5]);
+                    pWifiAddr = wifiaddr;
+                    ENG_LOG("%s: WIFIADDR:%s\n",__func__,wifiaddr);
+                }
+
+                ret = eng_btwifimac_write(pBtAddr, pWifiAddr);
             }
 
-            //write wifi address
-            if((head_ptr->subtype&DIAG_CMD_WIFIBIT)>0) {
-                sprintf(wifiaddr, "%02x:%02x:%02x:%02x:%02x:%02x",\
-                        direct->wifiaddr[0],direct->wifiaddr[1],direct->wifiaddr[2], \
-                        direct->wifiaddr[3],direct->wifiaddr[4],direct->wifiaddr[5]);
-                pWifiAddr = wifiaddr;
-                ENG_LOG("%s: WIFIADDR:%s\n",__func__,wifiaddr);
+            if(g_ap_cali_flag && ((cmd_mask & DIAG_CMD_IMEI1BIT) || (cmd_mask & DIAG_CMD_IMEI2BIT) || (cmd_mask & DIAG_CMD_IMEI3BIT)
+                        || (cmd_mask & DIAG_CMD_IMEI4BIT))){
+                int imei[IMEI_NUM] = {DIAG_CMD_IMEI1BIT, DIAG_CMD_IMEI2BIT, DIAG_CMD_IMEI3BIT, DIAG_CMD_IMEI4BIT};
+                for(i = 0; i < IMEI_NUM; i ++){
+                    if(imei[i]&cmd_mask){
+                        ret = eng_diag_write_imei(direct, i+1);
+                        if(ret <= 0)
+                            break;
+                    }
+                }
             }
-
-            ret = eng_btwifimac_write(pBtAddr, pWifiAddr);
         }
 
         if(!s_cp_ap_proc){
@@ -1267,28 +2348,40 @@ int eng_diag_btwifi(char *buf,int len, char *rsp, int rsplen)
     } else {//read command
         direct = (REF_NVWriteDirect_T *)(tmprsp + headlen);
 
-        //read btaddr
-        if((head_ptr->subtype&DIAG_CMD_BTBIT)>0) {
-            ret = eng_btwifimac_read(btaddr, ENG_BT_MAC);
-            ENG_LOG("%s: after BTADDR:%s\n",__func__, btaddr);
-            pBtAddr = (char *)(direct->btaddr);
-            if(!ret) {
-                eng_diag_char2hex((unsigned char *)pBtAddr, btaddr);
-                tmp=pBtAddr[0]; pBtAddr[0]=pBtAddr[5];pBtAddr[5]=tmp;	//converge BT address
-                tmp=pBtAddr[1]; pBtAddr[1]=pBtAddr[4];pBtAddr[4]=tmp;
-                tmp=pBtAddr[2]; pBtAddr[2]=pBtAddr[3];pBtAddr[3]=tmp;
+        if((cmd_mask & DIAG_CMD_BTBIT) || (cmd_mask & DIAG_CMD_WIFIBIT)){
+            //read btaddr
+            if((head_ptr->subtype&DIAG_CMD_BTBIT)>0) {
+                ret = eng_btwifimac_read(btaddr, ENG_BT_MAC);
+                ENG_LOG("%s: after BTADDR:%s\n",__func__, btaddr);
+                pBtAddr = (char *)(direct->btaddr);
+                if(!ret) {
+                    eng_diag_char2hex((unsigned char *)pBtAddr, btaddr);
+                    tmp=pBtAddr[0]; pBtAddr[0]=pBtAddr[5];pBtAddr[5]=tmp;	//converge BT address
+                    tmp=pBtAddr[1]; pBtAddr[1]=pBtAddr[4];pBtAddr[4]=tmp;
+                    tmp=pBtAddr[2]; pBtAddr[2]=pBtAddr[3];pBtAddr[3]=tmp;
+                }
+            }
+            //read wifiaddr
+            if((head_ptr->subtype&DIAG_CMD_WIFIBIT)>0) {
+                ret = eng_btwifimac_read(wifiaddr, ENG_WIFI_MAC);
+                ENG_LOG("%s: after WIFIADDR:%s\n",__func__, wifiaddr);
+                pWifiAddr = (char *)(direct->wifiaddr);
+                if(!ret)
+                    eng_diag_char2hex((unsigned char *)pWifiAddr, wifiaddr);
             }
         }
 
-        //read wifiaddr
-        if((head_ptr->subtype&DIAG_CMD_WIFIBIT)>0) {
-            ret = eng_btwifimac_read(wifiaddr, ENG_WIFI_MAC);
-            ENG_LOG("%s: after WIFIADDR:%s\n",__func__, wifiaddr);
-            pWifiAddr = (char *)(direct->wifiaddr);
-            if(!ret)
-                eng_diag_char2hex((unsigned char *)pWifiAddr, wifiaddr);
+        if(g_ap_cali_flag && ((cmd_mask & DIAG_CMD_IMEI1BIT) || (cmd_mask & DIAG_CMD_IMEI2BIT) || (cmd_mask & DIAG_CMD_IMEI3BIT)
+                    || (cmd_mask & DIAG_CMD_IMEI4BIT))){
+            int imei[IMEI_NUM] = {DIAG_CMD_IMEI1BIT, DIAG_CMD_IMEI2BIT, DIAG_CMD_IMEI3BIT, DIAG_CMD_IMEI4BIT};
+            for(i = 0; i < IMEI_NUM; i ++){
+                if(imei[i]&cmd_mask){
+                    ret = eng_diag_read_imei(direct, i+1);
+                    if(ret <= 0)
+                        break;
+                }
+            }
         }
-
         //response
         head_ptr->subtype = 0x01;
         memcpy(tmprsp, (unsigned char*)head_ptr, headlen);
@@ -1673,6 +2766,7 @@ static int eng_notify_mediaserver_updatapara(int ram_ops,int index,AUDIO_TOTAL_T
                 }
                 result += sizeof(int);
                 close(receive_fifo_id);
+                receive_fifo_id = -1;
                 ALOGE("eng_notify_mediaserver_updatapara,result:%d,received:%d!\n",result,length);
             }else {
                 ALOGE("%s open audio FIFO_2 error %s,fifo_id:%d\n",__FUNCTION__,strerror(errno),fifo_id);
@@ -1680,6 +2774,7 @@ static int eng_notify_mediaserver_updatapara(int ram_ops,int index,AUDIO_TOTAL_T
 
         }
         close(fifo_id);
+        fifo_id = -1;
     } else {
         ALOGE("%s open audio FIFO error %s,fifo_id:%d\n",__FUNCTION__,strerror(errno),fifo_id);
     }
@@ -1687,6 +2782,17 @@ static int eng_notify_mediaserver_updatapara(int ram_ops,int index,AUDIO_TOTAL_T
     return result;
 error:
     ALOGE("eng_notify_mediaserver_updatapara X,ERROR,result:%d!\n",result);
+    if(receive_fifo_id != -1)
+    {
+        close(receive_fifo_id);
+        receive_fifo_id = -1;
+    }
+
+    if(fifo_id != -1)
+    {
+        close(fifo_id);
+        fifo_id= -1;
+    }
     return result;
 }
 
@@ -1766,14 +2872,14 @@ int eng_diag_audio(char *buf,int len, char *rsp)
         length =  eng_notify_mediaserver_updatapara(ENG_PHONEINFO_OPS,0, bin_tmp);
         if(length > 0)
         {
-          bin2ascii(rsp+strlen("+PEINFO:"),bin_tmp,length);
-          ENG_LOG("Call %s, rsp=%s\n",__FUNCTION__, rsp);
-          ENG_LOG("Call %s, rsp=%s,%s\n",__FUNCTION__, (rsp+strlen("+PEINFO:")),(rsp+strlen("+PEINFO:")));
-          ENG_LOG("Call %s, item1=%s,%s\n",__FUNCTION__, (rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH),(rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH));
-          ENG_LOG("Call %s, item2=%s,%s\n",__FUNCTION__, (rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH+AUDIO_AT_ITEM_VALUE_LENGTH),rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH+AUDIO_AT_ITEM_VALUE_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH );
-          return strlen(rsp+strlen("+PEINFO:"))+strlen("+PEINFO:");
+            bin2ascii(rsp+strlen("+PEINFO:"),bin_tmp,length);
+            ENG_LOG("Call %s, rsp=%s\n",__FUNCTION__, rsp);
+            ENG_LOG("Call %s, rsp=%s,%s\n",__FUNCTION__, (rsp+strlen("+PEINFO:")),(rsp+strlen("+PEINFO:")));
+            ENG_LOG("Call %s, item1=%s,%s\n",__FUNCTION__, (rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH),(rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH));
+            ENG_LOG("Call %s, item2=%s,%s\n",__FUNCTION__, (rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH+AUDIO_AT_ITEM_VALUE_LENGTH),rsp+strlen("+PEINFO:")+AUDIO_AT_HARDWARE_NAME_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH+AUDIO_AT_ITEM_VALUE_LENGTH+AUDIO_AT_ITEM_NAME_LENGTH );
+            return strlen(rsp+strlen("+PEINFO:"))+strlen("+PEINFO:");
         } else {
-          goto out;
+            goto out;
         }
     }
     //audio_fd = open(ENG_AUDIO_PARA_DEBUG,O_RDWR);
@@ -2177,7 +3283,7 @@ int eng_diag_mmicit_read(char *buf,int len, char *rsp, int rsplen)
     return rsplen;
 }
 
-int is_btwifi_addr_need_to_handle(char *buf,int len)
+int is_rm_cali_nv_need_to_handle(char *buf,int len)
 {
     int crc = 0;
     int recv_crc = 0;
@@ -2206,9 +3312,20 @@ int is_btwifi_addr_need_to_handle(char *buf,int len)
     if(0 != (cmd_mask = (msg_head->subtype & 0x7f))){
         ENG_LOG("%s: cmd_mask: %d, subtype: %d\n", __FUNCTION__, cmd_mask, msg_head->subtype);
 
-        if((cmd_mask & DIAG_CMD_BTBIT) || (cmd_mask & DIAG_CMD_WIFIBIT)){
-            ENG_LOG("%s: Get BT/WIFI Mac addr req !\n", __FUNCTION__);
-            if((cmd_mask & (~(DIAG_CMD_BTBIT|DIAG_CMD_WIFIBIT)))){
+        if((cmd_mask & DIAG_CMD_BTBIT) || (cmd_mask & DIAG_CMD_WIFIBIT) || (g_ap_cali_flag && ((cmd_mask & DIAG_CMD_IMEI1BIT)
+                        || (cmd_mask & DIAG_CMD_IMEI2BIT) || (cmd_mask & DIAG_CMD_IMEI3BIT) || (cmd_mask & DIAG_CMD_IMEI4BIT)))){
+            ENG_LOG("%s: Get BT/WIFI Mac addr req or IMEI req!\n", __FUNCTION__);
+            if(cmd_mask = (cmd_mask & (~(DIAG_CMD_BTBIT|DIAG_CMD_WIFIBIT)))){
+                if(g_ap_cali_flag){
+                    if(cmd_mask & (~(DIAG_CMD_IMEI1BIT|DIAG_CMD_IMEI2BIT|DIAG_CMD_IMEI3BIT|DIAG_CMD_IMEI4BIT))){
+                        ENG_LOG("%s: Have other commands !\n", __FUNCTION__);
+                        return 2;
+                    }else{
+                        ENG_LOG("%s: No other commands !\n", __FUNCTION__);
+                        return 1;
+                    }
+                }
+
                 ENG_LOG("%s: Have other commands !\n", __FUNCTION__);
                 return 2;
             }else{
@@ -2257,6 +3374,18 @@ static int eng_diag_ap_req(char *buf, int len)
 
     if(DIAG_AP_CMD_FILE_OPER == apcmd->cmd){
         ret = CMD_USER_FILE_OPER;
+    }else if(DIAG_AP_CMD_SWITCH_CP == apcmd->cmd){
+        ret = CMD_USER_CFT_SWITCH;
+    }else if(DIAG_AP_CMD_CHANGE == apcmd->cmd){
+	ret = CMD_USER_ENABLE_CHARGE_ONOFF;
+    }else if(DIAG_AP_CMD_READ_CURRENT == apcmd->cmd){
+        ret = CMD_USER_GET_CHARGE_CURRENT;
+    }else if(DIAG_AP_CMD_GET_MODEM_MODE == apcmd->cmd){
+        ret = CMD_USER_GET_MODEM_MODE;
+    }else if(DIAG_AP_CMD_BKLIGHT == apcmd->cmd) {
+	ret = CMD_USER_BKLIGHT;
+    }else if(DIAG_AP_CMD_PWMODE == apcmd->cmd) {
+	ret = CMD_USER_PWMODE;
     }else{
         ret = CMD_USER_APCALI;
     }
@@ -2398,7 +3527,10 @@ static int eng_diag_fileoper_hdlr(char *buf, int len, char *rsp)
                 fd = open(fileoper->file_name, O_WRONLY);
                 if(fd >= 0){
                     ENG_LOG("%s: File is open\n", __FUNCTION__);
-                    lseek(fd, s_cur_filepos, SEEK_SET);
+                    if(lseek(fd, s_cur_filepos, SEEK_SET) == -1){
+                        aprsp->status = 1;
+                        ENG_LOG("%s: lseek error :%s", __FUNCTION__, strerror(errno));
+                    }
                     write_size = write(fd, filedata->data, filedata->data_len);
                     if(write_size < 0){
                         aprsp->status = 1;
@@ -2426,4 +3558,1136 @@ static int eng_diag_fileoper_hdlr(char *buf, int len, char *rsp)
     }
 
     return ret;
+}
+
+static int eng_diag_write_imei(REF_NVWriteDirect_T* direct, int num)
+{
+    int ret = 0;
+    int fd = -1;
+    char imei_path[ENG_DEV_PATH_LEN] = {0};
+    char imeinv[MAX_IMEI_LENGTH] = {0};
+    char imeistr[MAX_IMEI_STR_LENGTH]={0};
+
+    ENG_LOG("%s: imei num: %d\n", __FUNCTION__, num);
+
+    switch(num){
+        case 1:
+            strcpy(imei_path, ENG_IMEI1_CONFIG_FILE);
+            memcpy(imeinv, direct->imei1, MAX_IMEI_LENGTH);
+            break;
+        case 2:
+            strcpy(imei_path, ENG_IMEI2_CONFIG_FILE);
+            memcpy(imeinv, direct->imei2, MAX_IMEI_LENGTH);
+            break;
+        case 3:
+            strcpy(imei_path, ENG_IMEI3_CONFIG_FILE);
+            memcpy(imeinv, direct->imei3, MAX_IMEI_LENGTH);
+            break;
+        case 4:
+            strcpy(imei_path, ENG_IMEI4_CONFIG_FILE);
+            memcpy(imeinv, direct->imei4, MAX_IMEI_LENGTH);
+            break;
+        default:
+            return 0;
+    }
+
+    fd = open(imei_path, O_WRONLY);
+    if(fd >= 0){
+        ImeiConvNV2Str(imeinv,imeistr);
+        ret = write(fd, imeistr, MAX_IMEI_STR_LENGTH);
+        if(ret > 0){
+            ret = 1;
+            fsync(fd);
+        }else{
+            ret = 0;
+        }
+        close(fd);
+    }
+
+    return ret;
+}
+
+static int eng_diag_read_imei(REF_NVWriteDirect_T* direct, int num)
+{
+    int ret = 0;
+    int fd = -1;
+    char imei_path[ENG_DEV_PATH_LEN] = {0};
+    char imeistr[MAX_IMEI_STR_LENGTH] = {0};
+    char* imeinv = 0;
+
+    ENG_LOG("%s: imei num: %d\n", __FUNCTION__, num);
+
+    switch(num){
+        case 1:
+            strcpy(imei_path, ENG_IMEI1_CONFIG_FILE);
+            imeinv = direct->imei1;
+            break;
+        case 2:
+            strcpy(imei_path, ENG_IMEI2_CONFIG_FILE);
+            imeinv = direct->imei2;
+            break;
+        case 3:
+            strcpy(imei_path, ENG_IMEI3_CONFIG_FILE);
+            imeinv = direct->imei3;
+            break;
+        case 4:
+            strcpy(imei_path, ENG_IMEI4_CONFIG_FILE);
+            imeinv = direct->imei4;
+            break;
+        default:
+            return 0;
+    }
+
+    fd = open(imei_path, O_RDONLY);
+    if(fd >= 0){
+        ret = read(fd, imeistr, MAX_IMEI_STR_LENGTH);
+        if(ret > 0){
+            ImeiConvStr2NV(imeistr,imeinv);
+            ret = 1;
+        }else{
+            ret = 0;
+        }
+        close(fd);
+    }
+
+    return ret;
+}
+
+static void ImeiConvStr2NV(unsigned char* szImei, unsigned char* nvImei)
+{
+    unsigned char temp1=(unsigned char )(szImei[0]-'0');
+    unsigned char temp2=0;
+    nvImei[0]=(unsigned char)MAKE1BYTE2BYTES(temp1,(unsigned char)0x0A);
+    int i;
+    for(i=1;i<MAX_IMEI_LENGTH;i++)
+    {
+        temp1=(unsigned char)(szImei[2*i-0]-'0');
+        temp2=(unsigned char)(szImei[2*i-1]-'0');
+        nvImei[i]=(unsigned char)MAKE1BYTE2BYTES(temp1,temp2);
+    }
+}
+
+static void ImeiConvNV2Str(unsigned char* nvImei, unsigned char* szImei)
+{
+    int i;
+
+    for(i=0; i<MAX_IMEI_LENGTH-1; i++)
+    {
+        szImei[2*i+0]=((nvImei[i]&0xF0)>>4)+'0';
+        szImei[2*i+1]=(nvImei[i+1]&0x0F)+'0';
+    }
+
+    szImei[14]=((nvImei[7]&0xF0)>>4)+'0';
+}
+
+static char MAKE1BYTE2BYTES(unsigned char high4bit, unsigned char low4bit)
+{
+    char temp;
+    temp=(high4bit<<4)|low4bit;
+    return temp;
+}
+static void eng_diag_cft_switch_hdlr(char *buf,int len, char *rsp, int rsplen)
+{
+    char *rsp_ptr;
+    unsigned short type = 0;
+    MSG_HEAD_T* msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    if(NULL == buf){
+        ENG_LOG("%s,null pointer",__FUNCTION__);
+       return 0;
+    }
+
+    rsplen = sizeof(TOOLS_DIAG_AP_CNF_T) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+        ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+        return 0;
+    }
+
+	memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+	((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+	((TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T)))->status = 0x01;
+
+    TOOLS_DIAG_AP_CMD_T* reqcmd = (TOOLS_DIAG_AP_CMD_T*)(buf + 1 + sizeof(MSG_HEAD_T));
+    TOOLS_DIAG_AP_SWITCH_CP_T* cp_status = (TOOLS_DIAG_AP_SWITCH_CP_T*)(reqcmd + 1);
+
+    type = cp_status->cp_no;
+
+    switch(type) {
+        case 0:
+            property_set("sys.cfg.type", "0");
+            ((TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T)))->status = 0x00;
+            break;
+        case 1:
+            property_set("sys.cfg.type", "1");
+            ((TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T)))->status = 0x00;
+            break;
+        default:
+            ENG_LOG("%s:ERROR type !!!",__FUNCTION__);
+    }
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    eng_diag_write2pc(rsp,rsplen);
+    free(rsp_ptr);
+    exit(1);
+}
+
+static int eng_diag_gps_autotest_hdlr(char *buf, int len, char *rsp, int rsplen)
+{
+    int ret = 0,init_mode = 0,stop_mode = 0;
+    char tmpbuf[ENG_DIAG_SIZE] = {0};
+    static int init = 0;
+    MSG_HEAD_T* msg_head = (MSG_HEAD_T*)(buf + 1);
+    MSG_HEAD_T* rsp_head = (MSG_HEAD_T*)tmpbuf;
+
+    memcpy(tmpbuf, buf + 1, sizeof(MSG_HEAD_T));
+    sprintf(tmpbuf + sizeof(MSG_HEAD_T),"%s","\r\nOK\r\n");
+    rsp_head->len = sizeof(MSG_HEAD_T) + strlen("\r\nOK\r\n");
+
+    ENG_LOG("%s: msg_head->subtype: %d\n", __FUNCTION__, msg_head->subtype);
+
+    init_mode = get_init_mode();
+    if(init_mode == msg_head->subtype)
+    {
+        set_pc_mode(1);
+	if(0 == init) {
+	    sem_init(&g_gps_sem, 0, 0);
+	    if (0 != eng_thread_create(&gps_thread_hdlr, eng_gps_log_thread, 0)){
+		 ENG_LOG("gps log thread start error");
+	    }
+	    init = 1;
+	}
+    }
+
+    stop_mode = get_stop_mode();
+    if(stop_mode == msg_head->subtype)
+    {
+        gps_export_stop();
+        g_gps_log_enable = 0;
+    }
+    ret = set_gps_mode(msg_head->subtype);
+
+    if(ret == 1){
+        ENG_LOG("%s: gps_export_start \n", __FUNCTION__);
+        ret = gps_export_start();
+        if(!ret){
+            tmpbuf[sizeof(MSG_HEAD_T)] = 0;
+            g_gps_log_enable = 1;
+            sem_post(&g_gps_sem);
+        }else{
+            tmpbuf[sizeof(MSG_HEAD_T)] = 1;
+        }
+        rsp_head->len = sizeof(MSG_HEAD_T) + 1;
+    }
+
+    ret = translate_packet(rsp, tmpbuf, rsp_head->len);
+
+    ENG_LOG("%s: ret: %d\n", __FUNCTION__, ret);
+
+    return ret;
+}
+
+
+static int eng_diag_enable_charge(char *buf, int len, char *rsp, int rsplen)
+{
+    int ret = 0;
+    char *rsp_ptr;
+    TOOLS_DIAG_AP_CNF_T* aprsp;
+
+    if(NULL == buf){
+	ENG_LOG("%s,null pointer",__FUNCTION__);
+	return 0;
+    }
+
+    MSG_HEAD_T* msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    TOOLS_DIAG_AP_CHARGE_T* charge_flag = (TOOLS_DIAG_AP_CMD_T*)(buf + 1 + sizeof(MSG_HEAD_T)+sizeof(TOOLS_DIAG_AP_CMD_T));
+
+    rsplen = sizeof(TOOLS_DIAG_AP_CNF_T) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+        ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+        return 0;
+    }
+
+    aprsp = (TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T));
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    aprsp->status = 0x01;
+    aprsp->length = 0;
+    if( 1 == charge_flag->on_off){
+	ret = connect_vbus_charger();
+	if(ret > 0) {
+	    aprsp->status = 0x00;
+	}else{
+	    aprsp->status = 0x01;
+	    ENG_LOG("%s: enable charge failed !!!", __FUNCTION__);
+	}
+    }else if(0 == charge_flag->on_off){
+	ret = disconnect_vbus_charger();
+	if(ret > 0) {
+	    aprsp->status = 0x00;
+	}else{
+	    aprsp->status = 0x01;
+	    ENG_LOG("%s: disable charge failed !!!", __FUNCTION__);
+	}
+    }
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+static int eng_diag_get_charge_current(char *buf, int len, char *rsp, int rsplen)
+{
+    int ret = 0;
+    int  charging_current = 0, battery_current = 0;
+    int charging_read_len = 0, battery_read_len = 0;
+    char *rsp_ptr;
+    MSG_HEAD_T* msg_head_ptr;
+    TOOLS_DIAG_AP_CNF_T* aprsp;
+    TOOLS_DIAG_CHARGE_CURRENT_CNF_T* currentdata;
+
+    if(NULL == buf){
+	ENG_LOG("%s,null pointer",__FUNCTION__);
+	return 0;
+    }
+    msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    rsplen = sizeof(TOOLS_DIAG_CHARGE_CURRENT_CNF_T)+ sizeof(TOOLS_DIAG_AP_CNF_T) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+    aprsp = (TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T));
+    currentdata = (TOOLS_DIAG_CHARGE_CURRENT_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T) + sizeof(TOOLS_DIAG_AP_CNF_T));
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    aprsp->status = 0x01;
+    aprsp->length= sizeof(TOOLS_DIAG_CHARGE_CURRENT_CNF_T);
+
+    charging_read_len = get_charging_current(&charging_current);
+    if(charging_read_len <= 0){
+	ENG_LOG("%s: read charging current failed !!!%s\n", __FUNCTION__,strerror(errno));
+	goto out;
+    }
+
+    battery_read_len = get_battery_current(&battery_current);
+    if(battery_read_len <= 0){
+	ENG_LOG("%s: read battery current failed !!!%s\n", __FUNCTION__,strerror(errno));
+	goto out;
+    }
+    currentdata->charging = charging_current;
+    currentdata->battery = battery_current;
+    aprsp->status = 0x00;
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+
+}
+static int get_charging_current(int *value)
+{
+    int fd = -1;
+    int read_len = 0;
+    char buffer[16]={0};
+    char *endptr;
+
+    fd = open(CHARGING_CURRENT_FILE_PATH,O_RDONLY);
+
+    if(fd >= 0){
+        read_len = read(fd,buffer,sizeof(buffer));
+        if(read_len > 0)
+            *value = strtol(buffer,&endptr,0);
+        close(fd);
+        ENG_LOG("%s %s value = %d, read_len = %d \n",__FUNCTION__,CHARGING_CURRENT_FILE_PATH, *value, read_len);
+    }
+    else{
+        ENG_LOG("%s open %s failed\n",__FUNCTION__,CHARGING_CURRENT_FILE_PATH);
+    }
+    return read_len;
+}
+
+static int get_battery_current(int *value)
+{
+    int fd = -1;
+    int read_len = 0;
+    char buffer[16]={0};
+    char *endptr;
+
+    fd = open(BATTERY_CURRENT_FILE_PATH,O_RDONLY);
+
+    if(fd >= 0){
+        read_len = read(fd,buffer,sizeof(buffer));
+        if(read_len > 0)
+            *value = strtol(buffer,&endptr,0);
+        close(fd);
+        ENG_LOG("%s %s value = %d, read_len = %d \n",__FUNCTION__,BATTERY_CURRENT_FILE_PATH, *value, read_len);
+    }
+    else{
+        ENG_LOG("%s open %s failed\n",__FUNCTION__,BATTERY_CURRENT_FILE_PATH);
+    }
+    return read_len;
+}
+static int eng_diag_get_modem_mode(char *buf, int len, char *rsp, int rsplen)
+{
+    int ret = 0;
+    char property_info[PROPERTY_VALUE_MAX]={0};
+    char *rsp_ptr;
+    MSG_HEAD_T* msg_head_ptr;
+    TOOLS_DIAG_AP_CNF_T* aprsp;
+    TOOLS_DIAG_AP_MODULE_T*modem_mode;
+
+    if(NULL == buf){
+	ENG_LOG("%s,null pointer",__FUNCTION__);
+	return 0;
+    }
+
+    msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    rsplen = sizeof(TOOLS_DIAG_AP_MODULE_T)+ sizeof(TOOLS_DIAG_AP_CNF_T) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+    aprsp = (TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T));
+    modem_mode = (TOOLS_DIAG_AP_MODULE_T*)(rsp_ptr + sizeof(MSG_HEAD_T) + sizeof(TOOLS_DIAG_AP_CNF_T));
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    aprsp->status = 0x01;
+
+    property_get("ro.product.modem.mode",property_info,"not_find");
+    if(0 == strcmp(property_info, "not_find") ){
+	ENG_LOG("%s: read ro.product.modem.mode failed !!!%s\n", __FUNCTION__,strerror(errno));
+	goto out;
+    }
+
+    aprsp->length= strlen(property_info);
+    memcpy(modem_mode,property_info,strlen(property_info));
+    aprsp->status = 0x00;
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_diag_set_backlight(char *buf, int len, char *rsp, int rsplen)
+{
+
+    int fd = -1;
+    char *rsp_ptr;
+    char time[32] = {0};
+    TOOLS_DIAG_AP_CNF_T* aprsp;
+
+    TOOLS_DIAG_AP_CMD_T* apcmd = (TOOLS_DIAG_AP_CMD_T*)(buf + 1 + sizeof(MSG_HEAD_T));
+    unsigned short backlight_time = *(unsigned short*)(apcmd + 1);
+    ENG_LOG("%s: backlight_time: %d\n", __FUNCTION__, backlight_time);
+
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    rsplen = sizeof(MSG_HEAD_T) + sizeof(TOOLS_DIAG_AP_CNF_T) + sizeof(unsigned short);
+
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    aprsp = (TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    aprsp->status = 0x01;
+    aprsp->length = sizeof(unsigned short);
+    *((unsigned short*)(rsp_ptr + sizeof(MSG_HEAD_T)+ sizeof(TOOLS_DIAG_AP_CNF_T))) = backlight_time;
+
+    fd = open(ENG_SET_BACKLIGHT, O_WRONLY);
+    if(fd < 0){
+	ENG_LOG("%s: open %s failed, err: %s\n", __func__,ENG_SET_BACKLIGHT,strerror(errno));
+	goto out;
+    }
+
+    sprintf(time, "%d", backlight_time);
+    len = write(fd,time, strlen(time));
+    if(len <= 0){
+	ENG_LOG("%s: write %s failed, err: %s\n", __func__,ENG_SET_BACKLIGHT,strerror(errno));
+	close(fd);
+	goto out;
+    }
+
+    aprsp->status = 0x00;
+    close(fd);
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_diag_set_powermode(char *buf, int len, char *rsp, int rsplen)
+{
+    int flag = 0, ret = 0;
+    char *rsp_ptr;
+    TOOLS_DIAG_AP_CNF_T* aprsp;
+    char* insmode_flag = NULL;
+    char cmd[1024] = {0};
+    char time[32] = {0};
+    char cmdline[ENG_CMDLINE_LEN] = {0};
+
+    TOOLS_DIAG_AP_CMD_T* apcmd = (TOOLS_DIAG_AP_CMD_T*)(buf + 1 + sizeof(MSG_HEAD_T));
+    unsigned short powermode = *(unsigned short*)(apcmd + 1);
+    ENG_LOG("%s: powermode: %d\n", __FUNCTION__, powermode);
+
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    rsplen = sizeof(MSG_HEAD_T) + sizeof(TOOLS_DIAG_AP_CNF_T) + sizeof(unsigned short);
+
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    aprsp = (TOOLS_DIAG_AP_CNF_T*)(rsp_ptr + sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    aprsp->status = 0x01;
+    aprsp->length = sizeof(unsigned short);
+    *((unsigned short*)(rsp_ptr + sizeof(MSG_HEAD_T)+ sizeof(TOOLS_DIAG_AP_CNF_T))) = powermode;
+
+    eng_open_wifi_switch();
+
+    flag = system("ifconfig wlan0 up");
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s: ifconfig wlan0 up. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    if(1 == powermode){ //save power mode
+	flag = system("iwnpi wlan0 lna_on");
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s: flag error\n", __FUNCTION__);
+	    goto out;
+	}
+    }else if(0 == powermode){ //non-save power mode
+        flag = system("iwnpi wlan0 lna_off");
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s: flag error\n", __FUNCTION__);
+	    goto out;
+	}
+    }
+    aprsp->status = 0x00;
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_diag_set_ipconfigure(char *buf, int len, char *rsp, int rsplen)
+{
+    int flag = 0, ret = 0;
+    char *rsp_ptr,*insmode_flag = NULL;
+    char cmd[ENG_CMDLINE_LEN] = {0};
+    char cmdline[ENG_CMDLINE_LEN] = {0};
+
+    WIFI_CONFIGURE_IP_T* apcmd = (WIFI_CONFIGURE_IP_T*)(buf + 1 + sizeof(MSG_HEAD_T));
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    rsplen = sizeof(MSG_HEAD_T) + sizeof(char);
+
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T) );
+    *((char*)(rsp_ptr + sizeof(MSG_HEAD_T))) = 0;
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+
+     if( 0 == eng_open_wifi_switch()){
+        ENG_LOG("%s:open wifi function eng_open_wifi_switch failed\n", __FUNCTION__);
+        goto out;
+     }
+
+    flag = system("wpa_cli -iwlan0 IFNAME=wlan0 remove_network all");
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s:wpa_cli -iwlan0 IFNAME=wlan0 remove_network all. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    flag = system("wpa_cli -iwlan0 IFNAME=wlan0 add_network");
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s:wpa_cli -iwlan0 IFNAME=wlan0 add_network. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    sprintf(cmd,"wpa_cli -iwlan0 IFNAME=wlan0 set_network 0 ssid /%s/",apcmd->szSSID);
+    flag = system(cmd);
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s: wpa_cli -iwlan0 IFNAME=wlan0 set_network 0 ssid /CMCC/. lag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    flag = system("wpa_cli -iwlan0 IFNAME=wlan0 set_network 0 key_mgmt NONE");
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s:wpa_cli -iwlan0 IFNAME=wlan0 set_network 0 key_mgmt NONE. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    flag = system("wpa_cli -iwlan0 IFNAME=wlan0 select_network 0");
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s:wpa_cli -iwlan0 IFNAME=wlan0 select_network 0. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    sprintf(cmd,"ifconfig wlan0 %s netmask %s ",apcmd->szIPAddress,apcmd->szSubnet);
+    flag = system(cmd);
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s: ifconfig wlan0 netmask flag error. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    sprintf(cmd,"ip route add default via %s ",apcmd->szGateway);
+    flag = system(cmd);
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s:ip route add default via. flag error. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	flag = system("ip route del");
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s: ip route del. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	    goto out;
+	}
+	flag = system(cmd);
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s:ip route add default via. flag error. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	    goto out;
+	}
+    }
+
+    flag = system("ndc resolver setdefaultif wlan0");
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s: ndc resolver setdefaultif wlan0. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    sprintf(cmd,"ndc resolver setifdns wlan0 "" %s ",apcmd->szDNS);
+    system(cmd);
+    if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	ENG_LOG("%s:ndc resolver setifdns wlan0 flag erro. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	goto out;
+    }
+
+    *((char*)(rsp_ptr + sizeof(MSG_HEAD_T))) = 1;
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+
+}
+static int eng_open_wifi_switch()
+{
+    int flag = 0, ret = 0, fd = -1;
+    char *insmode_flag = NULL;
+    char cmd[ENG_CMDLINE_LEN] = {0};
+    char cmdline[ENG_CMDLINE_LEN] = {0};
+    char *process_name = "wpa_supplicant";
+
+    #ifdef  ENGMODE_EUT_SPRD
+    ENG_LOG("%s:sprd chip\n", __FUNCTION__);
+
+    fd = open("/proc/modules",O_RDONLY);
+    if(fd < 0){
+	ENG_LOG("%s,/proc/modules open failed",__FUNCTION__);
+	 return 0;
+    }
+
+    ret = read(fd,cmdline,sizeof(cmdline));
+    if(ret < 0){
+	ENG_LOG("%s,/proc/modules read failed",__FUNCTION__);
+	  return 0;
+    }
+
+    insmode_flag= strstr(cmdline,WIFI_DRIVER_MODULE_NAME);
+    if(insmode_flag ==NULL){
+	sprintf(cmd,"insmod %s",WIFI_DRIVER_MODULE_PATH);
+	flag = system(cmd);
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s:insmod /system/lib/modules/sprdwl.ko. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	     return 0;
+	}
+    }
+    #endif
+    if( 0 == eng_detect_process(process_name)){
+	flag = system("start wpa_supplicant");
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s: start wpa_supplicant. flag=%d,err:%s\n", __FUNCTION__,flag,strerror(errno));
+	    return 0;
+	}
+    }
+
+    sleep (5);
+    return 1;
+}
+static int eng_detect_process(char *process_name)
+{
+    FILE *ptr;
+    char buff[512], ps[128];
+    int count = -1;
+
+    sprintf(ps, "ps |grep -c %s", process_name);
+    if((ptr = popen(ps, "r")) != NULL){
+	if(fgets(buff, 512, ptr) != NULL){
+	    count = atoi(buff);
+	}
+    }
+
+    ENG_LOG("%s,count = %d",__FUNCTION__,count);
+    if(NULL != ptr)
+        pclose(ptr);
+    return count;
+}
+static int eng_diag_read_register(char *buf, int len, char *rsp, int rsplen)
+{
+    FILE *fd;
+    int m = 0, ret = 0;
+    char *rsp_ptr,*temp,*end;
+    char stemp[9] = {0};
+    char AddrCount[64] = {0};
+    unsigned int pdata[64]={0};
+    char cmd[ENG_CMDLINE_LEN] = {0};
+    char regvalue[ENG_DIAG_SIZE] = {0};
+    char *value = regvalue;
+
+    WIFI_REGISTER_REQ_T* apcmd = (WIFI_REGISTER_REQ_T*)(buf + 1 + sizeof(MSG_HEAD_T));
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    rsplen = sizeof(MSG_HEAD_T) + sizeof(WIFI_REGISTER_REQ_T) + 1;
+
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    *((char*)(rsp_ptr + sizeof(MSG_HEAD_T)+ sizeof(WIFI_REGISTER_REQ_T))) = 0;
+
+    sprintf(cmd,"iwnpi wlan0 get_reg %s %x %d", apcmd->szType,apcmd->nRegAddr,apcmd->nCount);
+    fd = popen(cmd, "r" );
+    if(NULL == fd)  {
+	ENG_LOG("%s: popen error.\n", __FUNCTION__);
+	goto out;
+    }
+    ret = fread(regvalue, sizeof(char), sizeof(regvalue), fd);
+    if(ret <= 0)
+        goto out;
+    rsplen = sizeof(MSG_HEAD_T) + sizeof(WIFI_REGISTER_REQ_T) + (apcmd->nCount)*4;//for every type return 4 bytes data
+    temp = (char*)malloc(rsplen);
+    if(NULL == temp){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	goto out;
+    }
+
+    free(rsp_ptr);
+    rsp_ptr = temp;
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T)+sizeof(WIFI_REGISTER_REQ_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+
+    while(m < apcmd->nCount){
+	if(*value == '0' && *(value + 1) == 'x'){
+	    value += 2;
+	    memcpy(stemp,value,8);
+	    pdata[m] = (unsigned int)strtoul(stemp,&end,16);
+	    value += 8;
+	    m++;
+        }else{
+	    value += 1;
+	}
+    }
+
+    memcpy(rsp_ptr + sizeof(MSG_HEAD_T) + sizeof(WIFI_REGISTER_REQ_T),pdata,(apcmd->nCount)*4);
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    if(NULL != fd)
+        pclose(fd);
+    return rsplen;
+
+}
+
+static int eng_diag_write_register(char *buf, int len, char *rsp, int rsplen)
+{
+    int flag;
+    unsigned int i,j,ret;
+    char *rsp_ptr;
+    char RegValue[32] = {0};
+    char cmd[1024] = {0};
+
+    WIFI_REGISTER_REQ_T* apcmd = (WIFI_REGISTER_REQ_T*)(buf + 1 + sizeof(MSG_HEAD_T));
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    char *value = (char*)(apcmd + 1);
+
+    rsplen = sizeof(MSG_HEAD_T) + sizeof(WIFI_REGISTER_REQ_T) + 1;
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T)+ sizeof(WIFI_REGISTER_REQ_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    *((char*)(rsp_ptr + sizeof(MSG_HEAD_T)+ sizeof(WIFI_REGISTER_REQ_T))) = 0;
+
+    for(i = 0; i < apcmd->nCount; i++){
+	sprintf(cmd, "iwnpi wlan0 set_reg %s %x ", apcmd->szType,apcmd->nRegAddr + i*apcmd->nUit);
+	for(j = 0; j < apcmd->nUit; j++){
+	    sprintf(RegValue, "%02x", *value);
+	    strcat(cmd,RegValue);
+	    value += 1;
+	}
+
+	flag = system(cmd);
+	if(!WIFEXITED(flag) || WEXITSTATUS(flag) || -1 == flag){
+	    ENG_LOG("%s iwnpi wlan0 set_reg flag =%d\n", __FUNCTION__,flag);
+	    goto out;
+	}
+    }
+    *((char*)(rsp_ptr + sizeof(MSG_HEAD_T)+ sizeof(WIFI_REGISTER_REQ_T))) = 1;
+
+out:
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_diag_read_efuse(char *buf,int len,char *rsp, int rsplen)
+{
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    unsigned char data_buf[16] = {0};//FIX ME,adjusted by ronghua interfaces
+    unsigned char hash_buf[41] = {0};
+    unsigned char uid_buf[17] = {0};
+    unsigned char *str= NULL;
+    char *endptr;
+    int ret = 0;
+    char *rsp_ptr,*temp;
+    unsigned short block;
+
+    if(NULL == buf){
+        ENG_LOG("%s,null pointer",__FUNCTION__);
+        return 0;
+    }
+
+    block = *(unsigned short*)(msg_head_ptr + 1);
+
+    rsplen = sizeof(EFUSE_INFO_T_RES) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+	ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+	return 0;
+    }
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T)+2);
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    ((EFUSE_INFO_T_RES*)(rsp_ptr + sizeof(MSG_HEAD_T)))->flag = 0x00;
+
+    do{
+        ENG_LOG("%s,block = %d",__FUNCTION__,block);
+        if(0 == block || 1 == block){
+	     ret = efuse_uid_read(uid_buf, sizeof(uid_buf));
+	     if(ret < 0){
+                ENG_LOG("%s,efuse_uid_read ret = %d",__FUNCTION__,ret);
+                break;
+           }
+	     str = uid_buf;
+	     str += (block * 8);
+        }else{
+	     ret = efuse_hash_read(hash_buf, sizeof(hash_buf));
+	     if(ret < 0){
+                ENG_LOG("%s,efuse_hash_read ret = %d",__FUNCTION__,ret);
+                break;
+            }
+	     str = hash_buf;
+	     str += ((block - 2) * 8);
+        }
+
+        memcpy(data_buf,str,8);
+        data_buf[8] = '\0';
+
+        rsplen = sizeof(EFUSE_READ_INFO_T_RES) + sizeof(MSG_HEAD_T);
+        temp = (char*)malloc(rsplen);
+        if(NULL == temp){
+            ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+            free(rsp_ptr);
+            return 0;
+        }
+        free(rsp_ptr);
+        rsp_ptr = temp;
+        memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T)+2);
+        ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+        ((EFUSE_READ_INFO_T_RES*)(rsp_ptr + sizeof(MSG_HEAD_T)))->data = strtoul(data_buf,&endptr,16);
+    }while(0);
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_diag_write_efuse(char *buf,int len,char *rsp, int rsplen)
+{
+    int ret, flag = -1;
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    unsigned char hashstr_buf[HASH_LEN+1] = {0};
+    unsigned char *hashstr= hashstr_buf;
+    char *rsp_ptr;
+
+    if(NULL == buf){
+	ENG_LOG("%s,null pointer",__FUNCTION__);
+        return 0;
+    }
+
+    rsplen = sizeof(char) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+        ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+        return 0;
+    }
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    *(char*)(rsp_ptr + sizeof(MSG_HEAD_T)) = 0x00;
+
+    do{
+	flag = eng_parse_hash_cmdline(hashstr);
+	if(0 == flag){
+	   ENG_LOG("%s,doesn't read the hash value",__FUNCTION__);
+	   break;
+        }
+
+        ret = efuse_hash_write(hashstr, strlen(hashstr));
+        if(ret <= 0){
+	    ENG_LOG("%s,efuse_hash_write data failed. ret=%d",__FUNCTION__,ret);
+	    break;
+        }
+	*(char*)(rsp_ptr + sizeof(MSG_HEAD_T))= 0x01;
+    }while(0);
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_parse_hash_cmdline(unsigned char *cmdvalue)
+{
+    int fd = 0,ret = 0, i = 0,flag = 0;
+    char cmdline[ENG_CMDLINE_LEN] = {0};
+    char* hashstr = NULL;
+
+    fd = open("/proc/cmdline",O_RDONLY);
+    if(fd < 0){
+        ENG_LOG("%s,/proc/cmdline open failed",__FUNCTION__);
+        return 0;
+    }
+
+    ret = read(fd,cmdline,sizeof(cmdline));
+    if(ret < 0){
+	ENG_LOG("%s,/proc/cmdline read failed",__FUNCTION__);
+	close(fd);
+	return 0;
+    }
+    ENG_LOG("%s,cmdline: %s\n",__FUNCTION__,cmdline);
+    hashstr = strstr(cmdline,CMD_SECURESTRING);
+    if(hashstr !=NULL){
+	hashstr += strlen(CMD_SECURESTRING);
+	memcpy(cmdvalue, hashstr, HASH_LEN);
+	flag = 1;
+    }
+
+    ENG_LOG("%s,cmdline: %s\n",__FUNCTION__,cmdvalue);
+    close(fd);
+    return flag;
+}
+
+static int eng_parse_publickey_cmdline(char *path,int* pos,int* len)
+{
+    int fd = -1;
+    int ret = 0;
+    int strlength = 0;
+    char cmdline[ENG_CMDLINE_LEN] = {0};
+    char* buf = NULL,*ch = NULL;
+    char str[10] = {0};
+
+    fd = open("/proc/cmdline",O_RDONLY);
+    if(fd < 0){
+	ENG_LOG("%s,/proc/cmdline open failed",__FUNCTION__);
+	return 0;
+    }
+
+    ret = read(fd,cmdline,sizeof(cmdline));
+    if(ret < 0){
+	ENG_LOG("%s,/proc/cmdline read failed",__FUNCTION__);
+	close(fd);
+	return 0;
+    }
+    ENG_LOG("%s,cmdline: %s\n",__FUNCTION__,cmdline);
+
+    buf = strstr(cmdline,CMD_PUBLICKEYPATH);
+    if(buf != NULL){
+	buf += strlen(CMD_PUBLICKEYPATH);
+	ch = strchr(buf, ' ');
+	if(ch != NULL){
+	    strlength = ch - buf ;
+	    memcpy(path, buf, strlength);
+	    ENG_LOG("%s,path = %s ",__FUNCTION__,path);
+	}
+    }
+
+    buf = strstr(cmdline,CMD_PUBLICKEYSTART);
+    if(buf != NULL){
+	buf += strlen(CMD_PUBLICKEYSTART);
+	ch = strchr(buf, ' ');
+	if(ch != NULL){
+	    strlength = ch - buf ;
+	    strncpy(str, buf, strlength);
+	    *pos = atoi(str);
+	    ENG_LOG("%s,pos = %d ",__FUNCTION__,*pos);
+	}
+    }
+
+    buf = strstr(cmdline,CMD_PUBLICKEYLEN);
+    if(buf != NULL){
+	buf += strlen(CMD_PUBLICKEYLEN);
+	ch = strchr(buf, ' ');
+	if(ch != NULL){
+	    strlength = ch - buf ;
+	    strncpy(str, buf, strlength);
+	    *len = atoi(str);
+	    ENG_LOG("%s,len = %d ",__FUNCTION__,*len);
+	}
+    }
+    close(fd);
+    return 1;
+}
+
+static int eng_diag_read_publickey(char *buf,int len,char *rsp, int rsplen)
+{
+    int fd = -1;
+    int ret = 0;
+    int publickeypos = 0;
+    int publickeylen = 0;
+    char data_buf[1024] = {0};
+    char * endptr;
+    char *rsp_ptr,*temp;
+    char *publickeypath = NULL;
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+
+    if(NULL == buf){
+	ENG_LOG("%s,null pointer",__FUNCTION__);
+        return 0;
+    }
+
+    rsplen = sizeof(char) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+        ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+        return 0;
+    }
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    *((char*)(rsp_ptr + sizeof(MSG_HEAD_T))) = 0x00;
+
+    publickeypath = (char*)malloc(1024);
+    eng_parse_publickey_cmdline(publickeypath,&publickeypos,&publickeylen);
+
+    do{
+        fd = open(publickeypath,O_RDONLY);
+        if(fd < 0){
+            ENG_LOG("%s,%s open failed",publickeypath,__FUNCTION__);
+            break;
+        }
+
+        if(-1 == lseek(fd,publickeypos,SEEK_SET)){
+            ENG_LOG("%s,/dev/block/mmcblk0boot0 seek failed",__FUNCTION__);
+            break;
+        }
+        ret = read(fd,data_buf,publickeylen);
+        if(ret <= 0){
+            ENG_LOG("%s,/dev/block/mmcblk0boot0 read data failed",__FUNCTION__);
+            break;
+        }
+
+        rsplen = publickeylen + sizeof(MSG_HEAD_T);
+        temp = (char*)malloc(rsplen);
+        if(NULL == temp){
+            ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+            break;
+        }
+        free(rsp_ptr);
+        rsp_ptr = temp;
+        memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+        ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+        memcpy(rsp_ptr + sizeof(MSG_HEAD_T),data_buf,publickeylen);
+    }while(0);
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    if(fd >= 0)
+	close(fd);
+    free(rsp_ptr);
+    free(publickeypath);
+    return rsplen;
+}
+
+static int eng_diag_enable_secure(char *buf,int len,char *rsp, int rsplen)
+{
+    int ret = 0;
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    char *rsp_ptr;
+
+    if(NULL == buf){
+        ENG_LOG("%s,null pointer",__FUNCTION__);
+        return 0;
+    }
+
+    rsplen = sizeof(char) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+        ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+        return 0;
+    }
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    *(char*)(rsp_ptr + sizeof(MSG_HEAD_T)) = 0x00;
+
+    ret = efuse_secure_enable();
+    if(ret >= 0)
+	*(char*)(rsp_ptr + sizeof(MSG_HEAD_T)) = 0x01;
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
+}
+
+static int eng_diag_read_enable_secure_bit(char *buf,int len,char *rsp, int rsplen)
+{
+    int fd = -1;
+    MSG_HEAD_T *msg_head_ptr = (MSG_HEAD_T*)(buf + 1);
+    int ret = 0;
+    char *rsp_ptr;
+
+    if(NULL == buf){
+        ENG_LOG("%s,null pointer",__FUNCTION__);
+        return 0;
+    }
+
+    rsplen = sizeof(char) + sizeof(MSG_HEAD_T);
+    rsp_ptr = (char*)malloc(rsplen);
+    if(NULL == rsp_ptr){
+        ENG_LOG("%s: Buffer malloc failed\n", __FUNCTION__);
+        return 0;
+    }
+    memcpy(rsp_ptr,msg_head_ptr,sizeof(MSG_HEAD_T));
+    ((MSG_HEAD_T*)rsp_ptr)->len = rsplen;
+    *(char*)(rsp_ptr + sizeof(MSG_HEAD_T)) = 0x00;
+
+    ret = efuse_secure_is_enabled();
+    if(0 != ret)
+	    *(char*)(rsp_ptr + sizeof(MSG_HEAD_T)) = 0x01;
+
+    rsplen = translate_packet(rsp,(unsigned char*)rsp_ptr,((MSG_HEAD_T*)rsp_ptr)->len);
+    free(rsp_ptr);
+    return rsplen;
 }

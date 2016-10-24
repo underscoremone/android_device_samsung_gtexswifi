@@ -21,6 +21,7 @@
 #include <android/log.h>
 #include <hardware/hardware.h>
 #include <hardware/bluetooth.h>
+#include <stdlib.h>
 
 #ifdef LOG_TAG
 #undef  LOG_TAG
@@ -41,27 +42,56 @@
 #define FAIL_STR "FAIL"
 #define CMD_RESULT_BUFFER_LEN (128)
 #define CASE_RETURN_STR(const) case const: return #const;
+#define UNUSED __attribute__((unused))
+
+#define BLE_TEST_MODE_STATUS "le_test_status"
+#define BLE_TEST_MODE_FUNCTION "le_test_mode"
+#define BLE_TEST_MODE_SIZE (strlen(BLE_TEST_MODE_FUNCTION))
+#define HCI_GRP_BLE_CMDS                (0x08 << 10)
+#define HCI_BLE_RECEIVER_TEST           (0x001D | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_TRANSMITTER_TEST        (0x001E | HCI_GRP_BLE_CMDS)
+#define HCI_BLE_TEST_END                (0x001F | HCI_GRP_BLE_CMDS)
+typedef enum
+{
+    BT_MODE_NONE,
+    BT_MODE_BT_ON,
+    BT_MODE_BT_OFF,
+    BT_MODE_DUTMODE_CFGON,
+    BT_MODE_DUTMODE_CFGOFF,
+    BT_MODE_DUTMODE_STATUS,
+    BT_MODE_SET_NOSIG_TX,
+    BT_MODE_SET_NOSIG_RX,
+    BT_MODE_SET_NOSIG_RECV_DATA,
+    /* more modes supported to add here */
+    BT_MODE_INVALID
+}BT_MODE_IN_TESTING;
 
 typedef enum
 {
     BT_ENG_NONE_ERROR,
-    BT_ENG_CMD_INVALID,        
+    BT_ENG_CMD_INVALID,
     BT_ENG_PARA_INVALID,
     BT_ENG_HAL_LOAD_ERROR,
     BT_ENG_INIT_ERROR,
     BT_ENG_ENABLE_ERROR,
     BT_ENG_DISABLE_ERROR,
     BT_ENG_SET_DUT_MODE_ERROR,
-    BT_ENG_CLEANUP_ERROR
+    BT_ENG_LE_TEST_MODE_ERROR,
+    BT_ENG_CLEANUP_ERROR,
+    BT_ENG_STATUS_ERROR,
+    BT_ENG_TX_TEST_ERROR,
+    BT_ENG_RX_TEST_ERROR,
+    BT_ENG_RX_TEST_RECV_DATA_ERROR
 }BT_ENG_ERROR_E;
 
 /************************************************************************************
 **  Static variables
 ************************************************************************************/
 
+static int bt_mode_testing = BT_MODE_NONE;
 static unsigned char main_done = 0;
 static bt_status_t status;
-static bluetooth_device_t* bt_device;
+static bluetooth_device_t* bt_device = NULL;
 const bt_interface_t* sBtInterface = NULL;
 
 static gid_t groups[] = { AID_NET_BT, AID_INET, AID_NET_BT_ADMIN,
@@ -73,14 +103,19 @@ static unsigned char bt_enabled = 0;
 static int bteng_client_fd = -1;
 static unsigned char bt_hal_load = 0;
 static unsigned char bt_init = 0;
+static unsigned short bt_le_test_status = 0;
 /************************************************************************************
 **  Static functions
 ************************************************************************************/
 static void bteng_check_return_status(bt_status_t status);
 static BT_ENG_ERROR_E bteng_dut_mode_configure(char *p);
+static BT_ENG_ERROR_E bteng_dut_le_test_mode (char **argv, int argc);
 static int bteng_send_back_cmd_result(int client_fd, char *str, int isOK);
 static void bteng_hal_unload(void);
 static void bteng_cleanup(void);
+static BT_ENG_ERROR_E bteng_set_nonsig_tx_testmode(uint32_t *data);
+static BT_ENG_ERROR_E bteng_set_nonsig_rx_testmode(uint32_t *data, char *paddr);
+
 /************************************************************************************
 **  Functions
 ************************************************************************************/
@@ -103,27 +138,45 @@ static const char* bteng_dump_bt_status(bt_status_t status)
 static void bteng_adapter_state_changed(bt_state_t state)
 {
     char dut_mode;
+    char *str_on[]  = {"enter eut mode ok\n", "bt_status=1"};
+    char *str_off[] = {"exit eut mode ok\n", "bt_status=0"};
+    char *p = NULL;
 
     BTENG_LOGD("ADAPTER STATE UPDATED : %s", (state == BT_STATE_OFF)?"OFF":"ON");
     if (state == BT_STATE_ON)
     {
         bt_enabled = 1;
         dut_mode = '1';
-        bteng_dut_mode_configure(&dut_mode);
-        bteng_send_back_cmd_result(bteng_client_fd, "enter eut mode ok\n", 1);
-    } 
+        if(bt_mode_testing == BT_MODE_DUTMODE_CFGON)
+            p = str_on[0];
+        else
+            p = str_on[1];
+
+        BTENG_LOGD("ON str return to app, %s", p);
+
+        if(bt_mode_testing == BT_MODE_DUTMODE_CFGON)
+            bteng_dut_mode_configure(&dut_mode);
+
+        bteng_send_back_cmd_result(bteng_client_fd, p, 1);
+    }
     else
     {
         bt_enabled = 0;
         //bteng_cleanup();
         //bteng_hal_unload();
+        if(bt_mode_testing == BT_MODE_DUTMODE_CFGOFF)
+            p = str_off[0];
+        else
+            p = str_off[1];
+
+        BTENG_LOGD("OFF str return to app, %s", p);
 
         //send cmd result
-        bteng_send_back_cmd_result(bteng_client_fd, "exit eut mode ok\n", 1);
+        bteng_send_back_cmd_result(bteng_client_fd, p, 1);
     }
 }
 
-static void bteng_dut_mode_recv(uint16_t opcode, uint8_t *buf, uint8_t len)
+static void bteng_dut_mode_recv(uint16_t UNUSED opcode, uint8_t UNUSED *buf, uint8_t UNUSED len)
 {
     BTENG_LOGD("DUT MODE RECV : NOT IMPLEMENTED");
 }
@@ -131,18 +184,51 @@ static void bteng_dut_mode_recv(uint16_t opcode, uint8_t *buf, uint8_t len)
 static void bteng_le_test_mode(bt_status_t status, uint16_t packet_count)
 {
     BTENG_LOGD("LE TEST MODE END status:%s number_of_packets:%d", bteng_dump_bt_status(status), packet_count);
+    if (BT_STATUS_SUCCESS == status) {
+        bteng_send_back_cmd_result(bteng_client_fd, "response: cmd ack success\n", 1);
+    } else {
+        bteng_send_back_cmd_result(bteng_client_fd, "response: cmd ack failed\n", 0);
+    }
 }
 
-static void bteng_thread_evt_cb(bt_cb_thread_evt event) 
+static void bteng_thread_evt_cb(bt_cb_thread_evt event)
 {
-    if (event  == ASSOCIATE_JVM) 
+    if (event  == ASSOCIATE_JVM)
     {
         BTENG_LOGD("Callback thread ASSOCIATE_JVM");
     }
-    else if (event == DISASSOCIATE_JVM) 
+    else if (event == DISASSOCIATE_JVM)
     {
         BTENG_LOGD("Callback thread DISASSOCIATE_JVM");
     }
+
+    return;
+}
+
+/*
+        rssi       : Rx RSSI
+        pkt_cnt    :Bit Error Rate
+        pkt_err_cnt:Rx Byte Rate
+        bit_cnt    :Packet Error Rate
+        bit_err_cnt:Rx Packet Count
+*/
+static void bteng_nonsig_test_rx_recv(bt_status_t status, uint8_t rssi, uint32_t pkt_cnt, uint32_t pkt_err_cnt, uint32_t bit_cnt, uint32_t bit_err_cnt)
+{
+    char *p = "bteng_nonsig_test_rx_recv response from controller is invalid";
+    char buf[255] = {0};
+
+    if(status != BT_STATUS_SUCCESS)
+    {
+        BTENG_LOGD("%s, controller return status FAIL", __FUNCTION__);
+        bteng_send_back_cmd_result(bteng_client_fd, p, 0);
+
+        return;
+    }
+
+    snprintf(buf, 255, "rssi:%d, pkt_cnt:%d, pkt_err_cnt:%d, bit_cnt:%d, bit_err_cnt:%d", rssi, pkt_cnt, pkt_err_cnt, bit_cnt, bit_err_cnt);
+    BTENG_LOGD("%s, status SUCEESS, %s", __FUNCTION__, buf);
+
+    bteng_send_back_cmd_result(bteng_client_fd, buf, 1);
 
     return;
 }
@@ -162,9 +248,12 @@ static bt_callbacks_t bt_callbacks = {
         bteng_dut_mode_recv, /*dut_mode_recv_cb */
         //    NULL, /*authorize_request_cb */
 #if BLE_INCLUDED == TRUE
-        bteng_le_test_mode /* le_test_mode_cb */
+        bteng_le_test_mode, /* le_test_mode_cb */
 #else
-        NULL
+        NULL,
+#endif
+#ifdef HAS_BLUETOOTH_SPRD
+        bteng_nonsig_test_rx_recv
 #endif
 };
 
@@ -181,21 +270,21 @@ static BT_ENG_ERROR_E bteng_hal_load(void)
 
     if(bt_hal_load)
         return BT_ENG_NONE_ERROR;
-    
+
     BTENG_LOGD("Loading HAL lib");
 
     err = hw_get_module(BT_HARDWARE_MODULE_ID, (hw_module_t const**)&module);
     if (err == 0)
     {
         err = module->methods->open(module, BT_HARDWARE_MODULE_ID, &device);
-        if (err == 0) 
+        if (err == 0)
         {
             bt_device = (bluetooth_device_t *)device;
             sBtInterface = bt_device->get_bluetooth_interface();
         }
     }
 
-    BTENG_LOGD("HAL library loaded (%s)", strerror(err));
+    BTENG_LOGD("HAL library loaded (err: %d, %s)", err, strerror(err));
 
     if(err == 0)
     {
@@ -206,7 +295,7 @@ static BT_ENG_ERROR_E bteng_hal_load(void)
     {
         ret_val = BT_ENG_HAL_LOAD_ERROR;
     }
-    
+
     return ret_val;
 }
 
@@ -233,7 +322,8 @@ static void bteng_config_permissions(void)
 
     prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
 
-    setgid(AID_BLUETOOTH);
+    setuid(AID_ROOT);
+    setgid(AID_NET_BT_STACK);
 
     header.version = _LINUX_CAPABILITY_VERSION;
 
@@ -256,7 +346,7 @@ static BT_ENG_ERROR_E bteng_bt_init(void)
 
     if(bt_init)
     return   BT_ENG_NONE_ERROR;
-    
+
     BTENG_LOGD("INIT BT ");
     status = sBtInterface->init(&bt_callbacks);
 
@@ -270,7 +360,7 @@ static BT_ENG_ERROR_E bteng_bt_init(void)
     else
     {
         ret_val = BT_ENG_INIT_ERROR;
-    }       
+    }
 
     return ret_val;
 }
@@ -279,7 +369,7 @@ static BT_ENG_ERROR_E bteng_bt_enable(void)
 {
     bt_status_t status;
     BT_ENG_ERROR_E ret_val;
-    
+
     BTENG_LOGD("ENABLE BT");
 
     if (bt_enabled)
@@ -298,7 +388,7 @@ static BT_ENG_ERROR_E bteng_bt_enable(void)
     else
     {
         ret_val = BT_ENG_ENABLE_ERROR;
-    }       
+    }
 
     return ret_val;
 }
@@ -307,9 +397,9 @@ static BT_ENG_ERROR_E bteng_bt_disable(void)
 {
     bt_status_t status;
     BT_ENG_ERROR_E ret_val;
-    
+
     BTENG_LOGD("DISABLE BT");
-    if (!bt_enabled) 
+    if (!bt_enabled)
     {
         BTENG_LOGD("Bluetooth is already disabled");
         return BT_ENG_DISABLE_ERROR;
@@ -317,7 +407,7 @@ static BT_ENG_ERROR_E bteng_bt_disable(void)
     status = sBtInterface->disable();
 
     bteng_check_return_status(status);
-    
+
     if(status == BT_STATUS_SUCCESS)
     {
         ret_val = BT_ENG_NONE_ERROR;
@@ -326,7 +416,7 @@ static BT_ENG_ERROR_E bteng_bt_disable(void)
     {
         ret_val = BT_ENG_DISABLE_ERROR;
     }
-    
+
     return ret_val;
 }
 
@@ -337,7 +427,7 @@ static BT_ENG_ERROR_E bteng_dut_mode_configure(char *p)
     BT_ENG_ERROR_E ret_val;
 
     BTENG_LOGD("BT DUT MODE CONFIGURE");
-    if (!bt_enabled) 
+    if (!bt_enabled || sBtInterface == NULL)
     {
         BTENG_LOGD("Bluetooth must be enabled for test_mode to work.");
         return BT_ENG_SET_DUT_MODE_ERROR;
@@ -352,8 +442,7 @@ static BT_ENG_ERROR_E bteng_dut_mode_configure(char *p)
         mode = 1;
     }
 
-    //mode = get_signed_int(&p, mode);
-    if ((mode != 0) && (mode != 1)) 
+    if ((mode != 0) && (mode != 1))
     {
         BTENG_LOGD("Please specify mode: 1 to enter, 0 to exit");
         return BT_ENG_SET_DUT_MODE_ERROR;
@@ -372,6 +461,55 @@ static BT_ENG_ERROR_E bteng_dut_mode_configure(char *p)
     }
 
     return ret_val;
+}
+
+static BT_ENG_ERROR_E bteng_dut_le_test_mode (char **argv, int argc) {
+    int i = 0;
+    unsigned short cmd;
+    unsigned char len, buf[3] = {0};
+    if (sBtInterface == NULL) {
+        BTENG_LOGE("%s sBtInterface does not exist", __func__);
+        goto error;
+    }
+    if (sBtInterface->le_test_mode == NULL) {
+        BTENG_LOGE("%s le_test_mode does not exist", __func__);
+        goto error;
+    }
+
+    if (argc < 2) {
+        BTENG_LOGE("%s le_test_mode no cmd", __func__);
+        goto error;
+    }
+
+    cmd = (unsigned short)strtoul(argv[0], 0, 16) & 0xFFFF;
+    len = (unsigned char)strtoul(argv[1], 0, 16) & 0xFF;
+    if (cmd != HCI_BLE_RECEIVER_TEST && cmd != HCI_BLE_TRANSMITTER_TEST && cmd != HCI_BLE_TEST_END) {
+        BTENG_LOGE("%s le_test_mode unknow cmd: 0x%04x", __func__, cmd);
+        goto error;
+    }
+
+    argv += 2;
+    argc -= 2;
+
+    for (i = 0; i < argc ; i++) {
+        BTENG_LOGE("%s le_test_mode [%s]", __func__, argv[i]);
+       if (i > 2) {
+           BTENG_LOGE("%s le_test_mode too many arg", __func__);
+           break;
+	}
+        buf[i] = strtoul(argv[i], 0, 16) & 0xFF;
+    }
+
+    BTENG_LOGD("%s le_test_mode cmd: 0x%04x, len: 0x%02x, buf: [0x%02x, 0x%02x, 0x%02x]", __func__, cmd, len, buf[0], buf[1] ,buf[2]);
+    if (BT_STATUS_SUCCESS != sBtInterface->le_test_mode(cmd, buf, len)) {
+        BTENG_LOGE("%s le_test_mode cmd send error", __func__);
+        goto error;
+    }
+    bt_le_test_status = cmd;
+    return BT_ENG_NONE_ERROR;
+error:
+    bteng_send_back_cmd_result(bteng_client_fd, "response: cmd send failed\n", 0);
+    return BT_ENG_LE_TEST_MODE_ERROR;
 }
 
 static void bteng_cleanup(void)
@@ -429,7 +567,7 @@ static BT_ENG_ERROR_E bteng_dut_mode_set( char **argv)
 {
     char dut_mode;
     BT_ENG_ERROR_E err = BT_ENG_NONE_ERROR;
-    
+
     if((*argv)[0] == '1')
     {
         BTENG_LOGD("dut_mode_set enable\n");
@@ -457,11 +595,331 @@ static BT_ENG_ERROR_E bteng_dut_mode_set( char **argv)
         {
             err = bteng_bt_disable();
             //cmd result will send after bluetooth off.
-        }            
+        }
     }
 
     return err;
 }
+
+static BT_ENG_ERROR_E bteng_bt_on(void)
+{
+    int err;
+    char dut_mode = '1';
+
+    BTENG_LOGD("bteng_bt_on\n");
+
+    if(bt_enabled == 1)
+    {
+        BTENG_LOGD("%s, bt is already on\n", __FUNCTION__);
+        bteng_adapter_state_changed(BT_STATE_ON);
+
+        return BT_ENG_NONE_ERROR;
+    }
+
+    bteng_config_permissions();
+    err = bteng_hal_load();
+    if(err != BT_ENG_NONE_ERROR)
+    {
+        BTENG_LOGD("%s, bteng_hal_load, err: %d", __FUNCTION__, err);
+        return err;
+    }
+
+    err = bteng_bt_init();
+    if(err != BT_ENG_NONE_ERROR)
+    {
+        BTENG_LOGD("%s, bteng_bt_init, err: %d", __FUNCTION__, err);
+        return err;
+    }
+
+    err = bteng_bt_enable();
+
+    if(err != BT_ENG_NONE_ERROR)
+    {
+        BTENG_LOGD("%s, bteng_bt_enable, err: %d", __FUNCTION__, err);
+        return err;
+    }
+
+	//result will send in callback bteng_adapter_state_changed
+	return BT_ENG_NONE_ERROR;
+}
+
+static BT_ENG_ERROR_E bteng_bt_off(void)
+{
+    int err;
+
+    BTENG_LOGD("bteng_bt_off\n");
+
+    if(bt_enabled == 0)
+    {
+        BTENG_LOGD("%s, bt is already off\n", __FUNCTION__);
+        bteng_adapter_state_changed(BT_STATE_OFF);
+
+        return BT_ENG_NONE_ERROR;
+    }
+
+    err = bteng_bt_disable();
+
+    if(err != BT_ENG_NONE_ERROR)
+    {
+        BTENG_LOGD("%s, bteng_bt_disable, err: %d", __FUNCTION__, err);
+        return err;
+    }
+
+	//result will send in callback bteng_adapter_state_changed
+    return BT_ENG_NONE_ERROR;
+}
+
+#ifdef HAS_BLUETOOTH_SPRD
+static BT_ENG_ERROR_E bteng_set_nonsig_recv_data(uint16_t le)
+{
+    int err = BT_ENG_RX_TEST_RECV_DATA_ERROR;
+
+    if (!bt_enabled || sBtInterface == NULL){
+        BTENG_LOGD("%s, Bluetooth is disabled", __FUNCTION__);
+		err = BT_ENG_STATUS_ERROR;
+		return err;
+	}
+
+    if((sBtInterface->get_nonsig_rx_data(le)) != BT_STATUS_SUCCESS)
+    {
+        BTENG_LOGD("%s, get_nonsig_rx_data, err: %d", __FUNCTION__, err);
+
+		return err;
+    }
+
+    return BT_ENG_NONE_ERROR;
+}
+
+/* paddr: The test bt address is BD_ADDR of Master, In other words, It is the BD_ADDR of sender */
+static BT_ENG_ERROR_E bteng_set_nonsig_rx_testmode(uint32_t *data, char *paddr)
+{
+    int err = BT_ENG_PARA_INVALID;
+    uint32_t *p = data;
+    bt_bdaddr_t addr;
+
+    memset(&addr, 0, sizeof(bt_bdaddr_t));
+    if((NULL == data) ||(NULL == paddr))
+    {
+        BTENG_LOGD("%s, data or paddr(NULL) err: %d", __FUNCTION__, err);
+
+        return err;
+    }
+
+    uint32_t enable     = *p++;
+    uint32_t is_le      = *p++;
+    uint32_t pattern    = *p++;
+    uint32_t channel    = *p++;
+    uint32_t pac_type   = *p++;
+    uint32_t rx_gain    = *p;
+
+    BTENG_LOGD("bteng_set_nonsig_rx_testmode");
+
+    if(enable)
+    {
+        if(is_le)
+        {
+            if(pattern > 7)
+            {
+                BTENG_LOGD("%s, pattern invalid err: %d", __FUNCTION__, err);
+                return err;
+            }
+            if(channel > 39 || channel < 0)
+            {
+                BTENG_LOGD("%s, channel invalid err: %d", __FUNCTION__, err);
+                return err;
+            }
+        }
+        else
+        {
+            if(pattern != 7)
+            {
+                BTENG_LOGD("%s, pattern invalid err: %d", __FUNCTION__, err);
+
+                return err;
+            }
+
+            if(channel > 78)
+            {
+                BTENG_LOGD("%s, channel invalid err: %d", __FUNCTION__, err);
+
+                return err;
+            }
+        }
+
+        if(rx_gain > 32)
+        {
+            BTENG_LOGD("%s, rx_gain invalid err: %d", __FUNCTION__, err);
+            return err;
+        }
+    }
+
+    if (!bt_enabled || sBtInterface == NULL){
+        BTENG_LOGD("Bluetooth is disabled");
+	err = BT_ENG_STATUS_ERROR;
+	return err;
+    }
+
+    sscanf(paddr, "%02x:%02x:%02x:%02x:%02x:%02x", &addr.address[0], &addr.address[1], &addr.address[2], &addr.address[3], &addr.address[4], &addr.address[5]);
+
+    BTENG_LOGD("enable     = %d",enable);
+    BTENG_LOGD("is_le      = %d",is_le);
+    BTENG_LOGD("pattern    = %d",pattern);
+    BTENG_LOGD("channel    = %d",channel);
+    BTENG_LOGD("pac_type   = 0x%x",pac_type);
+    BTENG_LOGD("rx_gain    = %d",rx_gain);
+    BTENG_LOGD("addr : %02x:%02x:%02x:%02x:%02x:%02x", addr.address[0], addr.address[1], addr.address[2], addr.address[3], addr.address[4], addr.address[5]);
+
+    /* enable: 0 NONSIG_RX_DISABLE      1 NONSIG_RX_ENABLE*/
+	err = sBtInterface->set_nonsig_rx_testmode(enable, is_le, pattern, channel, pac_type, rx_gain, addr);
+	if(err != BT_STATUS_SUCCESS)
+	{
+	    BTENG_LOGD("%s, set_nonsig_tx_testmode, err: %d", __FUNCTION__, err);
+		return BT_ENG_RX_TEST_ERROR;
+	}
+	else
+	    bteng_send_back_cmd_result(bteng_client_fd, "set_nosig_rx_testmode_ok\n", 1);
+
+    BTENG_LOGD("bteng_set_nonsig_rx_testmode return SUCCESS");
+
+    return BT_ENG_NONE_ERROR;
+}
+
+static BT_ENG_ERROR_E bteng_set_nonsig_tx_testmode(uint32_t *data)
+{
+    int err = BT_ENG_PARA_INVALID;
+    uint32_t *p = data;
+    int power_gain_base = 0xce00;
+    int power_level_base[2] = {0x1012, 0x0000};
+    if(NULL == data)
+    {
+        BTENG_LOGD("%s, data(NULL) err: %d", __FUNCTION__, err);
+
+        return err;
+    }
+
+    BTENG_LOGD("bteng_set_nonsig_tx_testmode");
+
+    uint32_t enable     = *p++;
+    uint32_t is_le      = *p++;
+    uint32_t pattern    = *p++;
+    uint32_t channel    = *p++;
+    uint32_t pac_type   = *p++;
+    uint32_t pac_len    = *p++;
+    uint32_t power_type = *p++;
+    uint32_t power_value= *p++;
+    uint32_t pac_cnt    = *p;
+
+    if(enable)
+    {
+        if(is_le)
+        {
+            if(pattern > 7|| pattern < 0)
+            {
+                BTENG_LOGD("%s, pattern invalid err: %d", __FUNCTION__, err);
+                return err;
+            }
+            if(channel > 39 || channel < 0)
+            {
+                BTENG_LOGD("%s, pattern invalid err: %d", __FUNCTION__, err);
+                return err;
+            }
+        }
+        else
+        {
+            if((pattern != 1) && (pattern != 2) && (pattern != 3) && (pattern != 4) && (pattern != 9))
+            {
+                BTENG_LOGD("%s, pattern invalid err: %d", __FUNCTION__, err);
+
+                return err;
+            }
+
+            if(!(((channel >= 0) && (channel <= 78)) || (channel == 255)))
+            {
+                BTENG_LOGD("%s, channel invalid err: %d", __FUNCTION__, err);
+
+                return err;
+            }
+        }
+
+	if(!(((pac_type >= 0) && (pac_type <= 16)) || ((pac_type >= 20) && (pac_type <= 31))))
+	{
+	    BTENG_LOGD("%s, pac_type invalid err: %d", __FUNCTION__, err);
+
+            return err;
+	}
+
+        if(!((pac_len >= 0) && (pac_len <= 65535)))
+        {
+            BTENG_LOGD("%s, pac_len invalid err: %d", __FUNCTION__, err);
+
+            return err;
+        }
+
+        if((power_type != 0) && (power_type != 1))
+        {
+            BTENG_LOGD("%s, power_type invalid err: %d", __FUNCTION__, err);
+
+            return err;
+        }
+
+        if(!((power_value >= 0) && (power_value <= 33)))
+        {
+            BTENG_LOGD("%s, power_value invalid err: %d", __FUNCTION__, err);
+
+            return err;
+        }
+
+        if(!((pac_cnt >= 0) && (pac_cnt <= 65535)))
+        {
+            BTENG_LOGD("%s, pac_cnt invalid err: %d", __FUNCTION__, err);
+
+            return err;
+        }
+    }
+
+    if (!bt_enabled || sBtInterface == NULL){
+        BTENG_LOGD("Bluetooth is disabled");
+	err = BT_ENG_STATUS_ERROR;
+	return err;
+    }
+/*
+    if(power_type == 0) // power gain
+    {
+        power_value += power_gain_base;
+    }
+    else                // power level
+    {
+        if(power_value <= 17)
+            power_value = power_level_base[0] - power_value;
+        else
+            power_value =  power_level_base[1] + (power_value - 18);
+    }
+*/
+    BTENG_LOGD("enable     = %d",enable);
+    BTENG_LOGD("is_le      = %d",is_le);
+    BTENG_LOGD("pattern    = %d",pattern);
+    BTENG_LOGD("channel    = %d",channel);
+    BTENG_LOGD("pac_type   = 0x%x",pac_type);
+    BTENG_LOGD("pac_len    = %d",pac_len);
+    BTENG_LOGD("power_type = %d",power_type);
+    BTENG_LOGD("power_value= 0x%x",power_value);
+    BTENG_LOGD("pac_cnt    = %d",pac_cnt);
+
+    /* enable: 0 NONSIG_TX_DISABLE      1 NONSIG_TX_ENABLE*/
+    err = sBtInterface->set_nonsig_tx_testmode(enable, is_le, pattern, channel, pac_type, pac_len, power_type,
+		power_value, pac_cnt);
+    if(err != BT_STATUS_SUCCESS)
+    {
+	    BTENG_LOGD("%s, set_nonsig_tx_testmode, err: %d", __FUNCTION__, err);
+		return BT_ENG_TX_TEST_ERROR;
+    }
+    else
+	bteng_send_back_cmd_result(bteng_client_fd, "set_nosig_tx_testmode_ok\n", 1);
+
+    return BT_ENG_NONE_ERROR;
+}
+#endif
+
 
 /**
 * cmd: bt cmd arg1 arg2 ...
@@ -471,47 +929,156 @@ int bt_runcommand(int client_fd, int argc, char **argv)
     BT_ENG_ERROR_E err = BT_ENG_NONE_ERROR;
     char result_buf[CMD_RESULT_BUFFER_LEN];
     int ret_val = 0;
+    int i = 0;
+    int m = 0;
+    uint32_t data[10] = {0};
 
     memset(result_buf, 0, sizeof(result_buf));
     bteng_client_fd = client_fd;
 
-    if (strncmp(*argv, "dut_mode_configure", 18) == 0 && argc > 1)
+    if (strncmp(*argv, "bt_on", 5) == 0)
+    {
+        BTENG_LOGD("recv bt_on.");
+
+        bt_mode_testing = BT_MODE_BT_ON;
+        err = bteng_bt_on();
+    }
+    else if (strncmp(*argv, "bt_off", 6) == 0)
+    {
+        BTENG_LOGD("recv bt_off.");
+
+        bt_mode_testing = BT_MODE_BT_OFF;
+        err = bteng_bt_off();
+    }
+    else if (strncmp(*argv, "dut_mode_configure", 18) == 0 && argc > 1)
     {
         argv++;
         argc--;
 
-        if(((*argv)[0] == '1') || ((*argv)[0] == '0'))
+        if((*argv)[0] == '1')
         {
-            BTENG_LOGD("rcv dut_mode_configure cmd.");
+            BTENG_LOGD("recv dut_mode_configure cmd.");
+            bt_mode_testing = BT_MODE_DUTMODE_CFGON;
+
+            err = bteng_dut_mode_set(argv);
+        }
+        else if((*argv)[0] == '0')
+        {
+            BTENG_LOGD("recv dut_mode_configure cmd.");
+            bt_mode_testing = BT_MODE_DUTMODE_CFGOFF;
+
             err = bteng_dut_mode_set(argv);
         }
         else
         {
-            BTENG_LOGE("dut_mode_configure parameter invalid.");
+            BTENG_LOGE("%s, dut_mode_configure parameter invalid.", __FUNCTION__);
             fprintf(stderr, "dut_mode_configure parameter invalid\n");
             err = BT_ENG_PARA_INVALID;
         }
     }
     else if(strncmp(*argv, "eut_status", 10) == 0)
     {
-        sprintf(result_buf,"return value: %d",  bt_enabled);
+        BTENG_LOGD("recv eut_status.");
+
+        if((bt_mode_testing == BT_MODE_BT_OFF) || (bt_mode_testing == BT_MODE_DUTMODE_CFGOFF))
+        {
+            BTENG_LOGE("eut_status: just close, we think always close success");
+            sprintf(result_buf,"return value: %d",  0);
+        }
+        else
+        {
+            sprintf(result_buf,"return value: %d",  bt_enabled);
+        }
+
+        bt_mode_testing = BT_MODE_DUTMODE_STATUS;
 
         bteng_send_back_cmd_result(client_fd, result_buf, 1);
 
         err = BT_ENG_NONE_ERROR;
     }
+#ifdef HAS_BLUETOOTH_SPRD
+    else if(strncmp(*argv, BLE_TEST_MODE_FUNCTION, BLE_TEST_MODE_SIZE) == 0)
+    {
+        argv++;
+        argc--;
+        BTENG_LOGD("rcv bteng_dut_le_test_mode cmd.");
+        err = bteng_dut_le_test_mode(argv, argc);
+    }
+    else if(strncmp(*argv, BLE_TEST_MODE_STATUS, strlen(BLE_TEST_MODE_STATUS)) == 0) {
+        BTENG_LOGD("rcv le_test_status cmd.");
+        sprintf(result_buf,"return value: 0x%04x\n",  bt_le_test_status);
+        bteng_send_back_cmd_result(client_fd, result_buf, 1);
+        err = BT_ENG_NONE_ERROR;
+    }
+    else if(strncmp(*argv, "set_nosig_tx_testmode", 21) == 0)
+    {
+        BTENG_LOGD("recv set_nosig_tx_testmode.");
+		BTENG_LOGE("set_nosig_tx_testmode argc = %d",argc);
+        bt_mode_testing = BT_MODE_SET_NOSIG_TX;
+
+        for(m = 0; m < argc; m++)
+            BTENG_LOGE("%s, set_nosig_tx_testmode argv[%d]: %s.", __FUNCTION__, m, argv[m]);
+
+		if(argc != 10){
+            BTENG_LOGE("%s, set_nosig_tx_testmode parameter invalid.", __FUNCTION__);
+			err = BT_ENG_PARA_INVALID;
+		}else{
+			for(i=0; i < argc-1; i++)
+				data[i] = atoi(argv[i+1]);
+
+			err = bteng_set_nonsig_tx_testmode(data);
+		}
+	}
+    else if(strncmp(*argv, "set_nosig_rx_testmode", 21) == 0)
+    {
+        BTENG_LOGD("recv set_nosig_rx_testmode.");
+		BTENG_LOGE("set_nosig_rx_testmode argc = %d",argc);
+        bt_mode_testing = BT_MODE_SET_NOSIG_RX;
+
+        for(m = 0; m < argc; m++)
+            BTENG_LOGE("%s, set_nosig_tx_testmode argv[%d]: %s.", __FUNCTION__, m, argv[m]);
+
+        if(argc != 8)
+        {
+            BTENG_LOGE("%s, set_nosig_rx_testmode parameter invalid.", __FUNCTION__);
+            err = BT_ENG_PARA_INVALID;
+        }
+        else
+        {
+            for(i=0; i < argc - 2; i++)
+				data[i] = atoi(argv[i+1]);
+
+			err = bteng_set_nonsig_rx_testmode(data, argv[argc - 1]);
+        }
+	}
+    else if(strncmp(*argv, "set_nosig_rx_recv_data_le", 25) == 0)
+    {
+        BTENG_LOGD("recv set_nosig_rx_recv_data_le.");
+        bt_mode_testing = BT_MODE_SET_NOSIG_RECV_DATA;
+
+        err = bteng_set_nonsig_recv_data(1);
+    }
+    else if(strncmp(*argv, "set_nosig_rx_recv_data", 22) == 0)
+    {
+        BTENG_LOGD("recv set_nosig_rx_recv_data_classic.");
+        bt_mode_testing = BT_MODE_SET_NOSIG_RECV_DATA;
+
+        err = bteng_set_nonsig_recv_data(0);
+    }
+#endif
     else
     {
+        bt_mode_testing = BT_MODE_INVALID;
         BTENG_LOGE("rcv cmd is invalid.");
         fprintf(stderr, "rcv cmd is invalid.\n");
         err = BT_ENG_CMD_INVALID;
     }
 
-    if (err == BT_ENG_NONE_ERROR) 
+    if (err == BT_ENG_NONE_ERROR)
     {
         ret_val = 0;
-        //cmd result will send after bluetooth on or off
-    } 
+        //cmd result will be sent by every cmd
+    }
     else
     {
         ret_val = 1;
@@ -519,33 +1086,48 @@ int bt_runcommand(int client_fd, int argc, char **argv)
         switch(err)
             {
                 case BT_ENG_CMD_INVALID:
-                    sprintf(result_buf, "invalid cmd");                
-                    break;                        
+                    sprintf(result_buf, "invalid cmd");
+                    break;
                 case BT_ENG_PARA_INVALID:
                     sprintf(result_buf, "invalid parameter");
-                    break; 
+                    break;
                 case BT_ENG_HAL_LOAD_ERROR:
                     sprintf(result_buf, "hal load error");
-                    break; 
+                    break;
                 case BT_ENG_INIT_ERROR:
                     sprintf(result_buf, "bt init error");
-                    break; 
+                    break;
                 case BT_ENG_ENABLE_ERROR:
                     sprintf(result_buf, "bt enable error");
-                    break; 
+                    break;
                 case BT_ENG_DISABLE_ERROR:
                     sprintf(result_buf, "bt disable error");
-                    break; 
+                    break;
                 case BT_ENG_SET_DUT_MODE_ERROR:
                     sprintf(result_buf, "set dut mode error");
-                    break; 
+                    break;
+                case BT_ENG_LE_TEST_MODE_ERROR:
+                    sprintf(result_buf, "bt le test mode error");
+                    break;
                 case BT_ENG_CLEANUP_ERROR:
                     sprintf(result_buf, "bt clean up error");
+                    break;
+                case BT_ENG_STATUS_ERROR:
+                    sprintf(result_buf, "bt status error");
+                    break;
+                case BT_ENG_TX_TEST_ERROR:
+                    sprintf(result_buf, "bt tx test error");
+                    break;
+                case BT_ENG_RX_TEST_ERROR:
+                    sprintf(result_buf, "bt rx test error");
+                    break;
+                case BT_ENG_RX_TEST_RECV_DATA_ERROR:
+                    sprintf(result_buf, "bt rx test recv data error");
                     break;
                 default:
                     break;
             }
-        
+
         bteng_send_back_cmd_result(client_fd, result_buf, 0);
     }
 

@@ -179,7 +179,9 @@ int rild_connect_if_required(int sim_id)
 {
 	int result = 0;
 	if (!isConnected_RILD(ril_client[sim_id])) {
-		int (*connect_rild)(HRilClient client) = Connect_RILD;
+		int (*connect_rild)(HRilClient client) = sim_id == 0
+				? Connect_RILD
+				: Connect_RILD_Second;
 		result = connect_rild(ril_client[sim_id]);
 		ALOGD("Connect_RILD: [sim_id=%d] [ret=%d]", sim_id, result);
 		if (result == 0) {

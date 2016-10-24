@@ -114,7 +114,9 @@ int start_gpseut(char *result)
 {
     ALOGI("start_gpseut");
     eng_thread_t t1;
-    eng_thread_create(&t1,gpsprn_thread,NULL);
+    if (0 != eng_thread_create(&t1,gpsprn_thread,NULL)){
+        ALOGI("gpsprn_thread start error");
+    }
     strcpy(result,EUT_GPS_OK);
     return 0;
 }
@@ -132,7 +134,9 @@ int start_gpssearch(char * result)
     int pid = 0;
     eng_thread_t t1;
     ALOGI("start_gpssearch");
-    eng_thread_create( &t1, gpssearch_thread, NULL);
+    if (0 != eng_thread_create(&t1,gpssearch_thread,NULL)){
+        ALOGI("gpssearch_thread start error");
+    }
     gps_search_state=1;
     strcpy(result,EUT_GPS_OK);
     return 0;
@@ -170,7 +174,10 @@ int gpssearch_result(char *result)
     char buf[100];
     int pid =0;
     eng_thread_t t1;
-    eng_thread_create(&t1,prnstate_thread,NULL);
+
+    if (0 != eng_thread_create(&t1,prnstate_thread,NULL)){
+        ALOGI("prnstate_thread start error");
+    }
 
     sleep(1);
     file = fopen("/data/gpsresult.txt","r");
@@ -313,7 +320,9 @@ int set_gps_prn(int prn, char * result)
 
     int pid = 0;
     eng_thread_t t1;
-    eng_thread_create(&t1,gpsprn_thread,NULL);
+    if (0 != eng_thread_create(&t1,gpsprn_thread,NULL)){
+        ALOGI("gpsprn_thread start error");
+    }
     sprintf(result,"%s%d",EUT_GPS_PRN_REQ,prn);
     return 0;
 }

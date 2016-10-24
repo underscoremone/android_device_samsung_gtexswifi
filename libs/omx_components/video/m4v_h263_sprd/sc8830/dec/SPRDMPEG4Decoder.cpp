@@ -298,7 +298,7 @@ void SPRDMPEG4Decoder::change_ddr_freq()
         }
         else if(frame_size > 320*240)
         {
-            ddr_freq = "300000";
+            ddr_freq = "200000";
         }
 #endif
         else
@@ -351,6 +351,7 @@ status_t SPRDMPEG4Decoder::initDecoder() {
 
     int32 size_inter = MP4DEC_INTERNAL_BUFFER_SIZE;
     mCodecInterBuffer = (uint8 *)malloc(size_inter);
+    CHECK(mCodecInterBuffer != NULL);
 
     MMCodecBuffer codec_buf;
 

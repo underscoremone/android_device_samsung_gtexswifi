@@ -218,7 +218,7 @@ bool SprdUtil::transformLayer(SprdHWLayer *l1, SprdHWLayer *l2,
 
 #ifdef SCAL_ROT_TMP_BUF
         if (tmpDCAMBuffer == NULL) {
-            int32_t stride;
+            uint32_t stride;
             size_t size;
 
             GraphicBufferAllocator::get().alloc(mFBInfo->fb_width, mFBInfo->fb_height, format, GRALLOC_USAGE_OVERLAY_BUFFER, (buffer_handle_t*)&tmpDCAMBuffer, &stride);
@@ -1083,7 +1083,7 @@ int SprdUtil:: acquireTmpBuffer(int width, int height, int format, private_handl
     GSPOutputFormat = HAL_PIXEL_FORMAT_YCbCr_422_SP;
 #endif
 #endif
-    int32_t stride;
+    uint32_t stride;
 
     if (friendBuffer == NULL) {
         ALOGE("util[%04d] err:acquireTmpBuffer: Input parameter is NULL!",__LINE__);
@@ -1229,7 +1229,7 @@ int SprdUtil::gsp_process_va_copy2_pa(GSP_CONFIG_INFO_T *pgsp_cfg_info)
     int OSD_MAX_WIDTH = 0;
     int OSD_MAX_HEIGHT = 0;
 
-    int32_t stride = 0;
+    uint32_t stride = 0;
     int ret = 0;
     int size = 0;
     //int format = HAL_PIXEL_FORMAT_RGBA_8888;

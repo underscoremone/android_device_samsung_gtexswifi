@@ -1,6 +1,6 @@
-#
+# 
 # Copyright (C) 2010 ARM Limited. All rights reserved.
-#
+# 
 # Copyright (C) 2008 The Android Open Source Project
 #
 # Copyright (C) 2016 The CyanogenMod Project
@@ -33,7 +33,7 @@ LOCAL_MODULE := gralloc.$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_TAGS := optional
 
 SHARED_MEM_LIBS := \
-	libion \
+	libion_sprd \
 	libhardware
 
 LOCAL_SHARED_LIBRARIES := \

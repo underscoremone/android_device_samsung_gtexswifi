@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <ctime>
 
 #if 1
 #define ALOGI(x...)  fprintf(stderr, "AtChannelTest: " x)

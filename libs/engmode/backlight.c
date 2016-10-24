@@ -107,6 +107,11 @@ int turnoff_lcd_backlight(void)
     return 0;
 }
 
+int turnoff_calibration_backlight(void)
+{
+    system("echo 0 >/sys/class/backlight/sprd_backlight/brightness");
+    return 0;
+}
 
 void backlight_init(void)
 {

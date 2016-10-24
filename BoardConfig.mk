@@ -25,6 +25,7 @@ BOARD_KERNEL_PAGESIZE := 2048
 BOARD_USES_TINYALSA_AUDIO := true
 BOARD_USES_SS_VOIP := true
 BOARD_USE_LIBATCHANNEL_WRAPPER := true
+SOC_SCX30G_V2 := true
 
 # something
 BOARD_USE_SAMSUNG_COLORFORMAT := true
@@ -86,16 +87,16 @@ WIFI_BAND := 802_11_ABG
 
 # BOARD_HAVE_SAMSUNG_WIFI := true
 
-
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 
-# Integrated kernel building configs
 
+# Integrated kernel building configs
+#
 # TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
 # TARGET_KERNEL_CONFIG := gtexslte_defconfig
 # TARGET_VARIANT_CONFIG := gtexslte_defconfig
 # TARGET_SELINUX_CONFIG := gtexslte_defconfig
-
+#
 # SC9830_MODULES:
 # 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
 # 	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
@@ -111,46 +112,46 @@ TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 # TARGET_KERNEL_MODULES := SC9830_MODULES
 
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
-
-BOARD_SEPOLICY_UNION += \
-			 file.te \
-			 bluetooth.te \
-			 device.te \
-			 batterysrv.te \
-       debuggerd.te \
-       init.te \
-			 surfaceflinger.te \
-			 rild.te \
-			 systemserver.te \
-			 netd.te \
-			 mfgloader.te \
-			 mediaserver.te \
-			 system_app.te \
-			 at_distributor.te \
-			 download.te \
-			 engpc.te \
-			 cp_diskserver.te \
-			 refnotify.te \
-			 wlandutservice.te \
-			 data_on_off.te \
-			 macloader.te \
-			 slogmodem.te \
-			 smd_symlink.te \
-			 ddexe.te \
-			 connfwexe.te \
-			 untrusted_app.te \
-			 genfs_contexts \
-			 vold.te \
-			 wcnd.te \
-			 prepare_param.te \
-			 wpa.te \
-			 drsd.te \
-			 bootchecker.te \
-			 smdexe.te \
-			 radio.te \
-			 charon.te \
-			 scs.te \
-       file_contexts
+#
+# BOARD_SEPOLICY_UNION += \
+# 			 file.te \
+# 			 bluetooth.te \
+# 			 device.te \
+# 			 batterysrv.te \
+#        debuggerd.te \
+#        init.te \
+# 			 surfaceflinger.te \
+# 			 rild.te \
+# 			 systemserver.te \
+# 			 netd.te \
+# 			 mfgloader.te \
+# 			 mediaserver.te \
+# 			 system_app.te \
+# 			 at_distributor.te \
+# 			 download.te \
+# 			 engpc.te \
+# 			 cp_diskserver.te \
+# 			 refnotify.te \
+# 			 wlandutservice.te \
+# 			 data_on_off.te \
+# 			 macloader.te \
+# 			 slogmodem.te \
+# 			 smd_symlink.te \
+# 			 ddexe.te \
+# 			 connfwexe.te \
+# 			 untrusted_app.te \
+# 			 genfs_contexts \
+# 			 vold.te \
+# 			 wcnd.te \
+# 			 prepare_param.te \
+# 			 wpa.te \
+# 			 drsd.te \
+# 			 bootchecker.te \
+# 			 smdexe.te \
+# 			 radio.te \
+# 			 charon.te \
+# 			 scs.te \
+#        file_contexts
 
 
 TARGET_RECOVERY_FSTAB = device/samsung/gtexslte/recovery.fstab

@@ -93,7 +93,7 @@ void SprdDisplayPlane::setGeometry(unsigned int width, unsigned int height, int 
 private_handle_t* SprdDisplayPlane:: createPlaneBuffer(int index)
 {
     private_handle_t* BufHandle = NULL;
-    int32_t stride;
+    uint32_t stride;
     int size;
 
     if (index < 0)

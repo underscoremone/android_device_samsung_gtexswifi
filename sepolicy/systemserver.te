@@ -1,5 +1,4 @@
 allow system_server efs_file:dir search;
-allow system_server emmcblk_device:blk_file { open read write getattr ioctl };
 allow system_server serial_device:chr_file { read write };
 allow system_server app_efs_file:dir search;
 allow system_server wifi_efs_file:dir search;

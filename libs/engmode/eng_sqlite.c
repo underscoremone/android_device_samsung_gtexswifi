@@ -126,7 +126,7 @@ int eng_sqlite_create(void)
     memset(sql_createtable, 0, sizeof(sql_createtable));
     sprintf(sql_createtable, "chmod 777 %s",ENG_ENGTEST_DB);
     system(sql_createtable);
-
+    sync();
 
 out:
     sqlite3_close(db);

@@ -12,7 +12,7 @@ allow wcnd prod_file:dir search;
 allow wcnd shell_exec:file { read open execute execute_no_trans };
 allow wcnd wifi_data_file:dir { add_name read write search };
 allow wcnd wifi_data_file:file { create open read write getattr setattr };
-allow wcnd system_data_file:file { open write };
+allow wcnd system_data_file:file { open };
 allow wcnd wifi_efs_file:dir search;
 allow wcnd wifi_efs_file:file { open read getattr };
 allow wcnd system_file:file execute_no_trans;

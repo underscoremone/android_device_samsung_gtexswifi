@@ -19,5 +19,6 @@ struct PortInfo{
 
 int eng_controller_bqb_start(void);
 void eng_send_data(char * data, int data_len);
+int eng_controller_bqb_stop(void);
 
 #endif

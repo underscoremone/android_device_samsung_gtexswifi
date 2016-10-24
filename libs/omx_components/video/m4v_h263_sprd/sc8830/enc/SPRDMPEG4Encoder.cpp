@@ -34,7 +34,7 @@
 //#include <gui/ISurfaceTexture.h>
 
 #include <linux/ion.h>
-#include <binder/MemoryHeapIon.SPRD.h>
+#include <MemoryHeapIon_SPRD.h>
 
 #include <dlfcn.h>
 
@@ -185,6 +185,7 @@ SPRDMPEG4Encoder::SPRDMPEG4Encoder(
     int32 size_inter = MP4ENC_INTERNAL_BUFFER_SIZE;
 
     mPbuf_inter = (uint8 *)malloc(size_inter);
+    CHECK(mPbuf_inter != NULL);
     InterMemBfr.common_buffer_ptr = (uint8 *)mPbuf_inter;
     InterMemBfr.common_buffer_ptr_phy = 0;
     InterMemBfr.size = size_inter;
@@ -321,7 +322,7 @@ OMX_ERRORTYPE SPRDMPEG4Encoder::initEncParams() {
     mEncInfo.is_h263 = mIsH263;
     mEncInfo.frame_width = mVideoWidth;
     mEncInfo.frame_height = mVideoHeight;
-    mEncInfo.uv_interleaved = 1;
+    mEncInfo.yuv_format = MMENC_YUV420SP_NV21;
     mEncInfo.time_scale = 1000;
 #ifdef ANTI_SHAKE
     mEncInfo.b_anti_shake = 1;
@@ -806,6 +807,11 @@ OMX_ERRORTYPE SPRDMPEG4Encoder::internalSetParameter(
     case OMX_IndexParamStoreMetaDataBuffer:
     {
         StoreMetaDataInBuffersParams *pStoreMetaData = (StoreMetaDataInBuffersParams *)params;
+
+        // Ignore this setting on output port
+        if (pStoreMetaData->nPortIndex == 1 /* kOutputPortIndex */)
+            return OMX_ErrorNone;
+
         mStoreMetaData = pStoreMetaData->bStoreMetaData;
         return OMX_ErrorNone;
     }

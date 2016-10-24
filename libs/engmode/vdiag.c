@@ -19,14 +19,17 @@
 
 int g_ass_start = 0;
 extern int g_assert_cmd;
+extern int g_ap_cali_flag;
 
 #define DATA_BUF_SIZE (4096*4)
 #define MAX_OPEN_TIMES  10
 #define DATA_EXT_DIAG_SIZE (4096*4)
+#define DIAG_BUF_SIZE 20
 
 static char log_data[DATA_BUF_SIZE];
 static char ext_data_buf[DATA_EXT_DIAG_SIZE];
 static char backup_data_buf[DATA_EXT_DIAG_SIZE];
+static char diag_header[DIAG_BUF_SIZE];
 static int ext_buf_len,backup_data_len;
 static int g_diag_status = ENG_DIAG_RECV_TO_AP;
 //AUDIO_TOTAL_T audio_total[4];
@@ -185,7 +188,7 @@ int ensure_audio_para_file_exists(char *config_file)
     return 0;
 }
 
-static void set_raw_data_speed(int fd, int speed)
+void set_raw_data_speed(int fd, int speed)
 {
     unsigned long i = 0;
     int   status = 0;
@@ -218,13 +221,13 @@ static void set_raw_data_speed(int fd, int speed)
 
 void *eng_vdiag_wthread(void *x)
 {
-    int modem_fd;
-    int ser_fd;
+    int modem_fd = -1;
+    int ser_fd = -1;
     int r_cnt, w_cnt, offset;
     int has_processed = 0;
     int audio_fd;
     int wait_cnt = 0;
-    int type;
+    int type,num;
     int ret=0;
     eng_dev_info_t* dev_info = (eng_dev_info_t*)x;
 
@@ -241,19 +244,20 @@ void *eng_vdiag_wthread(void *x)
     }
 
     /*open modem int*/
-    do{
-        modem_fd = open(dev_info->modem_int.diag_chan, O_WRONLY);
-        if(modem_fd < 0) {
-            ENG_LOG("eng_vdiag cannot open %s, times:%d\n", dev_info->modem_int.diag_chan, wait_cnt);
-            if(wait_cnt++ >= MAX_OPEN_TIMES){
-                ENG_LOG("eng_vdiag cannot open SIPC, try times exceed the max open times\n");
-                close(ser_fd);
-                return NULL;
+    if(!g_ap_cali_flag){
+        do{
+            modem_fd = open(dev_info->modem_int.diag_chan, O_WRONLY);
+            if(modem_fd < 0) {
+                ENG_LOG("eng_vdiag cannot open %s, times:%d\n", dev_info->modem_int.diag_chan, wait_cnt);
+                if(wait_cnt++ >= MAX_OPEN_TIMES){
+                    ENG_LOG("eng_vdiag cannot open SIPC, try times exceed the max open times\n");
+                    close(ser_fd);
+                    return NULL;
+                }
+                sleep(5);
             }
-            sleep(5);
-        }
-    }while(modem_fd < 0);
-
+        }while(modem_fd < 0);
+    }
  
     audio_total = calloc(1,sizeof(AUDIO_TOTAL_T)*adev_get_audiomodenum4eng());
     if(!audio_total)
@@ -273,10 +277,7 @@ void *eng_vdiag_wthread(void *x)
 
     while(1) {
         memset(log_data, 0, sizeof(log_data));
-        r_cnt = read(ser_fd, log_data, DATA_BUF_SIZE/2);
-        if (r_cnt == DATA_BUF_SIZE/2) {
-            r_cnt += read(ser_fd, log_data+r_cnt, DATA_BUF_SIZE/2);
-        }
+        r_cnt = read(ser_fd, log_data, DATA_BUF_SIZE);
 
         if (r_cnt <= 0) {
             ENG_LOG("eng_vdiag read log data error  from serial: %s\n", strerror(errno));
@@ -305,8 +306,7 @@ void *eng_vdiag_wthread(void *x)
         }
 
         has_processed = 0; // reset the process flag
-
-		ENG_LOG("%s: g_diag_status=%d\n", __FUNCTION__,g_diag_status);
+	ENG_LOG("%s: g_diag_status=%d\n", __FUNCTION__,g_diag_status);
         switch(g_diag_status) {
             case ENG_DIAG_RECV_TO_CP:
                 memcpy(backup_data_buf,log_data,r_cnt);
@@ -330,7 +330,8 @@ void *eng_vdiag_wthread(void *x)
                     backup_data_len = r_cnt; // not a diag framer, so send data to CP
                 }else if(DATA_EXT_DIAG_SIZE/2 <= ext_buf_len){
                         ENG_LOG("%s: Current data is not a complete diag framer,but buffer is full\n", __FUNCTION__);
-                        type = eng_diag_parse(ext_data_buf, ext_buf_len);
+                        memcpy(diag_header, ext_data_buf, DIAG_BUF_SIZE);
+                        type = eng_diag_parse(diag_header, DIAG_BUF_SIZE, &num);
                         if(type != CMD_COMMON){
                             g_diag_status = ENG_DIAG_RECV_TO_AP;
                             ENG_LOG("%s: Buffer is full, so AP will not process the next package\n", __FUNCTION__);
@@ -351,7 +352,7 @@ void *eng_vdiag_wthread(void *x)
                 break;
         }
 
-        if(1 == has_processed){// Data has been processed & should not send to modem
+        if(1 == has_processed || 1 == g_ap_cali_flag){// Data has been processed & should not send to modem
             backup_data_len = 0;
             continue;
         }
@@ -368,19 +369,23 @@ void *eng_vdiag_wthread(void *x)
         }
 
         offset = 0; // reset offset value
-        do {
-            w_cnt = write(modem_fd, backup_data_buf + offset, backup_data_len);
-            if (w_cnt < 0) {
-                ENG_LOG("eng_vdiag no log data write:%d ,%s\n", w_cnt, strerror(errno));
-                continue;
-            }else{
-                backup_data_len -= w_cnt;
-                offset += w_cnt;
-            }
-            ENG_LOG("eng_vdiag: rcnt:%d, w_cnt:%d, offset:%d\n", r_cnt, w_cnt, offset);
-        }while(backup_data_len >0);
+        if(modem_fd > 0){
+            do {
+                w_cnt = write(modem_fd, backup_data_buf + offset, backup_data_len);
+                if (w_cnt < 0) {
+                    ENG_LOG("eng_vdiag no log data write:%d ,%s\n", w_cnt, strerror(errno));
+                    continue;
+                }else{
+                    backup_data_len -= w_cnt;
+                    offset += w_cnt;
+                }
+                ENG_LOG("eng_vdiag: rcnt:%d, w_cnt:%d, offset:%d\n", r_cnt, w_cnt, offset);
+            }while(backup_data_len >0);
+        }
     }
-    close(modem_fd);
+
+    if(modem_fd > 0)
+        close(modem_fd);
     close(ser_fd);
     return 0;
 }

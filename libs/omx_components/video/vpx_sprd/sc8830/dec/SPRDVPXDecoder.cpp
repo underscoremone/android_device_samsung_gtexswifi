@@ -286,6 +286,7 @@ status_t SPRDVPXDecoder::initDecoder() {
 
     int32 size_inter = VP8_DECODER_INTERNAL_BUFFER_SIZE;
     mPbuf_inter = (uint8 *)malloc(size_inter);
+    CHECK(mPbuf_inter != NULL);
 
     unsigned int size_extra = 8160*9*8+64;
     size_extra += 10*1024;

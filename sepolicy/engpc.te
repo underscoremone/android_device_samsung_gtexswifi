@@ -9,7 +9,7 @@ allow engpc devpts:chr_file setattr;
 allow engpc property_socket:sock_file write;
 allow engpc self:netlink_kobject_uevent_socket { create bind setopt read };
 allow engpc serial_device:chr_file { open read write };
-allow engpc system_data_file:file { open write lock create setattr };
+allow engpc system_data_file:file { open lock };
 allow engpc system_data_file:dir { add_name write setattr remove_name };
 allow engpc app_efs_file:dir search;
 allow engpc app_efs_file:file {open read };

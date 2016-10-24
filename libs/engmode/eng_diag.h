@@ -31,8 +31,17 @@ typedef enum
     MODE_MAX_MASK                       = 0x7F
 
 }MCU_MODE_E;
+typedef enum
+{
+    ENG_WARM_START = 0x1,
+    ENG_COLD_START = 0x7D,
+    ENG_HOT_START = 0x400,
+    ENG_FAC_START = 0xFFFF,
+    ENG_GPS_START_MAX
+}ENG_GPS_START_TYPE_E;
 
 #define MAX_IMEI_LENGTH		8
+#define MAX_IMEI_STR_LENGTH 15
 #define MAX_BTADDR_LENGTH	6
 #define MAX_WIFIADDR_LENGTH	6
 #define GPS_NVINFO_LENGTH	44
@@ -45,19 +54,23 @@ typedef enum
 #define DIAG_CMD_APCALI		0x62
 #define DIAG_CMD_FACTORYMODE	0x0D
 #define DIAG_CMD_ADC_F		0x0F  //add by kenyliu on 2013 07 12 for get ADCV  bug 188809
+#define DIAG_FM_TEST_F          0x41  //FM pandora
 #define DIAG_CMD_AT 		0x68
 #define DIAG_CMD_CHANGEMODE     DIAG_CHANGE_MODE_F
 
 #define DIAG_CMD_DIRECT_PHSCHK  0x5F
 
-#define DIAG_CMD_IMEIBIT		0x01
+#define DIAG_CMD_IMEI1BIT       0x01
+#define DIAG_CMD_IMEI2BIT       0x02
+#define DIAG_CMD_IMEI3BIT       0x10
+#define DIAG_CMD_IMEI4BIT       0x20
 #define DIAG_CMD_BTBIT			0x04
 #define DIAG_CMD_WIFIBIT		0x40
 #define DIAG_CMD_AUTOTEST       0x38
 
 #define DIAG_CMD_CURRENT_TEST       0x11
-
-#define DIAG_CMD_ASSERT         0x5
+#define DIAG_CMD_WIFI_TEST_F	    0x36
+#define DIAG_SYSTEM_F         0x5
 
 #define AUDIO_NV_ARM_INDI_FLAG          0x02
 #define AUDIO_ENHA_EQ_INDI_FLAG         0x04
@@ -67,12 +80,12 @@ typedef enum
 
 #define ENG_TESTMODE			"engtestmode"
 #define ENG_SPRD_VERS			"ro.build.description"
-
+#define ENG_SET_BACKLIGHT	        "/sys/class/backlight/sprd_backlight/brightness"
 typedef enum
 {
     CMD_COMMON=-1,
     CMD_USER_VER,
-    CMD_USER_BTWIFI,
+    CMD_USER_BTWIFIIMEI,
     CMD_USER_FACTORYMODE,
     CMD_USER_AUDIO,
     CMD_USER_RESET,
@@ -80,16 +93,33 @@ typedef enum
     CMD_USER_APCALI,
     CMD_USER_APCMD,
     CMD_USER_ADC,
+    CMD_USER_FM,
     CMD_USER_PRODUCT_CTRL,
     CMD_USER_DIRECT_PHSCHK,
     CMD_USER_MMICIT_READ,
     CMD_USER_DEEP_SLEEP,
     CMD_USER_FILE_OPER,
+    CMD_USER_CFT_SWITCH,
+    CMD_USER_BKLIGHT,
+    CMD_USER_PWMODE,
+    CMD_USER_SET_CONFIGURE_IP,
+    CMD_USER_READ_REGISTER,
+    CMD_USER_WRITE_REGISTER,
     CMD_USER_SHUT_DOWN,
+    CMD_USER_GPS_AUTO_TEST,
     CMD_USER_AUTOTEST,
     CMD_USER_AUTOTEST_PATH_CONFIRM = 0x1c,
+    CMD_USER_ENABLE_CHARGE_ONOFF,
+    CMD_USER_GET_CHARGE_CURRENT,
+    CMD_USER_GET_MODEM_MODE,
+    CMD_USER_READ_EFUSE,
+    CMD_USER_WRITE_EFUSE,
+    CMD_USER_READ_PUBLICKEY,
+    CMD_USER_ENABLE_SECURE,
+    CMD_USER_READ_ENABLE_SECURE_BIT,
     CMD_INVALID
 }DIAG_CMD_TYPE;
+
 typedef enum
 {
     CMD_AUTOTEST_DUMMY,
@@ -130,6 +160,8 @@ struct eng_autotestcmd_str{
 #define ENG_AUDIO       "/sys/class/vbc_param_config/vbc_param_store"
 #define ENG_FM_DEVSTAT	"/sys/class/fm_devstat_config/fm_devstat_store"
 
+#define HASH_LEN                    40
+
 #define MAX_SN_LEN                  24
 #define MAX_STATION_NUM             15
 #define MAX_STATION_NAME_LEN        10
@@ -138,13 +170,12 @@ struct eng_autotestcmd_str{
 #define RW_MASK                     0x80 //(BIT_7)
 #define WRITE_MODE                  0
 #define RM_VALID_CMD_MASK           0x7f
-
+#define DIAG_CMD_GPS_AUTO_TEST      0x3A
 #define MSG_NACK                    0
 #define MSG_ACK                     1
 
 #define ENG_MAX_NAME_LEN            260
 #define MAX_DIAG_TRANSMIT_FILE_LEN  8192
-
 typedef enum{
     IMEI_ERR_NONE = 0,
     IMEI_CRC_ERR,
@@ -220,11 +251,44 @@ typedef struct
     unsigned char data[MAX_DIAG_TRANSMIT_FILE_LEN];
 }__attribute__((packed))TOOLS_DIAG_AP_FILE_DATA_T;
 
+typedef struct
+{
+    unsigned short cp_no;
+}TOOLS_DIAG_AP_SWITCH_CP_T;
+typedef struct wifi_configure_ip_t
+{
+    char szSSID[16];
+    char szIPSetting[32];
+    char szIPAddress[16];
+    char szGateway[16];
+    char szDNS[16];
+    char szSubnet[16];
+}__attribute__((packed))WIFI_CONFIGURE_IP_T;
+
+typedef struct wifi_register_req_t
+{
+    char            szType[8]; //MAC, PHY , RF
+    unsigned int    nRegAddr;
+    unsigned int    nCount;
+    unsigned int nUit; //BYTE:1, WORD:2, DWORD:4
+}__attribute__((packed))WIFI_REGISTER_REQ_T;
+#pragma pack(1)
+typedef struct {
+   unsigned short blockid;
+   unsigned long data;
+}EFUSE_READ_INFO_T_RES;
+typedef struct{
+   unsigned short blockid;
+   unsigned char flag;
+}EFUSE_INFO_T_RES;
+#pragma pack()
+
 int eng_diag(char *buf,int len);
 int eng_diag_writeimei(char *req, char *rsp);
+int eng_diag_decode7d7e(char *buf,int len);
 void *eng_vlog_thread(void *x);
 void *eng_vdiag_wthread(void *x);
 void *eng_vdiag_rthread(void *x);
 void * eng_sd_log(void * args);
-
+void *eng_gps_log_thread(void *x);
 #endif

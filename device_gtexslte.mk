@@ -23,7 +23,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
 PRODUCT_COPY_FILES += \
-		device/samsung/gtexslte/init.rc:root/init.rc \
 		device/samsung/gtexslte/init.board.rc:root/init.board.rc \
 		device/samsung/gtexslte/init.sc8830.rc:root/init.sc8830.rc \
 		device/samsung/gtexslte/init.sc8830.usb.rc:root/init.sc8830.usb.rc \
@@ -43,6 +42,33 @@ PRODUCT_COPY_FILES += \
 $(call inherit-product, build/target/product/full.mk)
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
+
+# Prebuilt kl keymaps
+PRODUCT_COPY_FILES += \
+	$(LOCAL_PATH)/keylayout/ist30xx_ts_input.kl:system/usr/keylayout/ist30xx_ts_input.kl \
+	$(LOCAL_PATH)/keylayout/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl
+
+# Codecs
+PRODUCT_PACKAGES += \
+	libstagefrighthw \
+	libstagefright_sprd_soft_mpeg4dec \
+	libstagefright_sprd_soft_h264dec \
+	libstagefright_sprd_mpeg4dec \
+	libstagefright_sprd_mpeg4enc \
+	libstagefright_sprd_h264dec \
+	libstagefright_sprd_h264enc \
+	libstagefright_sprd_vpxdec \
+	libstagefright_sprd_aacdec \
+	libstagefright_sprd_mp3dec \
+	libomx_aacdec_sprd.so \
+	libomx_avcdec_hw_sprd.so \
+	libomx_avcdec_sw_sprd.so \
+	libomx_avcenc_hw_sprd.so \
+	libomx_m4vh263dec_hw_sprd.so \
+	libomx_m4vh263dec_sw_sprd.so \
+	libomx_m4vh263enc_hw_sprd.so \
+	libomx_mp3dec_sprd.so \
+	libomx_vpxdec_hw_sprd.so
 
 PRODUCT_PROPERTY_OVERRIDES += \
 		persist.ttydev=ttyVUART0 \
@@ -69,10 +95,46 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
-		audio.primary.sc8830 \
-		audio_policy.sc8830 \
-		lights.sc8830 \
-		libion
+		libion \
+		libion_sprd
+
+# Usb accessory
+PRODUCT_PACKAGES += \
+	com.android.future.usb.accessory
+
+# Bluetooth
+PRODUCT_PACKAGES += \
+	bluetooth.default \
+	audio.a2dp.default
+
+# Bluetooth
+PRODUCT_PACKAGES += \
+	libbluetooth_jni
+
+# Lights
+PRODUCT_PACKAGES += \
+	lights.sc8830
+
+# Media config
+MEDIA_CONFIGS := \
+	$(LOCAL_PATH)/media/media_codecs.xml \
+	$(LOCAL_PATH)/media/media_profiles.xml
+
+PRODUCT_COPY_FILES += \
+	$(foreach f,$(MEDIA_CONFIGS),$(f):system/etc/$(notdir $(f)))
+
+
+# Audio
+PRODUCT_PACKAGES += \
+	audio.primary.sc8830 \
+	audio_policy.sc8830 \
+	audio.r_submix.default \
+	audio.usb.default \
+	audio_vbc_eq \
+	libaudio-resampler \
+	libatchannel \
+	libatchannel_wrapper \
+	libtinyalsa
 
 # Permissions
 PERMISSION_XML_FILES := \
