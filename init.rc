@@ -33,6 +33,7 @@ on early-init
 on init
     sysclktz 0
 
+    export LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
     # Backward compatibility.
     symlink /system/etc /etc
     symlink /sys/kernel/debug /d
@@ -721,6 +722,17 @@ on property:sys.powerctl=*
 on property:sys.sysctl.extra_free_kbytes=*
     write /proc/sys/vm/extra_free_kbytes ${sys.sysctl.extra_free_kbytes}
 
+# Activate Background Compaction
+on property:sys.sysctl.compact_memory=1
+    setprop sys.sysctl.compact_memory 0
+    start compact_memory
+
+service compact_memory /sbin/bgcompact
+    user root
+    seclabel u:r:sswap:s0
+    oneshot
+    disabled
+
 # "tcp_default_init_rwnd" Is too long!
 on property:sys.sysctl.tcp_def_init_rwnd=*
     write /proc/sys/net/ipv4/tcp_default_init_rwnd ${sys.sysctl.tcp_def_init_rwnd}
@@ -728,11 +740,21 @@ on property:sys.sysctl.tcp_def_init_rwnd=*
 on property:security.perf_harden=0
     write /proc/sys/kernel/perf_event_paranoid 1
 
+# SAMSUNG DRS Service
+service drsd /system/bin/drsd
+    class main
+    socket drsd stream 660 system system
+
 on property:security.perf_harden=1
     write /proc/sys/kernel/perf_event_paranoid 3
 
 ## Daemon processes to be run by init.
 ##
+service sysmon /system/bin/sysmon
+    class core
+    user root
+    oneshot
+
 service ueventd /sbin/ueventd
     class core
     critical
@@ -804,6 +826,12 @@ service lmkd /system/bin/lmkd
     critical
     socket lmkd seqpacket 0660 system system
     writepid /dev/cpuset/system-background/tasks
+
+service scs /system/bin/scs
+    class main
+    user system
+    group system
+    oneshot
 
 service servicemanager /system/bin/servicemanager
     class core

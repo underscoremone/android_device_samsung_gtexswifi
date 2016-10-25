@@ -60,8 +60,8 @@ COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH := true
-BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
-BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
+# BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
+# BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 
 # Wifi
 WIFI_DRIVER_MODULE_PATH := /lib/modules/sprdwl.ko
