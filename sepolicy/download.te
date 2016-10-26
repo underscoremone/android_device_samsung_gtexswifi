@@ -10,3 +10,4 @@ allow download wcn_device:chr_file { read write open };
 allow download proc:file write;
 allow download prod_file:dir search;
 allow download prod_file:file { write open };
+allow download kernel:system module_request;

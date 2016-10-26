@@ -136,6 +136,11 @@ PRODUCT_PACKAGES += \
 	libatchannel_wrapper \
 	libtinyalsa
 
+# Wifi
+PRODUCT_PACKAGES += \
+	wpa_supplicant
+
+
 # Permissions
 PERMISSION_XML_FILES := \
 	$(LOCAL_PATH)/permissions/platform.xml \

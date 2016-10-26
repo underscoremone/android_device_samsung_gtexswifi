@@ -1,1 +1,2 @@
 allow debuggerd graphics_device:dir search;
+allow debuggerd graphics_device:chr_file { read open };

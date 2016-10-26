@@ -1,3 +1,4 @@
 allow vold efs_file : dir { ioctl read write create getattr setattr unlink link rename add_name remove_name reparent search rmdir open } ;
 allow vold efs_file : file { ioctl read write create getattr setattr lock append unlink link rename open } ;
 allow vold prod_file:dir { open read getattr ioctl };
+allow vold kernel:system module_request;

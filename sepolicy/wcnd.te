@@ -16,3 +16,4 @@ allow wcnd system_data_file:file { open };
 allow wcnd wifi_efs_file:dir search;
 allow wcnd wifi_efs_file:file { open read getattr };
 allow wcnd system_file:file execute_no_trans;
+allow wcnd kernel:system module_request;

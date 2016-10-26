@@ -24,3 +24,4 @@ allow engpc slog_device:chr_file { read write open };
 allow engpc shell_exec:file { read open execute execute_no_trans };
 allow engpc system_file:file execute_no_trans;
 allow engpc efs_file:dir search;
+allow engpc kernel:system module_request;

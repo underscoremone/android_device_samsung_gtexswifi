@@ -1,0 +1,1 @@
+allow lmkd kernel:system module_request;

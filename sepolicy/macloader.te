@@ -8,3 +8,4 @@ allow macloader system_data_file:file open;
 allow macloader self:capability dac_override;
 allow macloader wifi_efs_file:dir { read write search };
 allow macloader wifi_efs_file:file { read write open };
+allow macloader kernel:system module_request;
