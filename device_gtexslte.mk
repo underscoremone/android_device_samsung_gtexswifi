@@ -134,7 +134,8 @@ PRODUCT_PACKAGES += \
 	libaudio-resampler \
 	libatchannel \
 	libatchannel_wrapper \
-	libtinyalsa
+	libtinyalsa \
+	libeng-audio
 
 # Wifi
 PRODUCT_PACKAGES += \
