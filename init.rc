@@ -33,6 +33,12 @@ on early-init
 on init
     sysclktz 0
 
+    # SEC_SELINUX
+    # for audit message
+    chown system system /proc/avc_msg
+    chmod 0660 /proc/avc_msg
+    restorecon /dev/pipes
+
     export LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
     # Backward compatibility.
     symlink /system/etc /etc
@@ -58,6 +64,7 @@ on init
     write /sys/fs/cgroup/memory/sw/memory.move_charge_at_immigrate 1
     chown root system /sys/fs/cgroup/memory/sw/tasks
     chmod 0660 /sys/fs/cgroup/memory/sw/tasks
+    chmod 444 /proc/cmdline
 
     mkdir /system
     mkdir /data 0771 system system
@@ -378,7 +385,7 @@ on post-fs-data
     mkdir /data/misc/gatekeeper 0700 system system
     mkdir /data/misc/keychain 0771 system system
     mkdir /data/misc/net 0750 root shell
-    mkdir /data/misc/radio 0770 system radio
+    mkdir /data/misc/radio 0775 system radio
     mkdir /data/misc/sms 0770 system radio
     mkdir /data/misc/zoneinfo 0775 system system
     mkdir /data/misc/vpn 0770 system vpn
@@ -398,6 +405,8 @@ on post-fs-data
     mkdir /data/local 0751 root root
     mkdir /data/misc/media 0700 media media
     mkdir /data/misc/vold 0700 root root
+   /* SPRD: For saving the hprof */
+    mkdir /data/misc/hprofs 0770 system system
 
     # For security reasons, /data/local/tmp should always be empty.
     # Do not place files or directories in /data/local/tmp
@@ -873,7 +882,7 @@ service ril-daemon /system/bin/rild
     socket sap_uim_socket1 stream 660 bluetooth bluetooth
     socket rild-debug stream 660 radio system
     user root
-    group radio cache inet misc audio log qcom_diag
+    group radio cache inet misc audio log system
 
 service DR-daemon /system/bin/ddexe
     class main
@@ -904,7 +913,7 @@ service drm /system/bin/drmserver
 service media /system/bin/mediaserver
     class main
     user media
-    group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc mediadrm
+    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r shell mediadrm media_rw  radio
     ioprio rt 4
 
 # One shot invocation to deal with encrypted volume.
@@ -928,6 +937,16 @@ service bootanim /system/bin/bootanimation
     disabled
     oneshot
     writepid /dev/cpuset/system-background/tasks
+
+# bootchecker
+service bootchecker /system/bin/bootchecker
+    class late_start
+    user system
+    group system log
+    oneshot
+
+on property:init.svc.zygote=restarting
+    restart bootchecker
 
 service gatekeeperd /system/bin/gatekeeperd /data/misc/gatekeeper
     class late_start
@@ -978,6 +997,11 @@ service dumpstate /system/bin/dumpstate -s
     disabled
     oneshot
 
+service sdumpstate /system/bin/dumpstate -P
+    class main
+    disabled
+    oneshot
+
 service mdnsd /system/bin/mdnsd
     class main
     user mdnsr
@@ -996,6 +1020,11 @@ service cmd_services /system/bin/cmd_services
     user root
     disabled
     oneshot
+
+on property:persist.sys.cmdservice.enable=enable
+    start cmd_services
+on property:persist.sys.cmdservice.enable=disable
+    stop  cmd_services
 
 service pre-recovery /system/bin/uncrypt --reboot
     class main

@@ -14,3 +14,5 @@ allow init pstorefs:dir mounton;
 allow init sdcardd_exec:file getattr;
 allow init pstorefs:dir mounton;
 allow init sdcardd_exec:file { read getattr open };
+allow init asec_apk_file:dir mounton;
+allow init socket_device:sock_file { create setattr };

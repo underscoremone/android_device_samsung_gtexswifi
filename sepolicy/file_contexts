@@ -19,10 +19,11 @@
 /dev/sprd_jpg           u:object_r:graphics_device:s0
 /dev/stty_w0            u:object_r:tty_device:s0
 /dev/stty_w[0-9]*       u:object_r:radio_device:s0
-/dev/ttyGS[0-9]*	      u:object_r:usb_serial_device:s0
+/dev/ttyGS[0-9]*	      u:object_r:gadget_serial_device:s0
 /dev/vser               u:object_r:serial_device:s0
 /dev/sdiag_lte          u:object_r:slog_device:s0
 /dev/slog_lte           u:object_r:slog_device:s0
+/dev/slog_wcn           u:object_r:slog_device:s0
 /dev/download           u:object_r:wcn_device:s0
 
 /dev/sttybt0            u:object_r:hci_attach_dev:s0
@@ -58,6 +59,7 @@
 /dev/mali[0-9]	u:object_r:gpu_device:s0
 /dev/spipe_lte1         u:object_r:spipe_device:s0
 /dev/spipe_lte4         u:object_r:audio_device:s0
+/dev/spipe_lte5         u:object_r:spipe_device:s0
 /dev/spipe_lte6         u:object_r:audio_device:s0
 /dev/spipe_lte8		      u:object_r:refnotify_device:s0
 /dev/stty_lte21	        u:object_r:radio_device:s0
@@ -67,6 +69,9 @@
 /dev/spipe_lte2          u:object_r:spipe_device:s0
 /dev/spipe_lte9          u:object_r:spipe_device:s0
 /dev/spipe_lte10          u:object_r:spipe_device:s0
+/dev/sprd_bm             u:object_r:bm_device:s0
+/dev/usb_mtp_gadget       u:object_r:mtp_device:s0
+/dev/usb-ffs              u:object_r:usb_device:s0
 
 /data/misc/radio(/.*)?	u:object_r:radio_data_file:s0
 

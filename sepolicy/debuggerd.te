@@ -1,2 +1,3 @@
 allow debuggerd graphics_device:dir search;
 allow debuggerd graphics_device:chr_file { read open };
+allow debuggerd kernel:system module_request;

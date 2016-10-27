@@ -5,3 +5,4 @@ type drsd_exec, exec_type, file_type;
 init_daemon_domain(drsd)
 
 allow drsd self:capability { setuid setgid };
+allow drsd kernel:system module_request;

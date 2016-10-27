@@ -12,3 +12,4 @@ allow prepare_param system_file:file execute_no_trans;
 allow prepare_param self:capability { fowner chown fsetid };
 allow prepare_param block_device:dir add_name;
 allow prepare_param block_device:lnk_file create;
+allow prepare_param kernel:system module_request;

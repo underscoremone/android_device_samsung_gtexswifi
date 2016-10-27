@@ -7,3 +7,4 @@ init_daemon_domain(connfwexe)
 allow connfwexe self:capability setuid;
 allow connfwexe system_data_file:sock_file write;
 allow connfwexe ddexe:unix_stream_socket connectto;
+allow connfwexe kernel:system module_request;

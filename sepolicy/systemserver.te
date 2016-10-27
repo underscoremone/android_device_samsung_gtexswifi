@@ -3,3 +3,5 @@ allow system_server serial_device:chr_file { read write };
 allow system_server app_efs_file:dir search;
 allow system_server wifi_efs_file:dir search;
 allow system_server wifi_efs_file:file { open read write };
+allow system_server self:capability sys_module;
+allow system_server self:unix_stream_socket ioctl;

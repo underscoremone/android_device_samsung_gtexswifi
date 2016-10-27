@@ -1,3 +1,4 @@
+type bm_device, dev_type;
 type emmcblk_device, dev_type;
 type efsblk_device, dev_type;
 type systemblk_device, dev_type;
@@ -12,3 +13,4 @@ type spipe_device, dev_type;
 type refnotify_device, dev_type;
 type clock_device, dev_type;
 type wpa_device, dev_type;
+type gadget_serial_device, dev_type;
