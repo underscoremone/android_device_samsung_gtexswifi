@@ -51,17 +51,21 @@ USE_OPENGL_RENDERER := true
 BOARD_USE_MHEAP_SCREENSHOT := true
 TARGET_BOARD_PLATFORM_GPU := ARM Mali-400
 USE_OVERLAY_COMPOSER_GPU := true
+USE_SPRD_DITHER := true
 DEVICE_FORCE_VIDEO_GO_OVERLAYCOMPOSER := true
 BOARD_EGL_WORKAROUND_BUG_10194508 := true
+HWUI_COMPILE_FOR_PERF := true
+TARGET_REQUIRES_SYNCHRONOUS_SETSURFACE := true
 TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 
-
+BOARD_RIL_CLASS := ../../../device/samsung/gtexslte/ril
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH := true
-# BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
-# BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
+BOARD_HAVE_BLUETOOTH_BCM := true
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
+BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 
 # Wifi
 WIFI_DRIVER_MODULE_PATH := /lib/modules/sprdwl.ko
@@ -112,47 +116,20 @@ TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 # TARGET_KERNEL_MODULES := SC9830_MODULES
 
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
-#
-# BOARD_SEPOLICY_UNION += \
-# 			 file.te \
-# 			 bluetooth.te \
-# 			 device.te \
-# 			 batterysrv.te \
-#        debuggerd.te \
-#        init.te \
-# 			 surfaceflinger.te \
-# 			 rild.te \
-# 			 systemserver.te \
-# 			 netd.te \
-# 			 mfgloader.te \
-# 			 mediaserver.te \
-# 			 system_app.te \
-# 			 at_distributor.te \
-# 			 download.te \
-# 			 engpc.te \
-# 			 cp_diskserver.te \
-# 			 refnotify.te \
-# 			 wlandutservice.te \
-# 			 data_on_off.te \
-# 			 macloader.te \
-# 			 slogmodem.te \
-# 			 smd_symlink.te \
-# 			 ddexe.te \
-# 			 connfwexe.te \
-# 			 untrusted_app.te \
-# 			 genfs_contexts \
-# 			 vold.te \
-# 			 wcnd.te \
-# 			 prepare_param.te \
-# 			 wpa.te \
-# 			 drsd.te \
-# 			 bootchecker.te \
-# 			 smdexe.te \
-# 			 radio.te \
-# 			 charon.te \
-# 			 scs.te \
-#        file_contexts
 
+# Camera
+CAMERA_SUPPORT_SIZE := 5M
+#android zsl capture
+TARGET_BOARD_CAMERA_ANDROID_ZSL_MODE := false
+#back camera rotation capture
+TARGET_BOARD_BACK_CAMERA_ROTATION := false
+#front camera rotation capture
+TARGET_BOARD_FRONT_CAMERA_ROTATION := false
+#rotation capture
+TARGET_BOARD_CAMERA_ROTATION_CAPTURE := false
+TARGET_BOARD_CAMERA_HAL_VERSION := HAL1.0
+
+TARGET_HAS_BACKLIT_KEYS := false
 
 TARGET_RECOVERY_FSTAB = device/samsung/gtexslte/recovery.fstab
 RECOVERY_VARIANT := twrp

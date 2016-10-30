@@ -75,39 +75,6 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
         send(rr);
     }
 
-    @Override
-    public void setUiccSubscription(int slotId, int appIndex, int subId,
-            int subStatus, Message result) {
-        if (RILJ_LOGD) riljLog("setUiccSubscription" + slotId + " " + appIndex + " " + subId + " " + subStatus);
-
-        // Fake response (note: should be sent before mSubscriptionStatusRegistrants or
-        // SubscriptionManager might not set the readiness correctly)
-        AsyncResult.forMessage(result, 0, null);
-        result.sendToTarget();
-
-        // TODO: Actually turn off/on the radio (and don't fight with the ServiceStateTracker)
-        if (subStatus == 1 /* ACTIVATE */) {
-            // Subscription changed: enabled
-            if (mSubscriptionStatusRegistrants != null) {
-                mSubscriptionStatusRegistrants.notifyRegistrants(
-                        new AsyncResult (null, new int[] {1}, null));
-            }
-        } else if (subStatus == 0 /* DEACTIVATE */) {
-            // Subscription changed: disabled
-            if (mSubscriptionStatusRegistrants != null) {
-                mSubscriptionStatusRegistrants.notifyRegistrants(
-                        new AsyncResult (null, new int[] {0}, null));
-            }
-        }
-    }
-
-    @Override
-    public void setDataSubscription(Message result) {
-        int simId = mInstanceId == null ? 0 : mInstanceId;
-        if (RILJ_LOGD) riljLog("Setting data subscription to " + simId);
-        invokeOemRilRequestRaw(new byte[] {(byte) 9, (byte) 4}, result);
-    }
-
     public void setDefaultVoiceSub(int subIndex, Message response) {
         // Fake the message
         AsyncResult.forMessage(response, 0, null);
@@ -117,15 +84,6 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
     @Override
     protected void notifyRegistrantsRilConnectionChanged(int rilVer) {
         super.notifyRegistrantsRilConnectionChanged(rilVer);
-        if (rilVer != -1) {
-            if (mInstanceId != null) {
-                riljLog("Enable simultaneous data/voice on Multi-SIM");
-                invokeOemRilRequestSprd((byte) 3, (byte) 1, null);
-            } else {
-                riljLog("Set data subscription to allow data in either SIM slot when using single SIM mode");
-                setDataSubscription(null);
-            }
-        }
     }
 
     @Override
@@ -163,7 +121,6 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
             case RIL_REQUEST_ENTER_SIM_PUK2: ret =  responseInts(p); break;
             case RIL_REQUEST_CHANGE_SIM_PIN: ret =  responseInts(p); break;
             case RIL_REQUEST_CHANGE_SIM_PIN2: ret =  responseInts(p); break;
-            case RIL_REQUEST_ENTER_DEPERSONALIZATION_CODE: ret =  responseInts(p); break;
             case RIL_REQUEST_GET_CURRENT_CALLS: ret =  responseCallList(p); break;
             case RIL_REQUEST_DIAL: ret =  responseVoid(p); break;
             case RIL_REQUEST_GET_IMSI: ret =  responseString(p); break;

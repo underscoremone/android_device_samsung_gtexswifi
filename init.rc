@@ -33,6 +33,8 @@ on early-init
 on init
     sysclktz 0
 
+    loglevel 3
+
     # SEC_SELINUX
     # for audit message
     chown system system /proc/avc_msg
@@ -754,6 +756,18 @@ service drsd /system/bin/drsd
     class main
     socket drsd stream 660 system system
 
+# SEC_SELINUX
+service auditd /system/bin/auditd -k
+    class main
+    seclabel u:r:auditd:s0
+    disabled
+    oneshot
+
+# SAMSUNG DRS Service
+service drsd /system/bin/drsd
+    class main
+    socket drsd stream 660 system system
+
 on property:security.perf_harden=1
     write /proc/sys/kernel/perf_event_paranoid 3
 
@@ -908,7 +922,13 @@ service surfaceflinger /system/bin/surfaceflinger
 service drm /system/bin/drmserver
     class main
     user drm
-    group drm system inet drmrpc
+# [ SEC_MM_DRM
+# fix
+    group system drm inet drmrpc radio
+# org
+#    group drm system inet drmrpc
+# ]
+
 
 service media /system/bin/mediaserver
     class main

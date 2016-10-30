@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<sllconfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="sllconfig.xsd">
+  <!-- J1ACE PHONE CONFIG FILE -->
+
+  <StartupConfiguration>
+    <!-- Set this to No, for normal operation -->
+    <cpColdStartEnable>No</cpColdStartEnable>
+    <DataPort>/dev/ttyS3</DataPort>
+    <OnOffPort>/sys/class/sec/gps/GPS_PWR_EN/value</OnOffPort>
+    <ResetPort>/sys/class/sec/gps/GPS_RESET/value</ResetPort>
+  </StartupConfiguration>
+
+
+  <GlueLayer>
+    <IsAngryGpsConfigEnable>Yes</IsAngryGpsConfigEnable>
+  </GlueLayer>
+
+</sllconfig>

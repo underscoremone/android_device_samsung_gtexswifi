@@ -115,6 +115,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
 	lights.sc8830
 
+# gps
+PRODUCT_COPY_FILES += \
+	$(LOCAL_PATH)/gps/gps.conf:system/etc/gps.conf \
+	$(LOCAL_PATH)/gps/gps.xml:system/etc/gps.xml
+
 # Media config
 MEDIA_CONFIGS := \
 	$(LOCAL_PATH)/media/media_codecs.xml \
@@ -122,7 +127,6 @@ MEDIA_CONFIGS := \
 
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(MEDIA_CONFIGS),$(f):system/etc/$(notdir $(f)))
-
 
 # Audio
 PRODUCT_PACKAGES += \

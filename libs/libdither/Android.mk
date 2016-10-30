@@ -1,4 +1,9 @@
-# Copyright (C) 2008 The Android Open Source Project
+#
+# Copyright (C) 2010 ARM Limited. All rights reserved.
+#
+# Copyright (C) 2016 The Android Open Source Project
+#
+# Copyright (C) 2016 The CyanogenMod Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,22 +16,39 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
 LOCAL_PATH:= $(call my-dir)
 
-ifeq ($(strip $(TARGET_HAS_BACKLIT_KEYS)),false)
-LOCAL_CFLAGS += -DNON_BACKLIT_KEYS
-endif
-
 include $(CLEAR_VARS)
 
-ifeq ($(strip $(TARGET_HAS_BACKLIT_KEYS)),false)
-LOCAL_CFLAGS += -DNON_BACKLIT_KEYS
-endif
+LOCAL_MODULE:= libdither
 
-LOCAL_SRC_FILES := lights.c
-LOCAL_MODULE_RELATIVE_PATH := hw
-LOCAL_SHARED_LIBRARIES := liblog
-LOCAL_MODULE := lights.$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_TAGS := optional
+
+LOCAL_PRELINK_MODULE := false
+
+LOCAL_CFLAGS = \
+	-g \
+	-mfpu=neon \
+	-O3 \
+
+LOCAL_C_INCLUDES := \
+	$(LOCAL_PATH) \
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+	$(LOCAL_PATH) \
+	$(LOCAL_C_INCLUDES) \
+
+LOCAL_SRC_FILES := \
+	image_dither.cpp \
+
+LOCAL_SHARED_LIBRARIES := \
+	libutils \
+	libcutils \
+	libbinder \
+	libdl \
+	libandroid_runtime \
+	liblog \
+
 include $(BUILD_SHARED_LIBRARY)

@@ -12,21 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-LOCAL_PATH:= $(call my-dir)
-
-ifeq ($(strip $(TARGET_HAS_BACKLIT_KEYS)),false)
-LOCAL_CFLAGS += -DNON_BACKLIT_KEYS
-endif
+LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-
-ifeq ($(strip $(TARGET_HAS_BACKLIT_KEYS)),false)
-LOCAL_CFLAGS += -DNON_BACKLIT_KEYS
-endif
-
-LOCAL_SRC_FILES := lights.c
-LOCAL_MODULE_RELATIVE_PATH := hw
-LOCAL_SHARED_LIBRARIES := liblog
-LOCAL_MODULE := lights.$(TARGET_BOARD_PLATFORM)
+LOCAL_SRC_FILES := \
+	AtChannel.cpp
+LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)
+LOCAL_SHARED_LIBRARIES := \
+	libcutils \
+	libbinder \
+	libutils \
+	libdl \
+	libsecril-client
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+LOCAL_MODULE := libatchannel
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_SHARED_LIBRARIES := \
+	liblog \
+	libcutils \
+	libatchannel \
+	libutils \
+	libdl
+LOCAL_SRC_FILES := \
+	AtChannelTest.cpp
+LOCAL_MODULE := AtChannelTest
+include $(BUILD_EXECUTABLE)
