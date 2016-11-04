@@ -51,6 +51,11 @@ PRODUCT_COPY_FILES += \
 	$(LOCAL_PATH)/keylayout/sec_touchkey.kl:system/usr/keylayout/sec_touchkey.kl \
 	$(LOCAL_PATH)/keylayout/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl
 
+# Charger
+PRODUCT_PACKAGES += \
+	charger \
+	charger_res_images
+
 # Codecs
 PRODUCT_PACKAGES += \
 	libstagefrighthw \
@@ -172,6 +177,8 @@ PERMISSION_XML_FILES := \
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(PERMISSION_XML_FILES),$(f):system/etc/permissions/$(notdir $(f)))
 
+# Dalvik Heap config
+include frameworks/native/build/tablet-7in-hdpi-1024-dalvik-heap.mk
 
 PRODUCT_NAME := full_gtexslte
 PRODUCT_DEVICE := gtexslte

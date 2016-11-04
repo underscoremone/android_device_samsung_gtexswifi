@@ -82,10 +82,6 @@ on init
 
     # Mount staging areas for devices managed by vold
     # See storage config details at http://source.android.com/tech/storage/
-    mkdir /mnt/shell 0750 shell shell
-    mkdir /mnt/media_rw 0700 media_rw media_rw
-    mkdir /storage 0751 root sdcard_r
-
     mkdir /mnt 0755 root system
     mount tmpfs tmpfs /mnt mode=0755,uid=0,gid=1000
     restorecon_recursive /mnt
@@ -935,7 +931,7 @@ service drm /system/bin/drmserver
 service media /system/bin/mediaserver
     class main
     user media
-    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r shell mediadrm media_rw  radio
+    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r sdcard_rw shell mediadrm media_rw radio
     ioprio rt 4
 
 # One shot invocation to deal with encrypted volume.
@@ -1031,6 +1027,11 @@ service mdnsd /system/bin/mdnsd
     socket mdnsd stream 0660 mdnsr inet
     disabled
     oneshot
+
+service mobex-daemon /system/bin/npsmobex
+    class main
+    user system
+    group system radio inet sdcard_r sdcard_rw media_rw shell
 
 service uncrypt /system/bin/uncrypt
     class main
