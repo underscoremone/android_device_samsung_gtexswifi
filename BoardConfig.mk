@@ -11,11 +11,13 @@ TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_ARCH_VARIANT := armv7-a-neon
 TARGET_CPU_VARIANT := cortex-a7
+TARGET_GLOBAL_CFLAGS += -mtune=cortex-a7 -mfpu=neon -mfloat-abi=softfp
+TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a7 -mfpu=neon -mfloat-abi=softfp
 TARGET_CPU_SMP := true
 BOARD_VENDOR := samsung
 
 ARCH_ARM_HAVE_TLS_REGISTER := true
-TARGET_BOOTLOADER_BOARD_NAME := gtexslte
+TARGET_BOOTLOADER_BOARD_NAME := 8830
 
 BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8
 BOARD_KERNEL_BASE := 0x80000000
@@ -63,7 +65,7 @@ BOARD_RIL_CLASS := ../../../device/samsung/gtexslte/ril
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH := true
-BOARD_HAVE_BLUETOOTH_BCM := true
+BOARD_HAVE_BLUETOOTH_SPRD := true
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
 BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 
@@ -80,22 +82,15 @@ BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_qcwcn
 BOARD_HOSTAPD_DRIVER := NL80211
 BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_qcwcn
 WIFI_BAND := 802_11_ABG
-# BOARD_WPA_SUPPLICNANT_PRIVATE_LIB := lib_driver_cmd_bcmdhd
-# BOARD_HOSTAPD_DRIVER := NL80211
-# BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_bcmdhd
-# WIFI_DRIVER_FW_PATH_PARAM := "/sys/module/dhd/parameters/firmware_path"
-# WIFI_DRIVER_FW_PATH_STA := "/system/etc/wifi/bcmdhd_sta.bin"
-# WIFI_DRIVER_FW_PATH_AP := "/system/etc/wifi/bcmdhd_apsta.bin"
-# WIFI_DRIVER_NVRAM_PATH_PARAM := "/sys/module/dhd/parameters/nvram_path"
-# WIFI_DRIVER_NVRAM_PATH := "/system/etc/wifi/nvram_net.txt"
-
-# BOARD_HAVE_SAMSUNG_WIFI := true
 
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 
+# Charger
+BOARD_CHARGER_ENABLE_SUSPEND := true
+BOARD_CHARGING_MODE_BOOTING_LPM := /sys/class/power_supply/battery/batt_lp_charging
 
 # Integrated kernel building configs
-#
+
 # TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
 # TARGET_KERNEL_CONFIG := gtexslte_defconfig
 # TARGET_VARIANT_CONFIG := gtexslte_defconfig

@@ -87,8 +87,8 @@ static cmd_par_table g_pskey_table[] =
 	CMD_ITEM_TABLE("comp_id", comp_id, 4),
 	CMD_ITEM_TABLE("pcm_clk_divd", pcm_clk_divd, 2),
 
-
-	CMD_ITEM_TABLE("bt_reserved", reserved, 4)
+	CMD_ITEM_TABLE("g_aBRChannelpwrvalue", gain_br_channel_power, 4),
+	CMD_ITEM_TABLE("g_aEDRChannelpwrvalue", gain_edr_channel_power, 4),
 };
 
 static int bt_getFileSize(char *file)
@@ -270,9 +270,9 @@ static int bt_dumpPskey(BT_PSKEY_CONFIG_T *p)
     ALOGI("g_aPowerValue: 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X", p->g_aPowerValue[0], p->g_aPowerValue[1], p->g_aPowerValue[2], p->g_aPowerValue[3], p->g_aPowerValue[4]);
 
 
-    ALOGI("feature_set(0~7): 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X", p->feature_set[0], p->feature_set[1], p->feature_set[2], 
+    ALOGI("feature_set(0~7): 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X", p->feature_set[0], p->feature_set[1], p->feature_set[2],
 		p->feature_set[3], p->feature_set[4], p->feature_set[5], p->feature_set[6], p->feature_set[7]);
-    ALOGI("feature_set(8~15): 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X", p->feature_set[8], p->feature_set[9], p->feature_set[10], 
+    ALOGI("feature_set(8~15): 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X", p->feature_set[8], p->feature_set[9], p->feature_set[10],
 		p->feature_set[11], p->feature_set[12], p->feature_set[13], p->feature_set[14], p->feature_set[15]);
     ALOGI("device_addr: 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X", p->device_addr[0], p->device_addr[1], p->device_addr[2], p->device_addr[3], p->device_addr[4], p->device_addr[5]);
 
@@ -307,10 +307,12 @@ static int bt_dumpPskey(BT_PSKEY_CONFIG_T *p)
     ALOGI("comp_id: 0x%08X", p->comp_id);
     ALOGI("pcm_clk_divd : 0x%04X", p->pcm_clk_divd );
 
+    ALOGI("reserved: 0x%04X", p->reserved);
 
-    ALOGI("reserved(0~7): 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X", p->reserved[0], p->reserved[1], p->reserved[2], 
-		p->reserved[3], p->reserved[4], p->reserved[5], p->reserved[6], p->reserved[7]);
-    return 0;
+    ALOGI("gain_br_channel_power: 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X", p->gain_br_channel_power[0], p->gain_br_channel_power[1], p->gain_br_channel_power[2], p->gain_br_channel_power[3], p->gain_br_channel_power[4], p->gain_br_channel_power[5], p->gain_br_channel_power[6], p->gain_br_channel_power[7]);
+    ALOGI("gain_edr_channel_power: 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X", p->gain_edr_channel_power[0], p->gain_edr_channel_power[1], p->gain_edr_channel_power[2], p->gain_edr_channel_power[3], p->gain_edr_channel_power[4], p->gain_edr_channel_power[5], p->gain_edr_channel_power[6], p->gain_edr_channel_power[7]);
+
+   return 0;
 }
 
 static int bt_get_config_ver(unsigned char *pBuf, int len)
@@ -387,5 +389,3 @@ int bt_getPskeyFromFile(void *pData)
     free(pBuf);
     return 0;
 }
-
-

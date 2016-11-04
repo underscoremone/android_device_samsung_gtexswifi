@@ -73,7 +73,7 @@ extern bt_vendor_callbacks_t *bt_vendor_cbacks;
 #define PSKEY_PREAMBLE_SIZE    0xA2
 
 // #define UINT8_TO_STREAM(p, u8)   {*(p)++ = (uint8)(u8);}
-#define UINT24_TO_STREAM(p, u24) {*(p)++ = (uint8)(u24); *(p)++ = (uint8)((u24) >> 8); *(p)++ = (uint8)((u24) >> 16);}
+// #define UINT24_TO_STREAM(p, u24) {*(p)++ = (uint8)(u24); *(p)++ = (uint8)((u24) >> 8); *(p)++ = (uint8)((u24) >> 16);}
 
 #define DATMISC_MAC_ADDR_PATH    "/data/misc/bluedroid/btmac.txt"
 #define MAC_ADDR_BUF_LEN    (strlen("FF:FF:FF:FF:FF:FF"))
@@ -134,9 +134,10 @@ typedef struct SPRD_BT_PSKEY_INFO_T{
     uint16  uart_flow_control_thld;
     uint32  comp_id;
     uint16  pcm_clk_divd;
-
-    uint32  reserved[8];
-}BT_PSKEY_CONFIG_T;
+    uint32  gain_br_channel_power[8];
+    uint32  gain_edr_channel_power[8];
+    uint16  reserved;
+} BT_PSKEY_CONFIG_T;
 
 extern int bt_getPskeyFromFile(void *pData);
 

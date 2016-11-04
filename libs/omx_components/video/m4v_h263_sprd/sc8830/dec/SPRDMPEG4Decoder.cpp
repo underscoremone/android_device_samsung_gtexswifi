@@ -1463,7 +1463,7 @@ OMX_ERRORTYPE SPRDMPEG4Decoder::getExtensionIndex(
         return OMX_ErrorNone;
     }	else if (strcmp(name, SPRD_INDEX_PARAM_USE_ANB) == 0) {
         ALOGI("getExtensionIndex:%s",SPRD_INDEX_PARAM_USE_ANB);
-        *index = OMX_IndexParamUseAndroidNativeBuffer2;
+        *index =  (OMX_INDEXTYPE) OMX_IndexParamUseAndroidNativeBuffer2;
         return OMX_ErrorNone;
     }
 
@@ -1581,4 +1581,3 @@ android::SprdOMXComponent *createSprdOMXComponent(
     OMX_PTR appData, OMX_COMPONENTTYPE **component) {
     return new android::SPRDMPEG4Decoder(name, callbacks, appData, component);
 }
-

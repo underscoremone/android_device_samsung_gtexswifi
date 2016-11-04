@@ -63,7 +63,7 @@ void hw_pskey_send(BT_PSKEY_CONFIG_T * bt_par);
 #define VENDOR_BTWRITE_PROC_NODE "/proc/bluetooth/sleep/btwrite"
 #endif
 #ifndef UART_INFO_PATH
-#define UART_INFO_PATH "/sys/devices/f5360000.uart/uart_conf"
+#define UART_INFO_PATH "/sys/devices/70000000.uart/uart_conf"
 #endif
 #define MARLIN_PA_ENABLE_PATH "/sys/devices/platform/sprd_wcn.0/pa_enable"
 #define MARLIN_PA_ENABLE_VALUE "1"
@@ -265,7 +265,7 @@ static int op(bt_vendor_opcode_t opcode, void *param)
 
         case BT_VND_OP_FW_CFG:
             {
-                ALOGI("%s BT_VND_OP_FW_CFG", __func__);
+                ALOGI("%s BT_VND_OP_FW_CFG %s", __func__, UART_INFO_PATH);
                 uart_fd = open(UART_INFO_PATH, O_WRONLY);
                 ALOGI("open uart_conf fd %d", uart_fd);
                 if(uart_fd > 0)
@@ -277,7 +277,11 @@ static int op(bt_vendor_opcode_t opcode, void *param)
                         UART_INFO_PATH, strerror(errno),errno);
                     }
                     close(uart_fd);
+                } else {
+                  ALOGI("%s write(%s) failed: %s (%d) 2", __func__,
+                  UART_INFO_PATH, strerror(errno),errno);
                 }
+
                 BT_PSKEY_CONFIG_T pskey;
                 sprd_get_pskey(&pskey);
                 hw_pskey_send(&pskey);
@@ -510,9 +514,9 @@ static BT_PSKEY_CONFIG_T bt_para_setting={
     .uart_flow_control_thld = 63,
     .comp_id = 0,
     .pcm_clk_divd = 0x26,
-
-
-    .reserved = {0}
+    .gain_br_channel_power = { 0x0FFC0000, 0x0FFC0000, 0x0FFC0000, 0x0FFC0000, 0x0FFC0000, 0x0FFC0000, 0x0FFC0000, 0x0FFC0000 },
+    .gain_edr_channel_power = { 0x0FFC0000, 0x0E7C0000, 0x0E7C0000, 0x0E7C0000, 0x0E7C0000, 0x0E7C0000, 0x0E7C0000, 0x0E7C0000 },
+    .reserved = 0xFFFF,
 };
 
 /*
@@ -835,11 +839,13 @@ static void pskey_stream_compose(uint8 * buf, BT_PSKEY_CONFIG_T *bt_par) {
     UINT16_TO_STREAM(p, bt_par->uart_flow_control_thld);
     UINT32_TO_STREAM(p, bt_par->comp_id);
     UINT16_TO_STREAM(p, bt_par->pcm_clk_divd);
-
-
     for (i = 0; i < 8; i++) {
-        UINT32_TO_STREAM(p, bt_par->reserved[i]);
+        UINT32_TO_STREAM(p, bt_par->gain_br_channel_power[i]);
     }
+    for (i = 0; i < 8; i++) {
+        UINT32_TO_STREAM(p, bt_par->gain_edr_channel_power[i]);
+    }
+    UINT16_TO_STREAM(p, bt_par->reserved);
 }
 
 static inline int start_pskey_read_thread(int fd) {

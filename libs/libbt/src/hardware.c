@@ -275,11 +275,16 @@ void hw_pskey_send(BT_PSKEY_CONFIG_T * bt_par)
         UINT32_TO_STREAM(p, bt_par->comp_id);
         UINT16_TO_STREAM(p, bt_par->pcm_clk_divd);
 
-
         for (i = 0; i < 8; i++) {
-            UINT32_TO_STREAM(p, bt_par->reserved[i]);
+            UINT32_TO_STREAM(p, bt_par->gain_br_channel_power[i]);
+        }
+        for (i = 0; i < 8; i++) {
+            UINT32_TO_STREAM(p, bt_par->gain_edr_channel_power[i]);
         }
 
+        UINT16_TO_STREAM(p, 0xFFFF);
+
+        ALOGI("commit pskey...");
         /* Send command via HC's xmit_cb API */
         bt_vendor_cbacks->xmit_cb(HCI_PSKEY, p_buf, hw_pskey_cback);
     }
@@ -292,5 +297,3 @@ void hw_pskey_send(BT_PSKEY_CONFIG_T * bt_par)
         }
     }
 }
-
-
