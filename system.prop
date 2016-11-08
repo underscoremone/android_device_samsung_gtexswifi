@@ -114,6 +114,7 @@ sys.config.spcm_preload_enable=true
 ro.astcenc.astcsupport=0
 ro.mct.compressiontype=ETC1
 ro.telephony.default_network=9
+ro.telephony.ril_class=SamsungSPRDRIL
 dalvik.vm.heapstartsize=8m
 dalvik.vm.heapgrowthlimit=96m
 dalvik.vm.heapsize=256m
@@ -179,6 +180,7 @@ ro.com.google.clientidbase=android-samsung
 drm.service.enabled=true
 ro.ril.hsxpa=1
 ro.ril.gprsclass=10
+
 ro.adb.qemud=1
 ro.setupwizard.mode=DISABLED
 ro.com.google.gmsversion=5.1_r2
