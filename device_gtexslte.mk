@@ -7,6 +7,9 @@ $(call inherit-product-if-exists, vendor/samsung/gtexslte/gtexslte-vendor.mk)
 
 DEVICE_PACKAGE_OVERLAYS += device/samsung/gtexslte/overlay
 
+# This device is hdpi
+PRODUCT_AAPT_CONFIG := normal
+PRODUCT_AAPT_PREF_CONFIG := hdpi
 
 ifeq ($(TARGET_PREBUILT_KERNEL),)
 	LOCAL_KERNEL := device/samsung/gtexslte/kernel
@@ -148,6 +151,9 @@ PRODUCT_PACKAGES += \
 	libatchannel_wrapper \
 	libtinyalsa \
 	libeng-audio
+
+PRODUCT_COPY_FILES += \
+	device/samsung/gtexslte/audio_policy.conf:system/etc/audio_policy.conf \
 
 # Wifi
 PRODUCT_PACKAGES += \

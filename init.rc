@@ -931,7 +931,7 @@ service drm /system/bin/drmserver
 service media /system/bin/mediaserver
     class main
     user media
-    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r sdcard_rw shell mediadrm media_rw radio
+    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r shell mediadrm media_rw  radio
     ioprio rt 4
 
 # One shot invocation to deal with encrypted volume.
@@ -1028,11 +1028,6 @@ service mdnsd /system/bin/mdnsd
     disabled
     oneshot
 
-service mobex-daemon /system/bin/npsmobex
-    class main
-    user system
-    group system radio inet sdcard_r sdcard_rw media_rw shell
-
 service uncrypt /system/bin/uncrypt
     class main
     disabled
@@ -1048,6 +1043,14 @@ on property:persist.sys.cmdservice.enable=enable
     start cmd_services
 on property:persist.sys.cmdservice.enable=disable
     stop  cmd_services
+
+on property:sys.boot_completed=1
+    write /sys/block/mmcblk0/queue/scheduler cfq
+
+service mobex-daemon /system/bin/npsmobex
+    class main
+    user system
+    group system radio inet sdcard_r sdcard_rw media_rw shell
 
 service pre-recovery /system/bin/uncrypt --reboot
     class main

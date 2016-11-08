@@ -91,6 +91,9 @@ camera.disable_zsl_mode=1
 ro.digital.fm.support=1
 ro.config.ksm.support=true
 
+debug.hwui.render_dirty_regions=false
+drm.service.enabled=1
+
 #zram config
 ro.config.zram.support=true
 ro.board_ram_size=high
