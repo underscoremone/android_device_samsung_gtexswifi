@@ -183,7 +183,7 @@ struct private_handle_t
 	int     phyaddr;
 
 #if GRALLOC_ARM_DMA_BUF_MODULE
-	ion_user_handle_t *ion_hnd;
+	ion_user_handle_t ion_hnd;
 #define GRALLOC_ARM_DMA_BUF_NUM_INTS 1
 #else
 #define GRALLOC_ARM_DMA_BUF_NUM_INTS 0
@@ -229,7 +229,7 @@ struct private_handle_t
 		fd(0),
 		offset(0)
 #if GRALLOC_ARM_DMA_BUF_MODULE
-		,ion_hnd(NULL)
+		,ion_hnd(0)
 #endif
 
 	{
@@ -261,7 +261,7 @@ struct private_handle_t
 #endif
 		fd(0),
 		offset(0),
-		ion_hnd(NULL)
+		ion_hnd(0)
 
 	{
 		version = sizeof(native_handle);

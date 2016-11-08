@@ -83,7 +83,7 @@ uint32_t dither_open(uint32_t w, uint32_t h)
 
         memset(dither, 0, sizeof(struct dither_info));
 
-        fp = fopen("/sys/module/mali/parameters/gpu_cur_freq", "r");
+        fp = fopen("/sys/module/mali/parameters/gpu_freq_cur", "r");
         if(fp == NULL)
         {
             AERR( "can not open /sys/module/mali/parameters/gpu_cur_freq %x", fp);
@@ -173,9 +173,9 @@ static void writeFpsToProc(float fps)
     char fps_buf[256] = {0};
     char *fps_proc = "/proc/benchMark/fps";
     int fpsInt = (int)(fps+0.5);
-    
+
     sprintf(fps_buf, "fps:%d", fpsInt);
-       
+
     FILE *f = fopen(fps_proc,"r+w");
 	if (NULL != f)
 	{
@@ -184,7 +184,7 @@ static void writeFpsToProc(float fps)
         fclose(f);
     }
 }
-  
+
 static int64_t systemTime()
 {
     struct timespec t;
@@ -416,7 +416,7 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 			m->info.transp.length  = 0;
 		}
 #endif
-		if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) 
+		if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1)
 		{
 			AERR("FBIOPUT_VSCREENINFO failed for fd: %d", m->framebuffer->fd);
 #ifdef MALI_VSYNC_EVENT_REPORT_ENABLE
