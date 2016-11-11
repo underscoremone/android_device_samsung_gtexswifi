@@ -22,6 +22,10 @@ on init
 
     mkdir /productinfo 0771 system system
 
+    # Support legacy paths
+    symlink /sdcard /mnt/sdcard
+    symlink /sdcard /storage/sdcard0
+    
     #Google FRP
     symlink /dev/block/platform/sdio_emmc/by-name/PERSISTENT /dev/block/persistent
 

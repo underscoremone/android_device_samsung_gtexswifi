@@ -26,7 +26,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
 PRODUCT_COPY_FILES += \
-		device/samsung/gtexslte/init.rc:root/init.rc \
 		device/samsung/gtexslte/init.board.rc:root/init.board.rc \
 		device/samsung/gtexslte/init.sc8830.rc:root/init.sc8830.rc \
 		device/samsung/gtexslte/init.sc8830.usb.rc:root/init.sc8830.usb.rc \
@@ -43,7 +42,8 @@ PRODUCT_COPY_FILES += \
 		device/samsung/gtexslte/init.wifi.rc:root/init.wifi.rc \
 		device/samsung/gtexslte/init.dhcp.rc:root/init.dhcp.rc \
 		device/samsung/gtexslte/apns-conf.xml:system/etc/apns-conf.xml \
-		device/samsung/gtexslte/bluetooth:system/etc/bluetooth
+		device/samsung/gtexslte/bluetooth:system/etc/bluetooth \
+		device/samsung/gtexslte/init.rc:root/init.rc \
 
 $(call inherit-product, build/target/product/full.mk)
 
@@ -157,7 +157,8 @@ PRODUCT_COPY_FILES += \
 
 # Wifi
 PRODUCT_PACKAGES += \
-	wpa_supplicant
+	wpa_supplicant \
+	hostapd \
 
 
 # Permissions
