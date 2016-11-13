@@ -152,14 +152,10 @@ PRODUCT_PACKAGES += \
 	libtinyalsa \
 	libeng-audio
 
-PRODUCT_COPY_FILES += \
-	device/samsung/gtexslte/audio_policy.conf:system/etc/audio_policy.conf \
-
 # Wifi
 PRODUCT_PACKAGES += \
 	wpa_supplicant \
 	hostapd \
-
 
 # Permissions
 PERMISSION_XML_FILES := \
