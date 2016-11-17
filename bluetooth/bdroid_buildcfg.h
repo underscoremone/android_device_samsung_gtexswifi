@@ -19,4 +19,7 @@
 
 #define BTM_DEF_LOCAL_NAME   "Samsung Galaxy Tab A"
 #define BLE_INCLUDED TRUE
+
+/* Enable A2DP sink */
+#define BTA_AV_SINK_INCLUDED TRUE
 #endif
