@@ -892,7 +892,7 @@ int i2s_pin_mux_sel(struct tiny_audio_device *adev, int type)
         if(adev->out_devices & AUDIO_DEVICE_OUT_ALL_SCO)
 		{
 		if( i2s_ctl_info->is_switch  ){
-			  ALOGW("i2s_pin_mux_sel in type i-----------3");	
+			  ALOGW("i2s_pin_mux_sel in type i-----------3");
 			while( p_ctlr_node )
 			{
 				if( p_ctlr_node->ctrl_file_fd <= 0 )
@@ -3318,7 +3318,7 @@ static int do_input_standby(struct tiny_stream_in *in)
     ALOGD("do_input_standby in->standby(%d), mode(%d), out_devices(%x), in_devices(%x), cp_type(%d), call_start(%d), call_connected(%d),mic_mute(%d), ",
         in->standby, adev->mode, adev->out_devices, adev->in_devices, adev->cp_type, adev->call_start, adev->call_connected, adev->mic_mute);
     ALOGD("in->is_bt_sco(%d), bluetooth_nrec(%d), bluetooth_type(%d) /////  in->is_voip(%d), realCall(%d), voip_start(%x), voip_state(%d), master_mute(%d), cache_mute(%d)",
-        in->is_bt_sco, adev->bluetooth_nrec, adev->bluetooth_type, 
+        in->is_bt_sco, adev->bluetooth_nrec, adev->bluetooth_type,
         in->is_voip,adev->realCall, adev->voip_start,adev->voip_state, adev->master_mute, adev->cache_mute);
 
     if (!in->standby) {
@@ -3473,7 +3473,7 @@ static int get_next_buffer(struct resampler_buffer_provider *buffer_provider,
     }
 
     if (in->frames_in == 0) {
-	ALOGE("peter: get next buffer in mux_pcm is %x",in->mux_pcm );
+	// ALOGE("peter: get next buffer in mux_pcm is %x",in->mux_pcm );
         if(in->mux_pcm){
 #ifdef AUDIO_MUX_PCM
             in->read_status = mux_pcm_read(in->mux_pcm,
@@ -3609,7 +3609,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
      */
     pthread_mutex_lock(&adev->lock);
     pthread_mutex_lock(&in->lock);
-    ALOGD("into in_read1: start: in->is_voip is %d, voip_state is %d in_devices is %x",in->is_voip,adev->voip_state,in->device);
+    // ALOGD("into in_read1: start: in->is_voip is %d, voip_state is %d in_devices is %x",in->is_voip,adev->voip_state,in->device);
     if(in_bypass_data(in,audio_stream_frame_size((const struct audio_stream *)(&stream->common)),in_get_sample_rate(&stream->common),buffer,bytes)){
         return bytes;
     }
@@ -3686,7 +3686,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
 
 #ifdef  AUDIO_MUX_PCM
         if(in->mux_pcm){
-            ALOGE("  peter: mux read  in");
+            // ALOGE("  peter: mux read  in");
             ret = mux_pcm_read(in->mux_pcm, buffer, bytes);
             if (ret != bytes){
                 ALOGE("ERR:in_read2");
@@ -3698,7 +3698,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
         else
 #endif
             ret = pcm_read(in->pcm, buffer, bytes);
-            ALOGE("  peter: normal read 1 in");
+            // ALOGE("  peter: normal read 1 in");
 
     }
 #ifdef AUDIO_DEBUG
@@ -5281,7 +5281,7 @@ static  vbc_ctrl_pipe_para_t *adev_modem_create(audio_modem_t  *modem, const cha
         }
     }
 
-	ALOGD("peter: modem num is %d",modem->num);
+	// ALOGD("peter: modem num is %d",modem->num);
     /* return the profile just added */
     return modem->vbc_ctrl_pipe_info;
 }
@@ -5334,7 +5334,7 @@ static  i2s_ctl_t *adev_I2S_create(i2s_bt_t  *i2s_btcall_info, const char *num)
         }
     }
 
-	ALOGD("peter: modem num is %d",i2s_btcall_info->num);
+	// ALOGD("peter: modem num is %d",i2s_btcall_info->num);
     /* return the profile just added */
     return i2s_btcall_info->i2s_ctl_info;
 }
@@ -5407,7 +5407,7 @@ static void adev_modem_start_tag(void *data, const XML_Char *tag_name,
             }
             memcpy((void*)state->vbc_ctrl_pipe_info->s_vbc_ctrl_pipe_name,(void*)attr[3],strlen((char *)attr[3]));
             state->vbc_ctrl_pipe_info->channel_id = atoi((char *)attr[5]);
-            state->vbc_ctrl_pipe_info->cpu_index = atoi((char *)attr[7]);			
+            state->vbc_ctrl_pipe_info->cpu_index = atoi((char *)attr[7]);
             state->vbc_ctrl_pipe_info++;
         } else {
             ALOGE("error profile!");
@@ -5529,10 +5529,10 @@ ALOGE("------data = cpu_index(%d)i2s_index(%d)is_switch(%d)is_ext(%d)  len(%d) "
 					else
 					{
 						p_ctlr_node->next = malloc(sizeof(ctrl_node));
-						p_ctlr_node = p_ctlr_node->next;	
+						p_ctlr_node = p_ctlr_node->next;
 
 					}
-				
+
 					p_ctlr_node->next = NULL;
 
 	                memcpy(p_ctlr_node->ctrl_path , attr[i+1], strlen(attr[i+1])+1);
@@ -5550,7 +5550,7 @@ ALOGE("------data = cpu_index(%d)i2s_index(%d)is_switch(%d)is_ext(%d)  len(%d) "
 	        }
 
 		i += 4;
-			
+
 	}
 
 	state->i2s_ctl_info++;
@@ -6387,4 +6387,3 @@ struct audio_module HAL_MODULE_INFO_SYM = {
         .methods = &hal_module_methods,
     },
 };
-

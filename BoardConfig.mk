@@ -11,8 +11,8 @@ TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_ARCH_VARIANT := armv7-a-neon
 TARGET_CPU_VARIANT := cortex-a7
-TARGET_GLOBAL_CFLAGS += -mtune=cortex-a7 -mfpu=neon -mfloat-abi=softfp
-TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a7 -mfpu=neon -mfloat-abi=softfp
+TARGET_GLOBAL_CFLAGS += -mfloat-abi=softfp -mfpu=neon-vfpv4 -mtune=cortex-a7
+TARGET_GLOBAL_CPPFLAGS += -mfloat-abi=softfp -mfpu=neon-vfpv4 -mtune=cortex-a7
 TARGET_CPU_SMP := true
 BOARD_VENDOR := samsung
 
@@ -44,6 +44,7 @@ BOARD_CACHEIMAGE_PARTITION_SIZE := 209715200
 BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_FLASH_BLOCK_SIZE := 131072
 USE_OPENGL_RENDERER := true
+TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 
 TARGET_BOARD_INFO_FILE := device/samsung/gtexslte/board-info.txt
 BOARD_EGL_CFG := device/samsung/gtexslte/egl.cfg
@@ -56,7 +57,7 @@ USE_OVERLAY_COMPOSER_GPU := true
 USE_SPRD_DITHER := true
 DEVICE_FORCE_VIDEO_GO_OVERLAYCOMPOSER := true
 BOARD_EGL_WORKAROUND_BUG_10194508 := true
-HWUI_COMPILE_FOR_PERF := true
+# HWUI_COMPILE_FOR_PERF := true
 TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS := true
 TARGET_REQUIRES_SYNCHRONOUS_SETSURFACE := true
 COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
