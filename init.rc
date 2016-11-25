@@ -301,6 +301,11 @@ on late-init
 
 
 on post-fs
+    chown system system /proc/uid_cputime/show_uid_stat
+    chmod 0440 /proc/uid_cputime/show_uid_stat
+    chown system system /proc/uid_cputime/remove_uid_range
+    chmod 0660 /proc/uid_cputime/remove_uid_range
+
     start logd
     # once everything is setup, no need to modify /
     mount rootfs rootfs / ro remount

@@ -1,114 +1,258 @@
-diff --git a/include/binder/MemoryHeapIon.SPRD.h b/include/binder/MemoryHeapIon.SPRD.h
-new file mode 100644
-index 0000000..3e155f4
---- /dev/null
-+++ b/include/binder/MemoryHeapIon.SPRD.h
-@@ -0,0 +1,71 @@
-+/*
-+ * Copyright (C) 2008 The Android Open Source Project
-+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * Licensed under the Apache License, Version 2.0 (the "License");
-+ * you may not use this file except in compliance with the License.
-+ * You may obtain a copy of the License at
-+ *
-+ *      http://www.apache.org/licenses/LICENSE-2.0
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
+diff --git a/build/phone-xxhdpi-3072-dalvik-heap.mk b/build/phone-xxhdpi-3072-dalvik-heap.mk
+index 450f4e1..3598f5a 100644
+--- a/build/phone-xxhdpi-3072-dalvik-heap.mk
++++ b/build/phone-xxhdpi-3072-dalvik-heap.mk
+@@ -18,8 +18,8 @@
+ 
+ PRODUCT_PROPERTY_OVERRIDES += \
+     dalvik.vm.heapstartsize=8m \
+-    dalvik.vm.heapgrowthlimit=256m \
+-    dalvik.vm.heapsize=512m \
++    dalvik.vm.heapgrowthlimit=288m \
++    dalvik.vm.heapsize=768m \
+     dalvik.vm.heaptargetutilization=0.75 \
+     dalvik.vm.heapminfree=512k \
+     dalvik.vm.heapmaxfree=8m
+diff --git a/build/phone-xxxhdpi-3072-dalvik-heap.mk b/build/phone-xxxhdpi-3072-dalvik-heap.mk
+index 3bf65a7..56a10dd 100644
+--- a/build/phone-xxxhdpi-3072-dalvik-heap.mk
++++ b/build/phone-xxxhdpi-3072-dalvik-heap.mk
+@@ -18,8 +18,8 @@
+ 
+ PRODUCT_PROPERTY_OVERRIDES += \
+     dalvik.vm.heapstartsize=8m \
+-    dalvik.vm.heapgrowthlimit=256m \
+-    dalvik.vm.heapsize=512m \
++    dalvik.vm.heapgrowthlimit=288m \
++    dalvik.vm.heapsize=768m \
+     dalvik.vm.heaptargetutilization=0.75 \
+     dalvik.vm.heapminfree=2m \
+     dalvik.vm.heapmaxfree=8m
+diff --git a/build/phone-xxxhdpi-4096-dalvik-heap.mk b/build/phone-xxxhdpi-4096-dalvik-heap.mk
+index 67f94f4..0e12557 100644
+--- a/build/phone-xxxhdpi-4096-dalvik-heap.mk
++++ b/build/phone-xxxhdpi-4096-dalvik-heap.mk
+@@ -18,8 +18,8 @@
+ 
+ PRODUCT_PROPERTY_OVERRIDES += \
+     dalvik.vm.heapstartsize=8m \
+-    dalvik.vm.heapgrowthlimit=256m \
+-    dalvik.vm.heapsize=512m \
+-    dalvik.vm.heaptargetutilization=0.25 \
++    dalvik.vm.heapgrowthlimit=384m \
++    dalvik.vm.heapsize=1024m \
++    dalvik.vm.heaptargetutilization=0.75 \
+     dalvik.vm.heapminfree=4m \
+     dalvik.vm.heapmaxfree=16m
+diff --git a/cmds/dumpstate/dumpstate.c b/cmds/dumpstate/dumpstate.c
+index 5b9a42f..475f7e3 100644
+--- a/cmds/dumpstate/dumpstate.c
++++ b/cmds/dumpstate/dumpstate.c
+@@ -305,7 +305,7 @@ static void dumpstate() {
+     dump_files("UPTIME MMC PERF", mmcblk0, skip_not_stat, dump_stat_from_fd);
+     dump_file("MEMORY INFO", "/proc/meminfo");
+     run_command("CPU INFO", 10, "top", "-n", "1", "-d", "1", "-m", "30", "-t", NULL);
+-    run_command("PROCRANK", 20, "procrank", NULL);
++    run_command("PROCRANK", 20, SU_PATH, "root", "procrank", NULL);
+     dump_file("VIRTUAL MEMORY STATS", "/proc/vmstat");
+     dump_file("VMALLOC INFO", "/proc/vmallocinfo");
+     dump_file("SLAB INFO", "/proc/slabinfo");
+diff --git a/cmds/servicemanager/Android.mk b/cmds/servicemanager/Android.mk
+index 155cfc5..5bafd53 100644
+--- a/cmds/servicemanager/Android.mk
++++ b/cmds/servicemanager/Android.mk
+@@ -18,7 +18,7 @@ LOCAL_MODULE_TAGS := optional
+ include $(BUILD_EXECUTABLE)
+ 
+ include $(CLEAR_VARS)
+-LOCAL_SHARED_LIBRARIES := liblog libselinux
++LOCAL_SHARED_LIBRARIES := liblog libcutils libselinux
+ LOCAL_SRC_FILES := service_manager.c binder.c
+ LOCAL_CFLAGS += $(svc_c_flags)
+ LOCAL_MODULE := servicemanager
+diff --git a/cmds/servicemanager/service_manager.c b/cmds/servicemanager/service_manager.c
+index 7fa9a39..031f848 100644
+--- a/cmds/servicemanager/service_manager.c
++++ b/cmds/servicemanager/service_manager.c
+@@ -8,6 +8,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
++#include <cutils/multiuser.h>
 +
-+#ifndef ANDROID_MEMORY_HEAP_ION_H
-+#define ANDROID_MEMORY_HEAP_ION_H
+ #include <private/android_filesystem_config.h>
+ 
+ #include <selinux/android.h>
+@@ -107,9 +109,14 @@ static bool check_mac_perms_from_lookup(pid_t spid, const char *perm, const char
+     return allowed;
+ }
+ 
+-static int svc_can_register(const uint16_t *name, size_t name_len, pid_t spid)
++static int svc_can_register(const uint16_t *name, size_t name_len, pid_t spid, uid_t uid)
+ {
+     const char *perm = "add";
 +
-+#include <stdlib.h>
-+#include <stdint.h>
++    if (multiuser_get_app_id(uid) >= AID_APP) {
++        return 0; /* Don't allow apps to register services */
++    }
 +
-+#include <binder/MemoryHeapBase.h>
-+#include <binder/IMemory.h>
-+#include <utils/SortedVector.h>
-+#include <utils/threads.h>
+     return check_mac_perms_from_lookup(spid, perm, str8(name, name_len)) ? 1 : 0;
+ }
+ 
+@@ -204,7 +211,7 @@ int do_add_service(struct binder_state *bs,
+     if (!handle || (len == 0) || (len > 127))
+         return -1;
+ 
+-    if (!svc_can_register(s, len, spid)) {
++    if (!svc_can_register(s, len, spid, uid)) {
+         ALOGE("add_service('%s',%x) uid=%d - PERMISSION DENIED\n",
+              str8(s, len), handle, uid);
+         return -1;
+diff --git a/include/binder/Parcel.h b/include/binder/Parcel.h
+index 91ffae0..3e8fe32 100644
+--- a/include/binder/Parcel.h
++++ b/include/binder/Parcel.h
+@@ -44,7 +44,7 @@ public:
+ 
+                         Parcel();
+                         ~Parcel();
+-    
 +
-+struct ion_handle;
+     const uint8_t*      data() const;
+     size_t              dataSize() const;
+     size_t              dataAvail() const;
+@@ -54,7 +54,7 @@ public:
+     status_t            setDataSize(size_t size);
+     void                setDataPosition(size_t pos) const;
+     status_t            setDataCapacity(size_t size);
+-    
 +
-+namespace android {
+     status_t            setData(const uint8_t* buffer, size_t len);
+ 
+     status_t            appendFrom(const Parcel *parcel,
+@@ -87,10 +87,10 @@ private:
+ 
+ public:
+     size_t              objectsCount() const;
+-    
 +
-+class MemoryHeapBase;
+     status_t            errorCheck() const;
+     void                setError(status_t err);
+-    
 +
-+// ---------------------------------------------------------------------------
+     status_t            write(const void* data, size_t len);
+     void*               writeInplace(size_t len);
+     status_t            writeUnpadded(const void* data, size_t len);
+@@ -118,15 +118,15 @@ public:
+ 
+     // Place a native_handle into the parcel (the native_handle's file-
+     // descriptors are dup'ed, so it is safe to delete the native_handle
+-    // when this function returns). 
++    // when this function returns).
+     // Doesn't take ownership of the native_handle.
+     status_t            writeNativeHandle(const native_handle* handle);
+-    
 +
-+class MemoryHeapIon : public MemoryHeapBase
-+{
-+public:
-+    MemoryHeapIon(const char*, size_t, uint32_t, long unsigned int);
-+    MemoryHeapIon();
-+    ~MemoryHeapIon();
+     // Place a file descriptor into the parcel.  The given fd must remain
+     // valid for the lifetime of the parcel.
+     // The Parcel does not take ownership of the given fd unless you ask it to.
+     status_t            writeFileDescriptor(int fd, bool takeOwnership = false);
+-    
 +
-+    status_t mapIonFd(int fd, size_t size, unsigned long memory_type, int flags);
+     // Place a file descriptor into the parcel.  A dup of the fd is made, which
+     // will be closed once the parcel is destroyed.
+     status_t            writeDupFileDescriptor(int fd);
+@@ -152,7 +152,7 @@ public:
+     status_t            writeNoException();
+ 
+     void                remove(size_t start, size_t amt);
+-    
 +
-+    status_t ionInit(int ionFd, void *base, int size, int flags,
-+                                const char* device, struct ion_handle *handle,
-+                                int ionMapFd);
-+    int get_phy_addr_from_ion(int *phy_addr, int *size);
-+    int flush_ion_buffer(void *v_addr, void *p_addr,int size);
-+    int get_gsp_iova(int *mmu_addr, int *size);
-+    int free_gsp_iova(int mmu_addr, int size);
-+    int get_mm_iova(int *mmu_addr, int *size);
-+    int free_mm_iova(int mmu_addr, int size);
-+    static int Get_gsp_iova(int buffer_fd, int *mmu_addr, int *size);
-+    static int Free_gsp_iova(int buffer_fd, int mmu_addr, int size);
-+    static int Get_mm_iova(int buffer_fd,int *mmu_addr, int *size);
-+    static int Free_mm_iova(int buffer_fd,int mmu_addr, int size);
-+    static int Get_phy_addr_from_ion(int fd, int *phy_addr, int *size);/*fd is "fd of the corresponding ion hanlde"*/
-+    static int Flush_ion_buffer(int buffer_fd, void *v_addr,void *p_addr, int size);
-+    static bool Gsp_iommu_is_enabled(void);
-+    static bool Mm_iommu_is_enabled(void);
+     status_t            read(void* outData, size_t len) const;
+     const void*         readInplace(size_t len) const;
+     int32_t             readInt32() const;
+@@ -192,11 +192,11 @@ public:
+ 
+     // Retrieve native_handle from the parcel. This returns a copy of the
+     // parcel's native_handle (the caller takes ownership). The caller
+-    // must free the native_handle with native_handle_close() and 
++    // must free the native_handle with native_handle_close() and
+     // native_handle_delete().
+     native_handle*     readNativeHandle() const;
+ 
+-    
 +
-+private:
-+    int mIonDeviceFd;  /*fd we get from open("/dev/ion")*/
-+    struct ion_handle *mIonHandle;  /*handle we get from ION_IOC_ALLOC*/ };
+     // Retrieve a file descriptor from the parcel.  This returns the raw fd
+     // in the parcel, which you do not own -- use dup() to get your own copy.
+     int                 readFileDescriptor() const;
+@@ -219,7 +219,7 @@ private:
+                                         const uint8_t* data, size_t dataSize,
+                                         const binder_size_t* objects, size_t objectsSize,
+                                         void* cookie);
+-                        
 +
-+// ---------------------------------------------------------------------------
-+}; // namespace android
+     uintptr_t           ipcData() const;
+     size_t              ipcDataSize() const;
+     uintptr_t           ipcObjects() const;
+@@ -227,14 +227,14 @@ private:
+     void                ipcSetDataReference(const uint8_t* data, size_t dataSize,
+                                             const binder_size_t* objects, size_t objectsCount,
+                                             release_func relFunc, void* relCookie);
+-    
 +
-+#endif // ANDROID_MEMORY_HEAP_ION_H
+ public:
+     void                print(TextOutput& to, uint32_t flags = 0) const;
+ 
+ private:
+                         Parcel(const Parcel& o);
+     Parcel&             operator=(const Parcel& o);
+-    
++
+     status_t            finishWrite(size_t len);
+     void                releaseObjects();
+     void                acquireObjects();
+@@ -247,7 +247,7 @@ private:
+     void                freeDataNoInit();
+     void                initState();
+     void                scanForFds() const;
+-                        
++
+     template<class T>
+     status_t            readAligned(T *pArg) const;
+ 
+@@ -269,7 +269,7 @@ private:
+     mutable bool        mFdsKnown;
+     mutable bool        mHasFds;
+     bool                mAllowFds;
+-    
++
+     release_func        mOwner;
+     void*               mOwnerCookie;
+ 
 diff --git a/include/media/openmax/OMX_IVCommon.h b/include/media/openmax/OMX_IVCommon.h
-index 940911e..4171951 100644
+index f9b6f4b..60b1bfb 100644
 --- a/include/media/openmax/OMX_IVCommon.h
 +++ b/include/media/openmax/OMX_IVCommon.h
-@@ -169,7 +169,10 @@ typedef enum OMX_COLOR_FORMATTYPE {
+@@ -170,6 +170,9 @@ typedef enum OMX_COLOR_FORMATTYPE {
      OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka = 0x7FA30C03,
      OMX_SEC_COLOR_FormatNV12Tiled = 0x7FC00002,
      OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar32m = 0x7FA30C04,
--    OMX_COLOR_FormatMax = 0x7FFFFFFF,
 +#ifdef SPRD_HARDWARE
 +    OMX_SPRD_COLOR_FormatYVU420SemiPlanar = 0x7FD00001,
 +#endif
-+    OMX_COLOR_FormatMax = 0x7FFFFFFF
+     OMX_COLOR_FormatMax = 0x7FFFFFFF
  } OMX_COLOR_FORMATTYPE;
  
- 
 diff --git a/include/media/openmax/OMX_Index.h b/include/media/openmax/OMX_Index.h
-index ab3f55e..097238e 100644
+index 1a2a548..49e9d1d 100644
 --- a/include/media/openmax/OMX_Index.h
 +++ b/include/media/openmax/OMX_Index.h
-@@ -141,7 +141,7 @@ typedef enum OMX_INDEXTYPE {
-     OMX_IndexParamAudioFlac,                /**< reference: OMX_AUDIO_PARAM_FLACTYPE */
- #ifdef MTK_HARDWARE
-     OMX_IndexParamAudioRaw,
--	OMX_IndexParamAudioWmaProfile,
-+    OMX_IndexParamAudioWmaProfile,
- #endif
- 
-     OMX_IndexConfigAudioMidiImmediateEvent, /**< reference: OMX_AUDIO_CONFIG_MIDIIMMEDIATEEVENTTYPE */
-@@ -277,6 +277,23 @@ typedef enum OMX_INDEXTYPE {
+@@ -262,6 +262,24 @@ typedef enum OMX_INDEXTYPE {
         private indexes are not guaranteed unique and therefore should
         only be sent to the appropriate component. */
  
 +#ifdef SPRD_HARDWARE
++    /* TODO move to SprdOMXComponent.h */
 +    /* for Android Native Window */
 +#define SPRD_INDEX_PARAM_ENABLE_ANB "OMX.google.android.index.enableAndroidNativeBuffers"
 +    OMX_IndexParamEnableAndroidBuffers         = 0x7F000011,
@@ -125,662 +269,1307 @@ index ab3f55e..097238e 100644
 +    OMX_IndexConfigThumbnailMode               = 0x7F000016,
 +#endif
 +
- #ifdef MTK_HARDWARE
-     OMX_IndexVendorMtkOmxVdecTimeSource        = 0x7F000001,
-     OMX_IndexVendorMtkOmxVdecThumbnailMode     = 0x7F00000A,
-diff --git a/include/ui/PixelFormat.h b/include/ui/PixelFormat.h
-index 79a29bc..5d960b1 100644
---- a/include/ui/PixelFormat.h
-+++ b/include/ui/PixelFormat.h
-@@ -63,6 +63,9 @@ enum {
-     PIXEL_FORMAT_BGRA_8888   = HAL_PIXEL_FORMAT_BGRA_8888,  // 4x8-bit BGRA
-     PIXEL_FORMAT_RGBA_5551   = 6,                           // 16-bit ARGB
-     PIXEL_FORMAT_RGBA_4444   = 7,                           // 16-bit ARGB
-+#ifdef SPRD_HARDWARE
-+    PIXEL_FORMAT_YCbCr_420_SP= 25,
-+#endif
+     OMX_IndexMax = 0x7FFFFFFF
+ 
+ } OMX_INDEXTYPE;
+diff --git a/include/ui/FrameStats.h b/include/ui/FrameStats.h
+index 5fdf94d..6bfe635 100644
+--- a/include/ui/FrameStats.h
++++ b/include/ui/FrameStats.h
+@@ -25,6 +25,7 @@ namespace android {
+ 
+ class FrameStats : public LightFlattenable<FrameStats> {
+ public:
++    FrameStats() : refreshPeriodNano(0) {};
+ 
+     /*
+      * Approximate refresh time, in nanoseconds.
+diff --git a/libs/binder/IServiceManager.cpp b/libs/binder/IServiceManager.cpp
+index 3c716df..8a352bd 100644
+--- a/libs/binder/IServiceManager.cpp
++++ b/libs/binder/IServiceManager.cpp
+@@ -33,7 +33,7 @@ namespace android {
+ sp<IServiceManager> defaultServiceManager()
+ {
+     if (gDefaultServiceManager != NULL) return gDefaultServiceManager;
+-    
++
+     {
+         AutoMutex _l(gDefaultServiceManagerLock);
+         while (gDefaultServiceManager == NULL) {
+@@ -43,7 +43,7 @@ sp<IServiceManager> defaultServiceManager()
+                 sleep(1);
+         }
+     }
+-    
++
+     return gDefaultServiceManager;
+ }
+ 
+@@ -71,7 +71,7 @@ bool checkPermission(const String16& permission, pid_t pid, uid_t uid)
+     gDefaultServiceManagerLock.lock();
+     pc = gPermissionController;
+     gDefaultServiceManagerLock.unlock();
+-    
++
+     int64_t startTime = 0;
+ 
+     while (true) {
+@@ -85,14 +85,14 @@ bool checkPermission(const String16& permission, pid_t pid, uid_t uid)
+                 }
+                 return res;
+             }
+-            
++
+             // Is this a permission failure, or did the controller go away?
+             if (IInterface::asBinder(pc)->isBinderAlive()) {
+                 ALOGW("Permission failure: %s from uid=%d pid=%d",
+                         String8(permission).string(), uid, pid);
+                 return false;
+             }
+-            
++
+             // Object is dead!
+             gDefaultServiceManagerLock.lock();
+             if (gPermissionController == pc) {
+@@ -100,7 +100,7 @@ bool checkPermission(const String16& permission, pid_t pid, uid_t uid)
+             }
+             gDefaultServiceManagerLock.unlock();
+         }
+-    
++
+         // Need to retrieve the permission controller.
+         sp<IBinder> binder = defaultServiceManager()->checkService(_permission);
+         if (binder == NULL) {
+@@ -113,7 +113,7 @@ bool checkPermission(const String16& permission, pid_t pid, uid_t uid)
+             sleep(1);
+         } else {
+             pc = interface_cast<IPermissionController>(binder);
+-            // Install the new permission controller, and try again.        
++            // Install the new permission controller, and try again.
+             gDefaultServiceManagerLock.lock();
+             gPermissionController = pc;
+             gDefaultServiceManagerLock.unlock();
+@@ -134,6 +134,11 @@ public:
+     virtual sp<IBinder> getService(const String16& name) const
+     {
+         unsigned n;
++
++        if (strcmp(String8(name).string(), "atchannel") == 0) {
++          sleep(1000);
++          return NULL;
++        }
+         for (n = 0; n < 5; n++){
+             sp<IBinder> svc = checkService(name);
+             if (svc != NULL) return svc;
+diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
+index 4f539a8..f86d4df 100644
+--- a/libs/binder/Parcel.cpp
++++ b/libs/binder/Parcel.cpp
+@@ -18,6 +18,8 @@
+ //#define LOG_NDEBUG 0
+ 
+ #include <binder/Parcel.h>
++#include <fcntl.h>
++#include <pthread.h>
+ 
+ #include <binder/IPCThreadState.h>
+ #include <binder/Binder.h>
+@@ -42,6 +44,9 @@
+ #include <stdlib.h>
+ #include <stdint.h>
+ #include <sys/mman.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <unistd.h>
+ 
+ #ifndef INT32_MAX
+ #define INT32_MAX ((int32_t)(2147483647))
+@@ -95,6 +100,32 @@ enum {
+     BLOB_ASHMEM_MUTABLE = 2,
  };
  
- typedef int32_t PixelFormat;
-diff --git a/libs/binder/Android.mk b/libs/binder/Android.mk
-index 7861fef..60f7319 100644
---- a/libs/binder/Android.mk
-+++ b/libs/binder/Android.mk
-@@ -45,6 +45,11 @@ sources += \
-     MemoryHeapIon.cpp
- endif
- 
-+ifeq ($(BOARD_NEEDS_MEMORYHEAPION_SPRD),true)
-+sources += \
-+    MemoryHeapIon.SPRD.cpp
-+endif
-+
- LOCAL_PATH:= $(call my-dir)
- 
- include $(CLEAR_VARS)
-@@ -59,6 +64,10 @@ PLATFORM_DIR := $(TARGET_BOARD_PLATFORM)
- endif
- LOCAL_C_INCLUDES += hardware/samsung_slsi/$(PLATFORM_DIR)/include
- endif
-+ifeq ($(BOARD_NEEDS_MEMORYHEAPION_SPRD),true)
-+LOCAL_C_INCLUDES += \
-+    $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
-+endif
- 
- LOCAL_LDLIBS += -lpthread
- LOCAL_MODULE := libbinder
-@@ -79,6 +88,10 @@ PLATFORM_DIR := $(TARGET_BOARD_PLATFORM)
- endif
- LOCAL_C_INCLUDES += hardware/samsung_slsi/$(PLATFORM_DIR)/include
- endif
-+ifeq ($(BOARD_NEEDS_MEMORYHEAPION_SPRD),true)
-+LOCAL_C_INCLUDES += \
-+    $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
-+endif
- 
- LOCAL_LDLIBS += -lpthread
- LOCAL_MODULE := libbinder
-diff --git a/libs/binder/IPCThreadState.cpp b/libs/binder/IPCThreadState.cpp
-index aaad104..725b549 100644
---- a/libs/binder/IPCThreadState.cpp
-+++ b/libs/binder/IPCThreadState.cpp
-@@ -1130,9 +1130,15 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
-     case BR_SPAWN_LOOPER:
-         mProcess->spawnPooledThread(false);
-         break;
--        
-+
-+    //For Bug#305183, to deal with BR_TRANSACTION_COMPLETE cmd
-+    case BR_TRANSACTION_COMPLETE:
-+        ALOGE("*** BAD COMMAND: BR_TRANSACTION_COMPLETE(%x) for executeCommand from Binder driver\n", cmd);
-+        break;
-+
-     default:
-         printf("*** BAD COMMAND %d received from Binder driver\n", cmd);
-+        ALOGE("*** BAD COMMAND %x received from Binder driver\n", cmd);
-         result = UNKNOWN_ERROR;
-         break;
-     }
-diff --git a/libs/binder/MemoryHeapIon.SPRD.cpp b/libs/binder/MemoryHeapIon.SPRD.cpp
-new file mode 100644
-index 0000000..48b68db
---- /dev/null
-+++ b/libs/binder/MemoryHeapIon.SPRD.cpp
-@@ -0,0 +1,499 @@
-+/*
-+ * Copyright (C) 2008 The Android Open Source Project
-+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * Licensed under the Apache License, Version 2.0 (the "License");
-+ * you may not use this file except in compliance with the License.
-+ * You may obtain a copy of the License at
-+ *
-+ *      http://www.apache.org/licenses/LICENSE-2.0
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ */
-+
-+#define LOG_TAG "MemoryHeapIon"
-+
-+#include <stdlib.h>
-+#include <stdint.h>
-+#include <unistd.h>
-+#include <fcntl.h>
-+#include <errno.h>
-+#include <sys/types.h>
-+#include <sys/stat.h>
-+#include <sys/ioctl.h>
-+
-+#include <cutils/log.h>
-+
-+#include <binder/MemoryHeapIon.SPRD.h>
-+#include <binder/MemoryHeapBase.h>
-+
-+#ifdef USE_TARGET_SIMULATOR_MODE
-+#include <linux/ion.h>
-+//modify for make sdk
-+struct ion_phys_data {
-+    int fd_buffer;
-+    unsigned long phys;
-+    size_t size;
-+};
-+
-+struct ion_msync_data {
-+    int fd_buffer;
-+    void *vaddr;
-+    void *paddr;
-+    size_t size;
-+};
-+
-+enum ION_SPRD_CUSTOM_CMD {
-+    ION_SPRD_CUSTOM_PHYS,
-+    ION_SPRD_CUSTOM_MSYNC
-+};
-+#else
-+#include <linux/ion.h>
-+#include <video/ion_sprd.h>
-+#endif
-+
-+namespace android {
-+
-+int  MemoryHeapIon::Get_phy_addr_from_ion(int buffer_fd, int *phy_addr, int *size){
-+    int fd = open("/dev/ion", O_SYNC);
-+    if(fd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_phys_data phys_data;
-+        struct ion_custom_data  custom_data;
-+        phys_data.fd_buffer = buffer_fd;
-+        custom_data.cmd = ION_SPRD_CUSTOM_PHYS;
-+        custom_data.arg = (unsigned long)&phys_data;
-+        ret = ioctl(fd,ION_IOC_CUSTOM,&custom_data);
-+        *phy_addr = phys_data.phys;
-+        *size = phys_data.size;
-+        close(fd);
-+        if(ret)
-+        {
-+            ALOGE("%s: Getphyaddr error!",__func__);
-+            return -2;
-+        }
-+    }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::get_phy_addr_from_ion(int *phy_addr, int *size){
-+    if(mIonDeviceFd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_phys_data phys_data;
-+        struct ion_custom_data  custom_data;
-+        phys_data.fd_buffer = MemoryHeapBase::getHeapID();
-+        custom_data.cmd = ION_SPRD_CUSTOM_PHYS;
-+        custom_data.arg = (unsigned long)&phys_data;
-+        ret = ioctl(mIonDeviceFd,ION_IOC_CUSTOM,&custom_data);
-+        *phy_addr = phys_data.phys;
-+        *size = phys_data.size;
-+        if(ret)
-+        {
-+            ALOGE("%s: getphyaddr error!",__func__);
-+            return -2;
-+        }
-+     }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::get_gsp_iova(int *mmu_addr, int *size){
-+    if(mIonDeviceFd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+        mmu_data.fd_buffer = MemoryHeapBase::getHeapID();
-+        custom_data.cmd = ION_SPRD_CUSTOM_GSP_MAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(mIonDeviceFd,ION_IOC_CUSTOM,&custom_data);
-+        *mmu_addr = mmu_data.iova_addr;
-+        *size = mmu_data.iova_size;
-+        if(ret)
-+        {
-+            ALOGE("%s: get gsp iova error!",__func__);
-+            return -2;
-+        }
-+     }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::free_gsp_iova(int mmu_addr, int size){
-+    if(mIonDeviceFd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+        mmu_data.fd_buffer = MemoryHeapBase::getHeapID();
-+        mmu_data.iova_addr = mmu_addr;
-+        mmu_data.iova_size = size;
-+        custom_data.cmd = ION_SPRD_CUSTOM_GSP_UNMAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(mIonDeviceFd,ION_IOC_CUSTOM,&custom_data);
-+        if(ret)
-+        {
-+            ALOGE("%s: free gsp iova error!",__func__);
-+            return -2;
-+        }
-+     }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::get_mm_iova(int *mmu_addr, int *size){
-+    if(mIonDeviceFd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+        mmu_data.fd_buffer = MemoryHeapBase::getHeapID();
-+        custom_data.cmd = ION_SPRD_CUSTOM_MM_MAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(mIonDeviceFd,ION_IOC_CUSTOM,&custom_data);
-+        *mmu_addr = mmu_data.iova_addr;
-+        *size = mmu_data.iova_size;
-+        if(ret)
-+        {
-+            ALOGE("%s: get mm iova error!",__func__);
-+            return -2;
-+        }
-+     }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::free_mm_iova(int mmu_addr, int size){
-+    if(mIonDeviceFd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+        mmu_data.fd_buffer = MemoryHeapBase::getHeapID();
-+        mmu_data.iova_addr = mmu_addr;
-+        mmu_data.iova_size = size;
-+        custom_data.cmd = ION_SPRD_CUSTOM_MM_UNMAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(mIonDeviceFd,ION_IOC_CUSTOM,&custom_data);
-+        if(ret)
-+        {
-+            ALOGE("%s: free mm iova error!",__func__);
-+            return -2;
-+        }
-+     }
-+    return 0;
-+}
-+int MemoryHeapIon::Get_gsp_iova(int buffer_fd,int *mmu_addr, int *size){
-+    int fd = open("/dev/ion", O_SYNC);
-+    if(fd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+
-+        mmu_data.fd_buffer = buffer_fd;
-+        custom_data.cmd = ION_SPRD_CUSTOM_GSP_MAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(fd,ION_IOC_CUSTOM,&custom_data);
-+        *mmu_addr = mmu_data.iova_addr;
-+        *size = mmu_data.iova_size;
-+        close(fd);
-+        if(ret)
-+        {
-+            ALOGE("%s: Get gsp iova error!",__func__);
-+            return -2;
-+        }
-+    }
-+    return 0;
-+}
-+int MemoryHeapIon::Get_mm_iova(int buffer_fd,int *mmu_addr, int *size){
-+    int fd = open("/dev/ion", O_SYNC);
-+    if(fd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+
-+        mmu_data.fd_buffer =  buffer_fd;
-+        custom_data.cmd = ION_SPRD_CUSTOM_MM_MAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(fd,ION_IOC_CUSTOM,&custom_data);
-+        *mmu_addr = mmu_data.iova_addr;
-+        *size = mmu_data.iova_size;
-+        close(fd);
-+        if(ret)
-+        {
-+            ALOGE("%s: Get mm iova error!",__func__);
-+            return -2;
-+        }
-+    }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::Free_gsp_iova(int buffer_fd,int mmu_addr, int size){
-+    int fd = open("/dev/ion", O_SYNC);
-+    if(fd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+
-+        mmu_data.fd_buffer = buffer_fd;
-+        mmu_data.iova_addr = mmu_addr;
-+        mmu_data.iova_size = size;
-+        custom_data.cmd = ION_SPRD_CUSTOM_GSP_UNMAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(fd,ION_IOC_CUSTOM,&custom_data);
-+        close(fd);
-+        if(ret)
-+        {
-+            ALOGE("%s: Free gsp iova error!",__func__);
-+            return -2;
-+        }
-+    }
-+    return 0;
-+}
-+int MemoryHeapIon::Free_mm_iova(int buffer_fd,int mmu_addr, int size){
-+    int fd = open("/dev/ion", O_SYNC);
-+    if(fd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_mmu_data mmu_data;
-+        struct ion_custom_data  custom_data;
-+
-+        mmu_data.fd_buffer = buffer_fd;
-+        mmu_data.iova_addr = mmu_addr;
-+        mmu_data.iova_size = size;
-+        custom_data.cmd = ION_SPRD_CUSTOM_MM_UNMAP;
-+        custom_data.arg = (unsigned long)&mmu_data;
-+        ret = ioctl(fd,ION_IOC_CUSTOM,&custom_data);
-+        close(fd);
-+        if(ret)
-+        {
-+            ALOGE("%s: Free mm iova error!",__func__);
-+            return -2;
-+        }
-+    }
-+    return 0;
-+}
-+
-+bool MemoryHeapIon::Gsp_iommu_is_enabled(void)
++static dev_t ashmem_rdev()
 +{
-+	if(access("/dev/sprd_iommu_gsp",F_OK)<0)
-+	{
-+		return false;
-+	}
-+	return true;
-+}
++    static dev_t __ashmem_rdev;
++    static pthread_mutex_t __ashmem_rdev_lock = PTHREAD_MUTEX_INITIALIZER;
 +
-+bool MemoryHeapIon::Mm_iommu_is_enabled(void)
-+{
-+	if(access("/dev/sprd_iommu_mm",F_OK)<0)
-+	{
-+		return false;
-+	}
-+	return true;
-+}
++    pthread_mutex_lock(&__ashmem_rdev_lock);
 +
-+int  MemoryHeapIon::Flush_ion_buffer(int buffer_fd, void *v_addr,void *p_addr,int size){
-+       int fd = open("/dev/ion", O_SYNC);
-+    if(fd<0){
-+        ALOGE("%s:open dev ion error!",__func__);
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_msync_data msync_data;
-+        struct ion_custom_data  custom_data;
++    dev_t rdev = __ashmem_rdev;
++    if (!rdev) {
++        int fd = TEMP_FAILURE_RETRY(open("/dev/ashmem", O_RDONLY));
++        if (fd >= 0) {
++            struct stat st;
 +
-+        msync_data.fd_buffer = buffer_fd;
-+        msync_data.vaddr = v_addr;
-+        msync_data.paddr = p_addr;
-+        msync_data.size = size;
-+        custom_data.cmd = ION_SPRD_CUSTOM_MSYNC;
-+        custom_data.arg = (unsigned long)&msync_data;
-+        ret = ioctl(fd,ION_IOC_CUSTOM,&custom_data);
-+        close(fd);
-+        if(ret)
-+        {
-+            ALOGE("%s: Flush ion buffer error!",__func__);
-+            return -2;
-+        }
-+    }
-+    return 0;
-+}
-+
-+int MemoryHeapIon::flush_ion_buffer(void *v_addr, void *p_addr,int size){
-+    if(mIonDeviceFd<0){
-+        return -1;
-+    }else{
-+        int ret;
-+        struct ion_msync_data msync_data;
-+        struct ion_custom_data  custom_data;
-+
-+        if ((v_addr<MemoryHeapBase::getBase())  ||  (((char *)v_addr)+size>((char *)MemoryHeapBase::getBase())+MemoryHeapBase::getSize())){
-+             ALOGE("flush_ion_buffer error  mBase=0x%x,mSize=0x%x",MemoryHeapBase::getBase(), MemoryHeapBase::getSize());
-+             ALOGE("flush_ion_buffer error  v_addr=0x%x,p_addr=0x%x,size=0x%x",v_addr,p_addr,size);
-+             return -3;
-+        }
-+        msync_data.fd_buffer = MemoryHeapBase::getHeapID();
-+        msync_data.vaddr = v_addr;
-+        msync_data.paddr = p_addr;
-+        msync_data.size = size;
-+        custom_data.cmd = ION_SPRD_CUSTOM_MSYNC;
-+        custom_data.arg = (unsigned long)&msync_data;
-+        ret = ioctl(mIonDeviceFd,ION_IOC_CUSTOM,&custom_data);
-+        if(ret)
-+        {
-+            ALOGE("%s:flush ion buffer error!",__func__);
-+            return -2;
-+        }
-+     }
-+    return 0;
-+}
-+
-+MemoryHeapIon::MemoryHeapIon() : mIonDeviceFd(-1), mIonHandle(NULL)
-+{
-+}
-+
-+MemoryHeapIon::MemoryHeapIon(const char* device, size_t size,
-+    uint32_t flags, unsigned long memory_types)
-+    : MemoryHeapBase()
-+{
-+    int open_flags = O_RDONLY;
-+    if (flags & NO_CACHING)
-+         open_flags |= O_SYNC;
-+
-+    int fd = open(device, open_flags);
-+    if (fd >= 0) {
-+            const size_t pagesize = getpagesize();
-+            size = ((size + pagesize-1) & ~(pagesize-1));
-+            if (mapIonFd(fd, size, memory_types, flags) == NO_ERROR) {
-+                MemoryHeapBase::setDevice(device);
++            int ret = TEMP_FAILURE_RETRY(fstat(fd, &st));
++            close(fd);
++            if ((ret >= 0) && S_ISCHR(st.st_mode)) {
++                rdev = __ashmem_rdev = st.st_rdev;
 +            }
-+    }else {
-+        ALOGE("open ion fail");
-+    }
-+}
-+
-+status_t MemoryHeapIon::ionInit(int ionFd, void *base, int size, int flags,
-+                const char* device, struct ion_handle *handle,
-+                int ionMapFd) {
-+    mIonDeviceFd = ionFd;
-+    mIonHandle = handle;
-+    MemoryHeapBase::init(ionMapFd, base, size, flags, device);
-+    return NO_ERROR;
-+}
-+
-+
-+status_t MemoryHeapIon::mapIonFd(int fd, size_t size, unsigned long memory_type, int uflags)
-+{
-+    /* If size is 0, just fail the mmap. There is no way to get the size
-+     * with ion
-+     */
-+    int map_fd;
-+
-+    struct ion_allocation_data data;
-+    struct ion_fd_data fd_data;
-+    struct ion_handle_data handle_data;
-+    void *base = NULL;
-+
-+    data.len = size;
-+    data.align = getpagesize();
-+#if (ION_DRIVER_VERSION == 1)
-+    data.heap_mask = memory_type;
-+    //if cached buffer , force set the lowest two bits 11
-+    if((memory_type&(1<<31)))
-+    {
-+        data.flags = ((memory_type&(1<<31)) | 3);
-+    }
-+    else
-+    {
-+        data.flags = 0;
-+    }
-+#else
-+    data.flags = memory_type;
-+#endif
-+
-+    if (ioctl(fd, ION_IOC_ALLOC, &data) < 0) {
-+        ALOGE("%s: ION_IOC_ALLOC error!",__func__);
-+        close(fd);
-+        return -errno;
-+    }
-+
-+    if ((uflags & DONT_MAP_LOCALLY) == 0) {
-+        int flags = 0;
-+
-+        fd_data.handle = data.handle;
-+
-+        if (ioctl(fd, ION_IOC_SHARE, &fd_data) < 0) {
-+            ALOGE("%s: ION_IOC_SHARE error!",__func__);
-+            handle_data.handle = data.handle;
-+            ioctl(fd, ION_IOC_FREE, &handle_data);
-+            close(fd);
-+            return -errno;
-+        }
-+
-+        base = (uint8_t*)mmap(0, size,
-+                PROT_READ|PROT_WRITE, MAP_SHARED|flags, fd_data.fd, 0);
-+        if (base == MAP_FAILED) {
-+            ALOGE("mmap(fd=%d, size=%u) failed (%s)",
-+                    fd, uint32_t(size), strerror(errno));
-+            handle_data.handle = data.handle;
-+            ioctl(fd, ION_IOC_FREE, &handle_data);
-+            close(fd);
-+            return -errno;
 +        }
 +    }
-+    mIonHandle = data.handle;
-+    mIonDeviceFd = fd;
 +
-+    /*
-+     * Call this with NULL now and set device with set_device
-+     * above for consistency sake with how MemoryHeapPmem works.
-+     */
-+    MemoryHeapBase::init(fd_data.fd, base, size, uflags, NULL);
++    pthread_mutex_unlock(&__ashmem_rdev_lock);
 +
-+    return NO_ERROR;
++    return rdev;
 +}
 +
-+MemoryHeapIon::~MemoryHeapIon()
+ void acquire_object(const sp<ProcessState>& proc,
+     const flat_binder_object& obj, const void* who, size_t* outAshmemSize)
+ {
+@@ -123,8 +154,10 @@ void acquire_object(const sp<ProcessState>& proc,
+             return;
+         }
+         case BINDER_TYPE_FD: {
+-            if (obj.cookie != 0) {
+-                if (outAshmemSize != NULL) {
++            if ((obj.cookie != 0) && (outAshmemSize != NULL)) {
++                struct stat st;
++                int ret = fstat(obj.handle, &st);
++                if (!ret && S_ISCHR(st.st_mode) && (st.st_rdev == ashmem_rdev())) {
+                     // If we own an ashmem fd, keep track of how much memory it refers to.
+                     int size = ashmem_get_size_region(obj.handle);
+                     if (size > 0) {
+@@ -173,15 +206,18 @@ static void release_object(const sp<ProcessState>& proc,
+             return;
+         }
+         case BINDER_TYPE_FD: {
+-            if (outAshmemSize != NULL) {
+-                if (obj.cookie != 0) {
+-                    int size = ashmem_get_size_region(obj.handle);
+-                    if (size > 0) {
+-                        *outAshmemSize -= size;
++            if (obj.cookie != 0) { // owned
++                if (outAshmemSize != NULL) {
++                    struct stat st;
++                    int ret = fstat(obj.handle, &st);
++                    if (!ret && S_ISCHR(st.st_mode) && (st.st_rdev == ashmem_rdev())) {
++                        int size = ashmem_get_size_region(obj.handle);
++                        if (size > 0) {
++                            *outAshmemSize -= size;
++                        }
+                     }
+-
+-                    close(obj.handle);
+                 }
++            close(obj.handle);
+ #ifdef DISABLE_ASHMEM_TRACKING
+             } else if (obj.cookie != 0) {
+                 close(obj.handle);
+@@ -859,7 +895,26 @@ status_t Parcel::writeString16(const String16& str)
+     return writeString16(str.string(), str.size());
+ }
+ 
+-status_t Parcel::writeString16(const char16_t* str, size_t len)
++
++status_t  Parcel::writeString16(unsigned short const* str, unsigned int len)
 +{
-+    struct ion_handle_data data;
++  if (str == NULL) return writeInt32(-1);
 +
-+    data.handle = mIonHandle;
-+
-+    /*
-+     * Due to the way MemoryHeapBase is set up, munmap will never
-+     * be called so we need to call it ourselves here.
-+     */
-+    munmap(MemoryHeapBase::getBase(), MemoryHeapBase::getSize());
-+    if (mIonDeviceFd > 0) {
-+        ioctl(mIonDeviceFd, ION_IOC_FREE, &data);
-+        close(mIonDeviceFd);
-+    }
++  status_t err = writeInt32(len);
++  if (err == NO_ERROR) {
++      len *= sizeof(char16_t);
++      uint8_t* data = (uint8_t*)writeInplace(len+sizeof(char16_t));
++      if (data) {
++          memcpy(data, str, len);
++          *reinterpret_cast<char16_t*>(data+len) = 0;
++          return NO_ERROR;
++      }
++      err = mError;
++  }
++  return err;
 +}
 +
-+// ---------------------------------------------------------------------------
-+}; // namespace android
++status_t  Parcel::writeString16(const char16_t* str, size_t len)
+ {
+     if (str == NULL) return writeInt32(-1);
+ 
+@@ -1389,7 +1444,13 @@ native_handle* Parcel::readNativeHandle() const
+ 
+     for (int i=0 ; err==NO_ERROR && i<numFds ; i++) {
+         h->data[i] = dup(readFileDescriptor());
+-        if (h->data[i] < 0) err = BAD_VALUE;
++        if (h->data[i] < 0) {
++            for (int j = 0; j < i; j++) {
++                close(h->data[j]);
++            }
++            native_handle_delete(h);
++            return 0;
++        }
+     }
+     err = read(h->data + numFds, sizeof(int)*numInts);
+     if (err != NO_ERROR) {
+diff --git a/libs/ui/Region.cpp b/libs/ui/Region.cpp
+index 3810da4..cfed7a9 100644
+--- a/libs/ui/Region.cpp
++++ b/libs/ui/Region.cpp
+@@ -795,6 +795,11 @@ status_t Region::unflatten(void const* buffer, size_t size) {
+         return NO_MEMORY;
+     }
+ 
++    if (numRects > (UINT32_MAX / sizeof(Rect))) {
++        android_errorWriteWithInfoLog(0x534e4554, "29983260", -1, NULL, 0);
++        return NO_MEMORY;
++    }
++
+     Region result;
+     result.mStorage.clear();
+     for (size_t r = 0; r < numRects; ++r) {
+diff --git a/services/inputflinger/InputReader.cpp b/services/inputflinger/InputReader.cpp
+index 53ff155..6cfdceb 100644
+--- a/services/inputflinger/InputReader.cpp
++++ b/services/inputflinger/InputReader.cpp
+@@ -6167,7 +6167,8 @@ nsecs_t TouchInputMapper::mLastStylusTime = 0;
+ 
+ bool TouchInputMapper::rejectPalm(nsecs_t when) {
+     return (when - mLastStylusTime < mConfig.stylusPalmRejectionTime) &&
+-        mPointerSimple.currentProperties.toolType != AMOTION_EVENT_TOOL_TYPE_STYLUS;
++        mPointerSimple.currentProperties.toolType != AMOTION_EVENT_TOOL_TYPE_STYLUS &&
++        mPointerSimple.currentProperties.toolType != AMOTION_EVENT_TOOL_TYPE_ERASER;
+ }
+ 
+ void TouchInputMapper::cancelTouch(nsecs_t when) {
+diff --git a/services/powermanager/IPowerManager.cpp b/services/powermanager/IPowerManager.cpp
+index ec864ee..5339ac5 100644
+--- a/services/powermanager/IPowerManager.cpp
++++ b/services/powermanager/IPowerManager.cpp
+@@ -55,7 +55,7 @@ public:
+         data.writeString16(tag);
+         data.writeString16(packageName);
+         data.writeInt32(0); // no WorkSource
+-        data.writeString16(NULL, 0); // no history tag
++        data.writeString16(static_cast<const char16_t*>(NULL), 0); // no history tag
+         return remote()->transact(ACQUIRE_WAKE_LOCK, data, &reply,
+                 isOneWay ? IBinder::FLAG_ONEWAY : 0);
+     }
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
-index 0166b89..bf1fbde 100644
+index 6a90083..f4059dd 100644
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
-@@ -52,6 +52,10 @@ ifeq ($(TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS),true)
-     LOCAL_CFLAGS += -DFORCE_HWC_COPY_FOR_VIRTUAL_DISPLAYS
+@@ -120,7 +120,11 @@ ifeq ($(TARGET_USES_QCOM_BSP), true)
+     LOCAL_C_INCLUDES += $(call project-path-for,qcom-display)/libgralloc
+     LOCAL_C_INCLUDES += $(call project-path-for,qcom-display)/libqdutils
+     LOCAL_SHARED_LIBRARIES += libqdutils
++    LOCAL_SHARED_LIBRARIES += libqdMetaData
+     LOCAL_CFLAGS += -DQTI_BSP
++    ifeq ($(call is-board-platform-in-list,msm8996),true)
++        LOCAL_CFLAGS += -DSDM_TARGET
++    endif
+     LOCAL_SRC_FILES += \
+         ExSurfaceFlinger/ExLayer.cpp \
+         ExSurfaceFlinger/ExSurfaceFlinger.cpp \
+@@ -128,6 +132,24 @@ ifeq ($(TARGET_USES_QCOM_BSP), true)
+         ExSurfaceFlinger/ExHWComposer.cpp
  endif
  
-+ifeq ($(BOARD_EGL_NEEDS_FNW),true)
-+    LOCAL_CFLAGS += -DEGL_NEEDS_FNW
++ifeq ($(BOARD_USES_HWC_SERVICES), true)
++    LOCAL_CFLAGS += -DUSES_HWC_SERVICES
++    LOCAL_SHARED_LIBRARIES += libExynosHWCService
++    LOCAL_C_INCLUDES += \
++        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/$(TARGET_BOARD_PLATFORM)/libhwcService \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/$(TARGET_BOARD_PLATFORM)/include \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/$(TARGET_SOC)/include \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/$(TARGET_SOC)/libhwcmodule \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/exynos/libhwc \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/exynos/include \
++        $(TOP)/hardware/samsung_slsi-$(TARGET_SLSI_VARIANT)/exynos/libexynosutils \
++        $(TOP)/system/core/libsync/include
++
++LOCAL_ADDITIONAL_DEPENDENCIES := \
++        $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 +endif
 +
- ifneq ($(NUM_FRAMEBUFFER_SURFACE_BUFFERS),)
-   LOCAL_CFLAGS += -DNUM_FRAMEBUFFER_SURFACE_BUFFERS=$(NUM_FRAMEBUFFER_SURFACE_BUFFERS)
- endif
-diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
-index 5f765bd..b954d8b 100755
---- a/services/surfaceflinger/DisplayDevice.cpp
-+++ b/services/surfaceflinger/DisplayDevice.cpp
-@@ -29,6 +29,10 @@
+ ifeq ($(TARGET_HAVE_UI_BLUR),true)
+     LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/ui
+     LOCAL_SHARED_LIBRARIES += libuiblur
+diff --git a/services/surfaceflinger/DispSync.cpp b/services/surfaceflinger/DispSync.cpp
+index 73b3897..192d746 100644
+--- a/services/surfaceflinger/DispSync.cpp
++++ b/services/surfaceflinger/DispSync.cpp
+@@ -57,15 +57,17 @@ public:
+             mStop(false),
+             mPeriod(0),
+             mPhase(0),
++            mReferenceTime(0),
+             mWakeupLatency(0) {
+     }
  
- #include <gui/Surface.h>
+     virtual ~DispSyncThread() {}
  
-+#ifdef EGL_NEEDS_FNW
-+#include <ui/FramebufferNativeWindow.h>
+-    void updateModel(nsecs_t period, nsecs_t phase) {
++    void updateModel(nsecs_t period, nsecs_t phase, nsecs_t referenceTime) {
+         Mutex::Autolock lock(mMutex);
+         mPeriod = period;
+         mPhase = phase;
++        mReferenceTime = referenceTime;
+         mCond.signal();
+     }
+ 
+@@ -247,7 +249,7 @@ private:
+             ref = lastEventTime;
+         }
+ 
+-        nsecs_t phase = mPhase + listener.mPhase;
++        nsecs_t phase = mReferenceTime + mPhase + listener.mPhase;
+         nsecs_t t = (((ref - phase) / mPeriod) + 1) * mPeriod + phase;
+ 
+         if (t - listener.mLastEventTime < mPeriod / 2) {
+@@ -267,6 +269,7 @@ private:
+ 
+     nsecs_t mPeriod;
+     nsecs_t mPhase;
++    nsecs_t mReferenceTime;
+     nsecs_t mWakeupLatency;
+ 
+     Vector<EventListener> mEventListeners;
+@@ -315,6 +318,9 @@ DispSync::~DispSync() {}
+ void DispSync::reset() {
+     Mutex::Autolock lock(mMutex);
+ 
++    mPhase = 0;
++    mReferenceTime = 0;
++    mModelUpdated = false;
+     mNumResyncSamples = 0;
+     mFirstResyncSample = 0;
+     mNumResyncSamplesSincePresent = 0;
+@@ -342,12 +348,13 @@ bool DispSync::addPresentFence(const sp<Fence>& fence) {
+ 
+     updateErrorLocked();
+ 
+-    return mPeriod == 0 || mError > kErrorThreshold;
++    return !mModelUpdated || mError > kErrorThreshold;
+ }
+ 
+ void DispSync::beginResync() {
+     Mutex::Autolock lock(mMutex);
+ 
++    mModelUpdated = false;
+     mNumResyncSamples = 0;
+ }
+ 
+@@ -356,6 +363,10 @@ bool DispSync::addResyncSample(nsecs_t timestamp) {
+ 
+     size_t idx = (mFirstResyncSample + mNumResyncSamples) % MAX_RESYNC_SAMPLES;
+     mResyncSamples[idx] = timestamp;
++    if (mNumResyncSamples == 0) {
++        mPhase = 0;
++        mReferenceTime = timestamp;
++    }
+ 
+     if (mNumResyncSamples < MAX_RESYNC_SAMPLES) {
+         mNumResyncSamples++;
+@@ -378,7 +389,7 @@ bool DispSync::addResyncSample(nsecs_t timestamp) {
+         return mThread->hasAnyEventListeners();
+     }
+ 
+-    return mPeriod == 0 || mError > kErrorThreshold;
++    return !mModelUpdated || mError > kErrorThreshold;
+ }
+ 
+ void DispSync::endResync() {
+@@ -407,7 +418,8 @@ void DispSync::setPeriod(nsecs_t period) {
+     Mutex::Autolock lock(mMutex);
+     mPeriod = period;
+     mPhase = 0;
+-    mThread->updateModel(mPeriod, mPhase);
++    mReferenceTime = 0;
++    mThread->updateModel(mPeriod, mPhase, mReferenceTime);
+ }
+ 
+ nsecs_t DispSync::getPeriod() {
+@@ -432,7 +444,7 @@ void DispSync::updateModelLocked() {
+         double scale = 2.0 * M_PI / double(mPeriod);
+         for (size_t i = 0; i < mNumResyncSamples; i++) {
+             size_t idx = (mFirstResyncSample + i) % MAX_RESYNC_SAMPLES;
+-            nsecs_t sample = mResyncSamples[idx];
++            nsecs_t sample = mResyncSamples[idx] - mReferenceTime;
+             double samplePhase = double(sample % mPeriod) * scale;
+             sampleAvgX += cos(samplePhase);
+             sampleAvgY += sin(samplePhase);
+@@ -455,12 +467,13 @@ void DispSync::updateModelLocked() {
+         // Artificially inflate the period if requested.
+         mPeriod += mPeriod * mRefreshSkipCount;
+ 
+-        mThread->updateModel(mPeriod, mPhase);
++        mThread->updateModel(mPeriod, mPhase, mReferenceTime);
++        mModelUpdated = true;
+     }
+ }
+ 
+ void DispSync::updateErrorLocked() {
+-    if (mPeriod == 0) {
++    if (!mModelUpdated) {
+         return;
+     }
+ 
+@@ -472,7 +485,7 @@ void DispSync::updateErrorLocked() {
+     nsecs_t sqErrSum = 0;
+ 
+     for (size_t i = 0; i < NUM_PRESENT_SAMPLES; i++) {
+-        nsecs_t sample = mPresentTimes[i];
++        nsecs_t sample = mPresentTimes[i] - mReferenceTime;
+         if (sample > mPhase) {
+             nsecs_t sampleErr = (sample - mPhase) % period;
+             if (sampleErr > period / 2) {
+@@ -506,7 +519,8 @@ void DispSync::resetErrorLocked() {
+ nsecs_t DispSync::computeNextRefresh(int periodOffset) const {
+     Mutex::Autolock lock(mMutex);
+     nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
+-    return (((now - mPhase) / mPeriod) + periodOffset + 1) * mPeriod + mPhase;
++    nsecs_t phase = mReferenceTime + mPhase;
++    return (((now - phase) / mPeriod) + periodOffset + 1) * mPeriod + phase;
+ }
+ 
+ void DispSync::dump(String8& result) const {
+diff --git a/services/surfaceflinger/DispSync.h b/services/surfaceflinger/DispSync.h
+index ebe19a5..61d891b 100644
+--- a/services/surfaceflinger/DispSync.h
++++ b/services/surfaceflinger/DispSync.h
+@@ -146,11 +146,18 @@ private:
+     // number of nanoseconds from time 0 to the first vsync event.
+     nsecs_t mPhase;
+ 
++    // mReferenceTime is the reference time of the modeled vsync events.
++    // It is the nanosecond timestamp of the first vsync event after a resync.
++    nsecs_t mReferenceTime;
++
+     // mError is the computed model error.  It is based on the difference
+     // between the estimated vsync event times and those observed in the
+     // mPresentTimes array.
+     nsecs_t mError;
+ 
++    // Whether we have updated the vsync event model since the last resync.
++    bool mModelUpdated;
++
+     // These member variables are the state used during the resynchronization
+     // process to store information about the hardware vsync event times used
+     // to compute the model.
+diff --git a/services/surfaceflinger/DisplayHardware/HWComposer.h b/services/surfaceflinger/DisplayHardware/HWComposer.h
+index 9bdb7de..efdcd03 100644
+--- a/services/surfaceflinger/DisplayHardware/HWComposer.h
++++ b/services/surfaceflinger/DisplayHardware/HWComposer.h
+@@ -306,6 +306,7 @@ public:
+     };
+ 
+     friend class VSyncThread;
++    friend class ExHWComposer;
+ 
+     // for debugging ----------------------------------------------------------
+     void dump(String8& out) const;
+diff --git a/services/surfaceflinger/DisplayUtils.cpp b/services/surfaceflinger/DisplayUtils.cpp
+index a07e69e..e618e89 100644
+--- a/services/surfaceflinger/DisplayUtils.cpp
++++ b/services/surfaceflinger/DisplayUtils.cpp
+@@ -1,4 +1,4 @@
+-/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
++/* Copyright (c) 2015 - 2016, The Linux Foundation. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are
+@@ -45,6 +45,10 @@
+ #include <ExSurfaceFlinger/ExHWComposer.h>
+ #include <ExSurfaceFlinger/ExVirtualDisplaySurface.h>
+ #include <gralloc_priv.h>
++#ifdef SDM_TARGET
++#include <qd_utils.h>
++#include <display_config.h>
++#endif
+ #endif
+ #include <dlfcn.h>
+ #include <cutils/properties.h>
+@@ -176,8 +180,25 @@ bool DisplayUtils::canAllocateHwcDisplayIdForVDS(int usage) {
+ 
+ #ifdef QTI_BSP
+ #ifdef FORCE_HWC_COPY_FOR_VIRTUAL_DISPLAYS
+-    // Reserve hardware acceleration for WFD use-case
+-    flag_mask = GRALLOC_USAGE_PRIVATE_WFD;
++#ifdef SDM_TARGET
++    int hdmi_node = qdutils::getHDMINode();
++    if(hdmi_node == HWC_DISPLAY_PRIMARY) {
++        int active_config = qdutils::getActiveConfig(HWC_DISPLAY_PRIMARY);
++        if(active_config >= 0) {
++            qdutils::DisplayAttributes attr = qdutils::getDisplayAttributes(active_config,
++                    HWC_DISPLAY_PRIMARY);
++            if(!attr.is_yuv) {
++                // Reserve hardware acceleration for WFD use-case
++                flag_mask = GRALLOC_USAGE_PRIVATE_WFD;
++            }
++        }
++    } else {
++#endif
++        // Reserve hardware acceleration for WFD use-case
++        flag_mask = GRALLOC_USAGE_PRIVATE_WFD;
++#ifdef SDM_TARGET
++    }
++#endif
+ #else
+     // Don't allocate HWC display unless we force HWC copy, otherwise
+     // incompatible buffers are sent to the media stack
+diff --git a/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.cpp b/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.cpp
+index 2b41098..92cc1a7 100644
+--- a/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.cpp
++++ b/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.cpp
+@@ -31,6 +31,8 @@
+ #include "ExHWComposer.h"
+ #ifdef QTI_BSP
+ #include <hardware/display_defs.h>
++#include <gralloc_priv.h>
++#include <qdMetaData.h>
+ #endif
+ 
+ namespace android {
+@@ -74,4 +76,32 @@ bool ExHWComposer::isCompositionTypeBlit(const int32_t compType) const {
+     return false;
+ }
+ 
++#if defined(QTI_BSP) && defined(SDM_TARGET)
++uint32_t ExHWComposer::getS3DFlag(int disp) const {
++    if (disp < 0) {
++        return 0;
++    }
++
++    if (!mHwc || uint32_t(disp) >= MAX_HWC_DISPLAYS || !mAllocatedDisplayIDs.hasBit(disp))
++        return 0;
++
++    const DisplayData& disp_data(mDisplayData[disp]);
++
++    for (size_t i=0 ; i<disp_data.list->numHwLayers-1; i++) {
++        const hwc_layer_1_t &l = disp_data.list->hwLayers[i];
++        private_handle_t *pvt_handle = static_cast<private_handle_t *>
++                                    (const_cast<native_handle_t*>(l.handle));
++
++        if (pvt_handle != NULL) {
++            struct S3DSFRender_t s3dRender;
++            getMetaData(pvt_handle, GET_S3D_RENDER, &s3dRender);
++            if (s3dRender.DisplayId == static_cast<uint32_t>(disp) && s3dRender.GpuRender) {
++                return s3dRender.GpuS3dFormat;
++            }
++        }
++    }
++    return 0;
++}
 +#endif
 +
- #include <hardware/gralloc.h>
+ }; // namespace android
+diff --git a/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.h b/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.h
+index 2016ff0..06ee32b 100644
+--- a/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.h
++++ b/services/surfaceflinger/ExSurfaceFlinger/ExHWComposer.h
+@@ -43,6 +43,10 @@ public:
  
- #include "DisplayHardware/DisplaySurface.h"
-@@ -75,7 +79,11 @@ DisplayDevice::DisplayDevice(
-       mOrientation()
- {
-     mNativeWindow = new Surface(producer, false);
-+#ifndef EGL_NEEDS_FNW
-     ANativeWindow* const window = mNativeWindow.get();
+     virtual ~ExHWComposer();
+ 
++#ifdef QTI_BSP
++    uint32_t getS3DFlag(int disp) const;
++#endif
++
+ protected:
+     bool mVDSEnabled;
+     inline bool isVDSEnabled() const { return mVDSEnabled; };
+diff --git a/services/surfaceflinger/ExSurfaceFlinger/ExLayer.cpp b/services/surfaceflinger/ExSurfaceFlinger/ExLayer.cpp
+index fa45579..875d47f 100644
+--- a/services/surfaceflinger/ExSurfaceFlinger/ExLayer.cpp
++++ b/services/surfaceflinger/ExSurfaceFlinger/ExLayer.cpp
+@@ -36,10 +36,12 @@
+ #include <ui/GraphicBuffer.h>
+ #ifdef QTI_BSP
+ #include <gralloc_priv.h>
++#include <qdMetaData.h>
+ #include <hardware/display_defs.h>
+ #endif
+ 
+ #include "ExLayer.h"
++#include "RenderEngine/RenderEngine.h"
+ 
+ namespace android {
+ 
+@@ -70,12 +72,18 @@ static Rect getAspectRatio(const sp<const DisplayDevice>& hw,
+ 
+ ExLayer::ExLayer(SurfaceFlinger* flinger, const sp<Client>& client,
+                  const String8& name, uint32_t w, uint32_t h, uint32_t flags)
++#ifdef QTI_BSP
++    : Layer(flinger, client, name, w, h, flags),
++      mMeshLeftTop(Mesh::TRIANGLE_FAN, 4, 2, 2),
++      mMeshRightBottom(Mesh::TRIANGLE_FAN, 4, 2, 2) {
 +#else
-+    ANativeWindow* const window = new FramebufferNativeWindow();
+     : Layer(flinger, client, name, w, h, flags) {
+-
++#endif
+     char property[PROPERTY_VALUE_MAX] = {0};
+ 
+     mDebugLogs = false;
+     mIsGPUAllowedForProtected = false;
++    mIsHDMIPrimary = false;
+     if((property_get("persist.debug.qdframework.logs", property, NULL) > 0) &&
+        (!strncmp(property, "1", PROPERTY_VALUE_MAX ) ||
+         (!strncasecmp(property,"true", PROPERTY_VALUE_MAX )))) {
+@@ -88,6 +96,12 @@ ExLayer::ExLayer(SurfaceFlinger* flinger, const sp<Client>& client,
+            (atoi(property) == 1)) {
+         mIsGPUAllowedForProtected = true;
+     }
++
++    if ((property_get("persist.sys.is_hdmi_primary", property, NULL) > 0) &&
++           (atoi(property) == 1)) {
++        mIsHDMIPrimary = true;
++    }
++
+ }
+ 
+ ExLayer::~ExLayer() {
+@@ -204,4 +218,172 @@ bool ExLayer::canAllowGPUForProtected() const {
+     }
+ }
+ 
++void ExLayer::drawWithOpenGL(const sp<const DisplayDevice>& hw,
++        const Region& /* clip */, bool useIdentityTransform) const {
++    const State& s(getDrawingState());
++#if defined(QTI_BSP) && defined(SDM_TARGET)
++    uint32_t s3d_fmt = 0;
++    private_handle_t *pvt_handle = static_cast<private_handle_t *>
++                                    (const_cast<native_handle_t*>(mActiveBuffer->handle));
++    if (pvt_handle != NULL) {
++        struct S3DSFRender_t s3dRender;
++        getMetaData(pvt_handle, GET_S3D_RENDER, &s3dRender);
++
++        if ((s3dRender.DisplayId == static_cast<uint32_t>(hw->getHwcDisplayId()) ||
++            mIsHDMIPrimary) && s3dRender.GpuRender) {
++            clearMetaData(pvt_handle, SET_S3D_RENDER);
++            s3d_fmt = s3dRender.GpuS3dFormat;
++        }
++    }
++#endif
++    computeGeometry(hw, mMesh, useIdentityTransform);
++
++    /*
++     * NOTE: the way we compute the texture coordinates here produces
++     * different results than when we take the HWC path -- in the later case
++     * the "source crop" is rounded to texel boundaries.
++     * This can produce significantly different results when the texture
++     * is scaled by a large amount.
++     *
++     * The GL code below is more logical (imho), and the difference with
++     * HWC is due to a limitation of the HWC API to integers -- a question
++     * is suspend is whether we should ignore this problem or revert to
++     * GL composition when a buffer scaling is applied (maybe with some
++     * minimal value)? Or, we could make GL behave like HWC -- but this feel
++     * like more of a hack.
++     */
++    Rect win(s.active.w, s.active.h);
++    if(!s.active.crop.isEmpty()) {
++        win = s.active.crop;
++    }
++#ifdef QTI_BSP
++    win = s.transform.transform(win);
++    win.intersect(hw->getViewport(), &win);
++    win = s.transform.inverse().transform(win);
++    win.intersect(Rect(s.active.w, s.active.h), &win);
++    win = reduce(win, s.activeTransparentRegion);
++#else
++    win = reduce(win, s.activeTransparentRegion);
++#endif
++    float left   = float(win.left)   / float(s.active.w);
++    float top    = float(win.top)    / float(s.active.h);
++    float right  = float(win.right)  / float(s.active.w);
++    float bottom = float(win.bottom) / float(s.active.h);
++
++    // TODO: we probably want to generate the texture coords with the mesh
++    // here we assume that we only have 4 vertices
++    Mesh::VertexArray<vec2> texCoords(mMesh.getTexCoordArray<vec2>());
++    texCoords[0] = vec2(left, 1.0f - top);
++    texCoords[1] = vec2(left, 1.0f - bottom);
++    texCoords[2] = vec2(right, 1.0f - bottom);
++    texCoords[3] = vec2(right, 1.0f - top);
++
++#if defined(QTI_BSP) && defined(SDM_TARGET)
++    computeGeometryS3D(hw, mMesh, mMeshLeftTop, mMeshRightBottom, s3d_fmt);
++#endif
++
++    RenderEngine& engine(mFlinger->getRenderEngine());
++    engine.setupLayerBlending(mPremultipliedAlpha, isOpaque(s), s.alpha);
++
++#if defined(QTI_BSP) && defined(SDM_TARGET)
++    if (s3d_fmt != HWC_S3DMODE_NONE) {
++        engine.setScissor(0, 0, hw->getWidth(), hw->getHeight());
++        engine.drawMesh(mMeshLeftTop);
++        engine.drawMesh(mMeshRightBottom);
++    } else {
++#endif
++        engine.drawMesh(mMesh);
++#if defined(QTI_BSP) && defined(SDM_TARGET)
++    }
++#endif
++
++    engine.disableBlending();
++}
++
++#ifdef QTI_BSP
++void ExLayer::computeGeometryS3D(const sp<const DisplayDevice>& hw, Mesh& mesh,
++        Mesh& meshLeftTop, Mesh &meshRightBottom, uint32_t s3d_fmt) const
++{
++    Mesh::VertexArray<vec2> position(mesh.getPositionArray<vec2>());
++    Mesh::VertexArray<vec2> positionLeftTop(meshLeftTop.getPositionArray<vec2>());
++    Mesh::VertexArray<vec2> positionRightBottom(meshRightBottom.getPositionArray<vec2>());
++    Mesh::VertexArray<vec2> texCoords(mesh.getTexCoordArray<vec2>());
++    Mesh::VertexArray<vec2> texCoordsLeftTop(meshLeftTop.getTexCoordArray<vec2>());
++    Mesh::VertexArray<vec2> texCoordsRightBottom(meshRightBottom.getTexCoordArray<vec2>());
++
++    Rect scissor = hw->getBounds();
++
++    if(s3d_fmt == HWC_S3DMODE_NONE) {
++        return;
++    }
++
++    uint32_t count = mesh.getVertexCount();
++    while(count--) {
++        positionLeftTop[count] = positionRightBottom[count] = position[count];
++        texCoordsLeftTop[count] = texCoordsRightBottom[count] = texCoords[count];
++    }
++
++    switch (s3d_fmt) {
++        case HWC_S3DMODE_LR:
++        case HWC_S3DMODE_RL:
++        {
++            positionLeftTop[0].x  = (position[0].x - scissor.left) / 2.0f + scissor.left;
++            positionLeftTop[1].x  = (position[1].x - scissor.left) / 2.0f + scissor.left;
++            positionLeftTop[2].x  = (position[2].x - scissor.left) / 2.0f + scissor.left;
++            positionLeftTop[3].x  = (position[3].x - scissor.left) / 2.0f + scissor.left;
++
++            positionRightBottom[0].x = positionLeftTop[0].x + scissor.getWidth()/2;
++            positionRightBottom[1].x = positionLeftTop[1].x + scissor.getWidth()/2;
++            positionRightBottom[2].x = positionLeftTop[2].x + scissor.getWidth()/2;
++            positionRightBottom[3].x = positionLeftTop[3].x + scissor.getWidth()/2;
++
++            if(isYuvLayer()) {
++                texCoordsLeftTop[0].x  =  texCoords[0].x / 2.0f;
++                texCoordsLeftTop[1].x  =  texCoords[1].x / 2.0f;
++                texCoordsLeftTop[2].x  =  texCoords[2].x / 2.0f;
++                texCoordsLeftTop[3].x  =  texCoords[3].x / 2.0f;
++
++                texCoordsRightBottom[0].x  =  texCoordsLeftTop[0].x + 0.5f;
++                texCoordsRightBottom[1].x  =  texCoordsLeftTop[1].x + 0.5f;
++                texCoordsRightBottom[2].x  =  texCoordsLeftTop[2].x + 0.5f;
++                texCoordsRightBottom[3].x  =  texCoordsLeftTop[3].x + 0.5f;
++            }
++            break;
++        }
++        case HWC_S3DMODE_TB:
++        {
++            positionRightBottom[0].y  = (position[0].y - scissor.top) / 2.0f + scissor.top;
++            positionRightBottom[1].y  = (position[1].y - scissor.top) / 2.0f + scissor.top;
++            positionRightBottom[2].y  = (position[2].y - scissor.top) / 2.0f + scissor.top;
++            positionRightBottom[3].y  = (position[3].y - scissor.top) / 2.0f + scissor.top;
++
++            positionLeftTop[0].y = positionRightBottom[0].y + scissor.getHeight() / 2.0f;
++            positionLeftTop[1].y = positionRightBottom[1].y + scissor.getHeight() / 2.0f;
++            positionLeftTop[2].y = positionRightBottom[2].y + scissor.getHeight() / 2.0f;
++            positionLeftTop[3].y = positionRightBottom[3].y + scissor.getHeight() / 2.0f;
++
++            positionLeftTop[0].x = positionRightBottom[0].x = position[0].x;
++            positionLeftTop[1].x = positionRightBottom[1].x = position[1].x;
++            positionLeftTop[2].x = positionRightBottom[2].x = position[2].x;
++            positionLeftTop[3].x = positionRightBottom[3].x = position[3].x;
++
++            if(isYuvLayer()) {
++                texCoordsRightBottom[0].y  =  texCoords[0].y / 2.0f;
++                texCoordsRightBottom[1].y  =  texCoords[1].y / 2.0f;
++                texCoordsRightBottom[2].y  =  texCoords[2].y / 2.0f;
++                texCoordsRightBottom[3].y  =  texCoords[3].y / 2.0f;
++
++                texCoordsLeftTop[0].y  =  texCoordsRightBottom[0].y + 0.5f;
++                texCoordsLeftTop[1].y  =  texCoordsRightBottom[1].y + 0.5f;
++                texCoordsLeftTop[2].y  =  texCoordsRightBottom[2].y + 0.5f;
++                texCoordsLeftTop[3].y  =  texCoordsRightBottom[3].y + 0.5f;
++            }
++            break;
++        }
++        default:
++            break;
++    }
++}
++#endif
++
+ }; // namespace android
+diff --git a/services/surfaceflinger/ExSurfaceFlinger/ExLayer.h b/services/surfaceflinger/ExSurfaceFlinger/ExLayer.h
+index 01c74a8..9d22b5f 100644
+--- a/services/surfaceflinger/ExSurfaceFlinger/ExLayer.h
++++ b/services/surfaceflinger/ExSurfaceFlinger/ExLayer.h
+@@ -43,6 +43,22 @@ class ExSurfaceFlinger;
+ class ExLayer : public Layer
+ {
+ public:
++#ifdef QTI_BSP
++    enum {
++        /*
++         * HWC S3D_MODE is set by HWC driver to indicate that HWC driver can not support
++         * S3D standalone, need surfaceflinger help to draw layers twice to construct
++         * S3D framebuffer target.
++         */
++        HWC_S3DMODE_NONE = 0x00000000,
++        HWC_S3DMODE_LR = 0x00000001,
++        HWC_S3DMODE_RL = 0x00000002,
++        HWC_S3DMODE_TB = 0x00000003,
++        HWC_S3DMODE_FP = 0x00000004,
++        HWC_S3DMODE_MAX = 0x00000005,
++    };
++#endif
++
+     ExLayer(SurfaceFlinger* flinger, const sp<Client>& client,
+             const String8& name, uint32_t w, uint32_t h, uint32_t flags);
+     virtual ~ExLayer();
+@@ -57,11 +73,27 @@ public:
+                              HWComposer::HWCLayerInterface& layer);
+     virtual bool canAllowGPUForProtected() const;
+ 
++#ifdef QTI_BSP
++    virtual void computeGeometryS3D(const sp<const DisplayDevice>& hw, Mesh& mesh,
++        Mesh& meshLeftTop, Mesh &meshRightBottom, uint32_t s3d_fmt) const;
++#endif
+ protected:
+     bool mDebugLogs;
+     bool isDebug() { return mDebugLogs; }
+     bool mIsGPUAllowedForProtected;
++    bool mIsHDMIPrimary;
++
++private:
++#ifdef QTI_BSP
++    // The mesh used to draw the layer in GLES composition mode for s3d left/top
++    mutable Mesh mMeshLeftTop;
++    // The mesh used to draw the layer in GLES composition mode for s3d right/bottom
++    mutable Mesh mMeshRightBottom;
++
++    virtual void drawWithOpenGL(const sp<const DisplayDevice>& hw, const Region& clip,
++            bool useIdentityTransform) const;
+ };
 +#endif
  
-     int format;
-     window->query(window, NATIVE_WINDOW_FORMAT, &format);
+ }; // namespace android
+ 
+diff --git a/services/surfaceflinger/ExSurfaceFlinger/ExSurfaceFlinger.cpp b/services/surfaceflinger/ExSurfaceFlinger/ExSurfaceFlinger.cpp
+index 96d4b1d..7be0328 100644
+--- a/services/surfaceflinger/ExSurfaceFlinger/ExSurfaceFlinger.cpp
++++ b/services/surfaceflinger/ExSurfaceFlinger/ExSurfaceFlinger.cpp
+@@ -335,6 +335,10 @@ void ExSurfaceFlinger::dumpDrawCycle(bool prePrepare) {
+ 
+     gettimeofday(&tv, NULL);
+     ptm = localtime(&tv.tv_sec);
++    if (ptm == NULL) {
++        return;
++    }
++
+     strftime (hms, sizeof (hms), "%H:%M:%S", ptm);
+     millis = tv.tv_usec / 1000;
+     snprintf(timeStamp, sizeof(timeStamp), "Timestamp: %s.%03ld", hms, millis);
+diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
+index c346a2f..6a9cdb7 100644
+--- a/services/surfaceflinger/Layer.cpp
++++ b/services/surfaceflinger/Layer.cpp
+@@ -467,7 +467,11 @@ void Layer::setGeometry(
+ 
+     // this gives us only the "orientation" component of the transform
+     const State& s(getDrawingState());
++#if defined(QTI_BSP) && !defined(QCOM_BSP_LEGACY)
++    if (!isOpaque(s)) {
++#else
+     if (!isOpaque(s) || s.alpha != 0xFF) {
++#endif
+         layer.setBlending(mPremultipliedAlpha ?
+                 HWC_BLENDING_PREMULT :
+                 HWC_BLENDING_COVERAGE);
+@@ -1444,11 +1448,16 @@ Region Layer::latchBuffer(bool& recomputeVisibleRegions)
+ 
+             // Remove any stale buffers that have been dropped during
+             // updateTexImage
+-            while (mQueueItems[0].mFrameNumber != currentFrameNumber) {
++            while ((mQueuedFrames > 0) && (mQueueItems[0].mFrameNumber != currentFrameNumber)) {
+                 mQueueItems.removeAt(0);
+                 android_atomic_dec(&mQueuedFrames);
+             }
+ 
++            if (mQueuedFrames == 0) {
++                ALOGE("[%s] mQueuedFrames is zero !!", mName.string());
++                return outDirtyRegion;
++            }
++
+             mQueueItems.removeAt(0);
+         }
+ 
+diff --git a/services/surfaceflinger/Layer.h b/services/surfaceflinger/Layer.h
+index 02d6f16..0d6ec41 100644
+--- a/services/surfaceflinger/Layer.h
++++ b/services/surfaceflinger/Layer.h
+@@ -162,8 +162,13 @@ public:
+     uint32_t getTransactionFlags(uint32_t flags);
+     uint32_t setTransactionFlags(uint32_t flags);
+ 
++#ifdef QTI_BSP
++    virtual void computeGeometry(const sp<const DisplayDevice>& hw, Mesh& mesh,
++            bool useIdentityTransform) const;
++#else
+     void computeGeometry(const sp<const DisplayDevice>& hw, Mesh& mesh,
+             bool useIdentityTransform) const;
++#endif
+     Rect computeBounds(const Region& activeTransparentRegion) const;
+     Rect computeBounds() const;
+ 
+@@ -392,9 +397,14 @@ private:
+     // drawing
+     void clearWithOpenGL(const sp<const DisplayDevice>& hw, const Region& clip,
+             float r, float g, float b, float alpha) const;
++#ifdef QTI_BSP
++    virtual void drawWithOpenGL(const sp<const DisplayDevice>& hw, const Region& clip,
++            bool useIdentityTransform) const;
++#else
+     void drawWithOpenGL(const sp<const DisplayDevice>& hw, const Region& clip,
+             bool useIdentityTransform) const;
+ 
++#endif
+     // Temporary - Used only for LEGACY camera mode.
+     uint32_t getProducerStickyTransform() const;
+ 
+diff --git a/services/surfaceflinger/LayerBlur.cpp b/services/surfaceflinger/LayerBlur.cpp
+index 021978d..5aa39bf 100644
+--- a/services/surfaceflinger/LayerBlur.cpp
++++ b/services/surfaceflinger/LayerBlur.cpp
+@@ -25,6 +25,7 @@
+ #include <stdint.h>
+ #include <sys/types.h>
+ #include <time.h>
++#include <dlfcn.h>
+ 
+ #include <utils/Errors.h>
+ #include <utils/Log.h>
+@@ -90,16 +91,11 @@ static void setupMesh(Mesh& mesh, int width, int height, int viewportHeight) {
+     texCoords[3] = vec2(1.0f, 1.0f);
+ }
+ 
+-
+ LayerBlur::LayerBlur(SurfaceFlinger* flinger, const sp<Client>& client,
+         const String8& name, uint32_t w, uint32_t h, uint32_t flags)
+-    : Layer(flinger, client, name, w, h, flags), mBlurMaskSampling(1), mBlurMaskAlphaThreshold(0.0f)
+-    ,mLastFrameSequence(0)
++    : Layer(flinger, client, name, w, h, flags), mBlurMaskSampling(1),
++    mBlurMaskAlphaThreshold(0.0f) ,mLastFrameSequence(0)
+ {
+-#ifdef UI_BLUR
+-    mBlurToken = qtiblur::initBlurToken();
+-#endif
+-
+     GLuint texnames[3];
+     mFlinger->getRenderEngine().genTextures(3, texnames);
+     mTextureCapture.init(Texture::TEXTURE_2D, texnames[0]);
+@@ -108,9 +104,6 @@ LayerBlur::LayerBlur(SurfaceFlinger* flinger, const sp<Client>& client,
+ }
+ 
+ LayerBlur::~LayerBlur() {
+-#ifdef UI_BLUR
+-    qtiblur::releaseBlurToken(mBlurToken);
+-#endif
+ 
+     releaseFbo(mFboCapture);
+     releaseFbo(mFboMasking);
+@@ -168,18 +161,15 @@ void LayerBlur::onDraw(const sp<const DisplayDevice>& hw, const Region& /*clip*/
+         // blur
+         size_t outTexWidth = mTextureBlur.getWidth();
+         size_t outTexHeight = mTextureBlur.getHeight();
+-#ifdef UI_BLUR
+-        if (!qtiblur::blur(mBlurToken,
+-                s.blur,
++        if (mBlurImpl.blur(s.blur,
+                 mTextureCapture.getTextureName(),
+                 mTextureCapture.getWidth(),
+                 mTextureCapture.getHeight(),
+                 mTextureBlur.getTextureName(),
+                 &outTexWidth,
+-                &outTexHeight)) {
++                &outTexHeight) != OK) {
+             return;
+         }
+-#endif
+ 
+         // mTextureBlur now has "Blurred image"
+         mTextureBlur.setDimensions(outTexWidth, outTexHeight);
+@@ -240,6 +230,7 @@ bool LayerBlur::captureScreen(const sp<const DisplayDevice>& hw, FBO& fbo, Textu
+     mFlinger->getRenderEngine().clearWithColor(0.0f, 0.0f, 0.0f, 1.0f);
+     if (hw->isPanelInverseMounted())
+         rotation =  Transform::ROT_180;
++
+     mFlinger->renderScreenImplLocked(
+                 hw,
+                 Rect(0,0,width,height),
+@@ -412,6 +403,86 @@ void LayerBlur::ensureFbo(FBO& fbo, int width, int height, int textureName) {
+     }
+ }
+ 
++// ---------------------------------------------------------------------------
++
++void* LayerBlur::BlurImpl::sLibHandle = NULL;
++bool LayerBlur::BlurImpl::sUnsupported = false;
++
++LayerBlur::BlurImpl::initBlurTokenFn LayerBlur::BlurImpl::initBlurToken = NULL;
++LayerBlur::BlurImpl::releaseBlurTokenFn LayerBlur::BlurImpl::releaseBlurToken = NULL;
++LayerBlur::BlurImpl::blurFn LayerBlur::BlurImpl::doBlur = NULL;
++Mutex LayerBlur::BlurImpl::sLock;
++
++void LayerBlur::BlurImpl::closeBlurImpl() {
++    if (sLibHandle != NULL) {
++        dlclose(sLibHandle);
++        sLibHandle = NULL;
++    }
++}
++
++status_t LayerBlur::BlurImpl::initBlurImpl() {
++    if (sLibHandle != NULL) {
++        return OK;
++    }
++    if (sUnsupported) {
++        return NO_INIT;
++    }
++
++    sLibHandle = dlopen("libuiblur.so", RTLD_NOW);
++    if (sLibHandle == NULL) {
++        sUnsupported = true;
++        return NO_INIT;
++    }
++
++    // happy happy joy joy!
++
++    initBlurToken = (initBlurTokenFn)dlsym(sLibHandle,
++            "_ZN7qtiblur13initBlurTokenEv");
++    releaseBlurToken = (releaseBlurTokenFn)dlsym(sLibHandle,
++            "_ZN7qtiblur16releaseBlurTokenEPv");
++
++    if (sizeof(size_t) == 4) {
++        doBlur = (blurFn)dlsym(sLibHandle,
++                     "_ZN7qtiblur4blurEPvijjjjPjS1_");
++    } else if (sizeof(size_t) == 8) {
++        doBlur = (blurFn)dlsym(sLibHandle,
++                     "_ZN7qtiblur4blurEPvijmmjPmS1_");
++    }
++
++    if (!initBlurToken || !releaseBlurToken || !doBlur) {
++        ALOGE("dlsym failed for blur impl!: %s", dlerror());
++        closeBlurImpl();
++        sUnsupported = true;
++        return NO_INIT;
++    }
++
++    return OK;
++}
++
++LayerBlur::BlurImpl::BlurImpl() : mToken(NULL) {
++    Mutex::Autolock _l(sLock);
++    if (initBlurImpl() == OK) {
++        mToken = initBlurToken();
++    }
++}
++
++LayerBlur::BlurImpl::~BlurImpl() {
++    Mutex::Autolock _l(sLock);
++    if (mToken != NULL) {
++        releaseBlurToken(mToken);
++    }
++}
++
++status_t LayerBlur::BlurImpl::blur(int level, uint32_t inId, size_t inWidth, size_t inHeight,
++        uint32_t outId, size_t* outWidth, size_t* outHeight) {
++    Mutex::Autolock _l(sLock);
++    if (mToken == NULL) {
++        return NO_INIT;
++    }
++    return doBlur(mToken, level, inId, inWidth, inHeight,
++                  outId, outWidth, outHeight) ? OK : NO_INIT;
++}
++
+ 
+ // ---------------------------------------------------------------------------
+ 
+diff --git a/services/surfaceflinger/LayerBlur.h b/services/surfaceflinger/LayerBlur.h
+index 251423e..bd37ad3 100644
+--- a/services/surfaceflinger/LayerBlur.h
++++ b/services/surfaceflinger/LayerBlur.h
+@@ -20,15 +20,12 @@
+ #ifndef ANDROID_LAYER_BLUR_H
+ #define ANDROID_LAYER_BLUR_H
+ 
++#include <stdlib.h>
+ #include <stdint.h>
+ #include <sys/types.h>
+ 
+ #include "Layer.h"
+ 
+-#ifdef UI_BLUR
+-#include "Blur.h"           // libuiblur.so
+-#endif
+-
+ // ---------------------------------------------------------------------------
+ 
+ namespace android {
+@@ -58,9 +55,37 @@ public:
+     virtual bool setBlurMaskAlphaThreshold(float alpha) { mBlurMaskAlphaThreshold = alpha; return true; }
+ 
+ private:
+-#ifdef UI_BLUR
+-    qtiblur::BLUR_TOKEN mBlurToken;
+-#endif
++    class BlurImpl {
++    public:
++
++        BlurImpl();
++        ~BlurImpl();
++
++        status_t blur(int level, uint32_t inId, size_t inWidth, size_t inheight,
++                uint32_t outId, size_t* outWidth, size_t* outHeight);
++
++    protected:
++        static status_t initBlurImpl();
++        static void closeBlurImpl();
++        static void* sLibHandle;
++        static bool sUnsupported;
++
++        typedef void* (*initBlurTokenFn)();
++        typedef void* (*releaseBlurTokenFn)(void*);
++        typedef void* (*blurFn)(void*, int, uint32_t, size_t, size_t, uint32_t, size_t*, size_t*);
++
++        static initBlurTokenFn initBlurToken;
++        static releaseBlurTokenFn releaseBlurToken;
++        static blurFn doBlur;
++
++        static Mutex sLock;
++
++    private:
++        void* mToken;
++    };
++
++    BlurImpl mBlurImpl;
++
+     wp<Layer> mBlurMaskLayer;
+     int32_t mBlurMaskSampling;
+     float mBlurMaskAlphaThreshold;
 diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
-index 4d6fb82..58fdf54 100644
+index 40e5da1..7183f8d 100644
 --- a/services/surfaceflinger/SurfaceFlinger.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger.cpp
-@@ -1162,6 +1162,7 @@ void SurfaceFlinger::setUpHWComposer() {
-             sp<const DisplayDevice> hw(mDisplays[dpy]);
-             const int32_t id = hw->getHwcDisplayId();
-             if (id >= 0) {
-+#ifdef QCOM_HARDWARE
-                 // Get the layers in the current drawying state
-                 const LayerVector& layers(mDrawingState.layersSortedByZ);
-                 bool freezeSurfacePresent = false;
-@@ -1181,6 +1182,7 @@ void SurfaceFlinger::setUpHWComposer() {
-                         }
-                     }
-                 }
-+#endif
+@@ -74,6 +74,7 @@
  
-                 const Vector< sp<Layer> >& currentLayers(
-                     hw->getVisibleLayersSortedByZ());
-@@ -1194,6 +1196,7 @@ void SurfaceFlinger::setUpHWComposer() {
-                      */
-                     const sp<Layer>& layer(currentLayers[i]);
-                     layer->setPerFrameData(hw, *cur);
-+#ifdef QCOM_HARDWARE
-                     if(freezeSurfacePresent) {
-                         // if freezeSurfacePresent, set ANIMATING flag
-                         cur->setAnimating(true);
-@@ -1218,6 +1221,7 @@ void SurfaceFlinger::setUpHWComposer() {
-                             lastSurfaceViewLayer = layer;
-                         }
-                     }
+ #include "DisplayHardware/FramebufferSurface.h"
+ #include "DisplayHardware/HWComposer.h"
++#include "ExSurfaceFlinger/ExHWComposer.h"
+ #include "DisplayHardware/VirtualDisplaySurface.h"
+ 
+ #include "Effects/Daltonizer.h"
+@@ -82,6 +83,10 @@
+ #include <cutils/compiler.h>
+ #include "DisplayUtils.h"
+ 
++#ifdef USES_HWC_SERVICES
++#include "ExynosHWCService.h"
 +#endif
-                 }
-             }
++
+ #define DISPLAY_COUNT       1
+ 
+ /*
+@@ -130,6 +135,10 @@ static sp<Layer> lastSurfaceViewLayer;
+ 
+ // ---------------------------------------------------------------------------
+ 
++#ifdef USES_HWC_SERVICES
++static bool notifyPSRExit = true;
++#endif
++
+ SurfaceFlinger::SurfaceFlinger()
+     :   BnSurfaceComposer(),
+         mTransactionFlags(0),
+@@ -312,6 +321,14 @@ void SurfaceFlinger::bootFinished()
+     // formerly we would just kill the process, but we now ask it to exit so it
+     // can choose where to stop the animation.
+     property_set("service.bootanim.exit", "1");
++
++#ifdef USES_HWC_SERVICES
++    sp<IServiceManager> sm = defaultServiceManager();
++    sp<android::IExynosHWCService> hwc =
++        interface_cast<android::IExynosHWCService>(sm->getService(String16("Exynos.HWCService")));
++    ALOGD("boot finished. Inform HWC");
++    hwc->setBootFinished();
++#endif
+ }
+ 
+ void SurfaceFlinger::deleteTextureAsync(uint32_t texture) {
+@@ -650,8 +667,8 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
          }
+ 
+         char value[PROPERTY_VALUE_MAX];
+-        property_get("ro.sf.hwrotation", value, "0");
+-        int additionalRot = atoi(value) / 90;
++        property_get("ro.sf.hwrotation", value, "180");
++        int additionalRot = 180 / 90;
+         if ((type == DisplayDevice::DISPLAY_PRIMARY) && (additionalRot & DisplayState::eOrientationSwapMask)) {
+             info.h = hwConfig.width;
+             info.w = hwConfig.height;
+@@ -798,6 +815,19 @@ void SurfaceFlinger::signalTransaction() {
+ }
+ 
+ void SurfaceFlinger::signalLayerUpdate() {
++#ifdef USES_HWC_SERVICES
++    if (notifyPSRExit) {
++        notifyPSRExit = false;
++        sp<IServiceManager> sm = defaultServiceManager();
++        sp<IExynosHWCService> hwcService =
++            interface_cast<android::IExynosHWCService>(
++                sm->getService(String16("Exynos.HWCService")));
++        if (hwcService != NULL)
++            hwcService->notifyPSRExit();
++        else
++            ALOGE("HWCService::notifyPSRExit failed");
++    }
++#endif
+     mEventQueue.invalidate();
+ }
+ 
+@@ -982,6 +1012,9 @@ void SurfaceFlinger::handleMessageRefresh() {
+         doDebugFlashRegions();
+         doComposition();
+         postComposition();
++#ifdef USES_HWC_SERVICES
++        notifyPSRExit = true;
++#endif
+     }
+ 
+     previousExpectedPresent = mPrimaryDispSync.computeNextRefresh(0);
+@@ -2003,7 +2036,12 @@ bool SurfaceFlinger::doComposeSurfaces(const sp<const DisplayDevice>& hw, const
+         }
+ 
+         // Never touch the framebuffer if we don't have any framebuffer layers
++#if defined(QTI_BSP) && defined(SDM_TARGET)
++        const bool hasHwcComposition = hwc.hasHwcComposition(id) |
++            (reinterpret_cast<ExHWComposer*>(&hwc))->getS3DFlag(id);
++#else
+         const bool hasHwcComposition = hwc.hasHwcComposition(id);
++#endif
+         if (hasHwcComposition) {
+             // when using overlays, we assume a fully transparent framebuffer
+             // NOTE: we could reduce how much we need to clear, for instance
+@@ -3466,7 +3504,7 @@ void SurfaceFlinger::renderScreenImplLocked(
+     if (DisplayDevice::DISPLAY_PRIMARY == hw->getDisplayType() &&
+                 hw->isPanelInverseMounted()) {
+         rotation = (Transform::orientation_flags)
+-                (rotation ^ Transform::ROT_180);
++          (rotation ^ Transform::ROT_180);
+     }
+ 
+     // set-up our viewport
+diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
+index 20d65c1..2003d6e 100644
+--- a/services/surfaceflinger/SurfaceFlinger.h
++++ b/services/surfaceflinger/SurfaceFlinger.h
+@@ -146,6 +146,9 @@ private:
+     friend class DisplayEventConnection;
+     friend class Layer;
+     friend class LayerDim;
++#ifdef QTI_BSP
++    friend class ExLayer;
++#endif
+     friend class MonitoredProducer;
+     friend class LayerBlur;
+ 

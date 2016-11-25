@@ -170,5 +170,17 @@ public class SamsungGtexslteRIL extends SamsungSPRDRIL implements CommandsInterf
         return response;
     }
 
+    @Override
+    public void
+    acceptCall (Message result) {
+       RILRequest rr
+               = RILRequest.obtain(RIL_REQUEST_ANSWER, result);
 
+       rr.mParcel.writeInt(1);
+       rr.mParcel.writeInt(0);
+
+       if (RILJ_LOGD) riljLog(rr.serialString() + "> " + requestToString(rr.mRequest));
+
+       send(rr);
+    }
 }

@@ -35,6 +35,10 @@ on init
     # for tsp command
     chown system system /sys/class/sec/tsp/cmd
 
+    #SPRD: Add support for install apk to internal sdcard @{
+    mkdir /mnt/secure/internal-asec 0700 root root
+    # @}
+
 on fs
     ubiattach 0 ubipac
     mount_all /fstab.sc8830
@@ -53,6 +57,12 @@ on fs
 
 #KEY
     chown system system /sys/class/sec/sec_key/reset_enabled
+
+
+# Support Preload install apks
+  mount ext4 /dev/block/platform/sdio_emmc/by-name/HIDDEN /preload nosuid nodev ro barrier=1
+  setprop storage.preload.complete 1
+
 
 on post-fs
     chown system system /productinfo
@@ -135,8 +145,7 @@ on early-boot
     chmod 760 /proc/mdbg/wdtirq
     chmod 760 /proc/mdbg/loopcheck
     chmod 760 /proc/mdbg/at_cmd
-
-
+    
 on boot
     chown system system /sys/module/mali/parameters/gpu_freq_cur
     chown system system /sys/module/mali/parameters/gpu_freq_max_limit
@@ -296,7 +305,7 @@ service theme_init /system/bin/theme_init.sh
 # @}
 
 # virtual sdcard daemon running as media_rw (1023)
-service sdcard /system/bin/sdcard -u 1023 -g 1023 -l /data/media /mnt/shell/emulated
+service sdcard /system/bin/sdcard -u 1023 -g 1023 -l -r /data/media /mnt/shell/emulated
     class late_start
     oneshot
 

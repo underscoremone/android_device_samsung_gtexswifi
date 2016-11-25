@@ -157,6 +157,10 @@ PRODUCT_PACKAGES += \
 	wpa_supplicant \
 	hostapd \
 
+# Graphics
+PRODUCT_PACKAGES += \
+	libmemtrack \
+
 # Permissions
 PERMISSION_XML_FILES := \
 	$(LOCAL_PATH)/permissions/platform.xml \

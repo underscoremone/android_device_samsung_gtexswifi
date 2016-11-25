@@ -1,0 +1,57 @@
+diff --git a/btif/co/bta_av_co.c b/btif/co/bta_av_co.c
+index e410f14..4357b36 100644
+--- a/btif/co/bta_av_co.c
++++ b/btif/co/bta_av_co.c
+@@ -62,7 +62,7 @@
+ #define BTA_AV_CO_SBC_MIN_BITPOOL_OFF  5
+ #define BTA_AV_CO_SBC_MAX_BITPOOL_OFF  6
+ 
+-#define BTA_AV_CO_SBC_MAX_BITPOOL  53
++#define BTA_AV_CO_SBC_MAX_BITPOOL  51
+ 
+ /* SCMS-T protect info */
+ const UINT8 bta_av_co_cp_scmst[BTA_AV_CP_INFO_LEN] = "\x02\x02\x00";
+diff --git a/btif/src/btif_media_task.c b/btif/src/btif_media_task.c
+index b6f3f0c..cd282cb 100644
+--- a/btif/src/btif_media_task.c
++++ b/btif/src/btif_media_task.c
+@@ -151,8 +151,8 @@ enum {
+ #define BTIF_MEDIA_BITRATE_STEP 5
+ #endif
+ 
+-/* Middle quality quality setting @ 44.1 khz */
+-#define DEFAULT_SBC_BITRATE 328
++/* Middle quality quality setting @ 44.1 328 */
++#define DEFAULT_SBC_BITRATE 345
+ 
+ #ifndef BTIF_A2DP_NON_EDR_MAX_RATE
+ #define BTIF_A2DP_NON_EDR_MAX_RATE 229
+@@ -181,7 +181,7 @@ enum {
+    layers we might need to temporarily buffer up data */
+ 
+ /* 18 frames is equivalent to 6.89*18*2.9 ~= 360 ms @ 44.1 khz, 20 ms mediatick */
+-#define MAX_OUTPUT_A2DP_FRAME_QUEUE_SZ 18
++#define MAX_OUTPUT_A2DP_FRAME_QUEUE_SZ 34
+ 
+ #ifndef MAX_PCM_FRAME_NUM_PER_TICK
+ #define MAX_PCM_FRAME_NUM_PER_TICK     14
+@@ -2741,4 +2741,3 @@ void dump_codec_info(unsigned char *p_codec)
+     APPL_TRACE_DEBUG("\tBit pool Min:%d Max:%d", sbc_cie.min_bitpool, sbc_cie.max_bitpool);
+ 
+ }
+-
+diff --git a/device/src/controller.c b/device/src/controller.c
+index 1938f09..66d0d47 100644
+--- a/device/src/controller.c
++++ b/device/src/controller.c
+@@ -85,8 +85,8 @@ static future_t *start_up(void) {
+   BT_HDR *response;
+ 
+   // Send the initial reset command
+-  response = AWAIT_COMMAND(packet_factory->make_reset());
+-  packet_parser->parse_generic_command_complete(response);
++  // response = AWAIT_COMMAND(packet_factory->make_reset());
++  // packet_parser->parse_generic_command_complete(response);
+ 
+   // Request the classic buffer size next
+   response = AWAIT_COMMAND(packet_factory->make_read_buffer_size());
