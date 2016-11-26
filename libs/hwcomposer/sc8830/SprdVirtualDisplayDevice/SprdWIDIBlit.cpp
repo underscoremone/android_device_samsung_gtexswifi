@@ -1085,7 +1085,7 @@ int SprdWIDIBlit:: setupYuvTexSurface(hwc_layer_1_t *AndroidLayer, private_handl
 #if Y_FIRST
         EGL_IMAGE_OFFSET_SPRD, 0,
 #else
-        EGL_IMAGE_OFFSET_SPRD, SourceHandle->width * SoruceHandle->height / 2,
+        EGL_IMAGE_OFFSET_SPRD, SourceHandle->width * SourceHandle->height / 2,
 #endif
         EGL_IMAGE_WIDTH_SPRD,  SourceHandle->width,
         EGL_IMAGE_HEIGHT_SPRD, SourceHandle->height,

@@ -1,141 +1,94 @@
-diff --git a/libion/include/ion/ion.h b/libion/include/ion/ion.h
-index 018c0a1..6122539 100644
---- a/libion/include/ion/ion.h
-+++ b/libion/include/ion/ion.h
-index 018c0a1..6122539 100644
---- a/libion/include/ion/ion.h
-+++ b/libion/include/ion/ion.h
-@@ -31,6 +31,7 @@ int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
- 	      unsigned int flags, struct ion_handle **handle);
- int ion_alloc_fd(int fd, size_t len, size_t align, unsigned int heap_mask,
- 		 unsigned int flags, int *handle_fd);
-+int ion_invalidate_fd(int fd, int handle_fd);
- int ion_sync_fd(int fd, int handle_fd);
- int ion_free(int fd, struct ion_handle *handle);
- int ion_map(int fd, struct ion_handle *handle, size_t length, int prot,
-diff --git a/include/system/audio.h b/include/system/audio.h
-index 667fe41..397870b 100644
---- a/include/system/audio.h
-+++ b/include/system/audio.h
-@@ -56,6 +56,9 @@ typedef enum {
-     AUDIO_STREAM_ENFORCED_AUDIBLE = 7, /* Sounds that cannot be muted by user and must be routed to speaker */
-     AUDIO_STREAM_DTMF             = 8,
-     AUDIO_STREAM_TTS              = 9,
-+#ifdef SPRD_HARDWARE
-+    AUDIO_STREAM_FM               = 10,
-+#endif
- #ifdef QCOM_HARDWARE
-     AUDIO_STREAM_INCALL_MUSIC     = 10,
+diff --git a/include/cutils/iosched_policy.h b/include/cutils/iosched_policy.h
+index 07c5d1f..25b87ba 100644
+--- a/include/cutils/iosched_policy.h
++++ b/include/cutils/iosched_policy.h
+@@ -31,6 +31,8 @@ typedef enum {
+ extern int android_set_ioprio(int pid, IoSchedClass clazz, int ioprio);
+ extern int android_get_ioprio(int pid, IoSchedClass *clazz, int *ioprio);
+ 
++extern int android_set_rt_ioprio(int pid, int rt);
++
+ #ifdef __cplusplus
+ }
  #endif
-@@ -80,8 +83,12 @@ typedef enum {
-                                           /* An example of remote presentation is Wifi Display */
-                                           /*  where a dongle attached to a TV can be used to   */
-                                           /*  play the mix captured by this audio source.      */
-+#ifdef SPRD_HARDWARE
-+    AUDIO_SOURCE_RECORD_NO_AUDIO     = 9, /* SPRD: add one audioSource type for slow motion */
-+#else
-     AUDIO_SOURCE_FM_RX               = 9,
-     AUDIO_SOURCE_FM_RX_A2DP          = 10,
-+#endif
-     AUDIO_SOURCE_CNT,
-     AUDIO_SOURCE_MAX                 = AUDIO_SOURCE_CNT - 1,
-     AUDIO_SOURCE_HOTWORD             = 1999, /* A low-priority, preemptible audio source for
-@@ -425,6 +432,10 @@ enum {
-     AUDIO_DEVICE_OUT_FM_TX                     = 0x100000,
-     AUDIO_DEVICE_OUT_SPDIF                     = 0x200000,
- #endif
-+#if defined(SPRD_HARDWARE)
-+    AUDIO_DEVICE_OUT_FM_HEADSET                = 0x1000000,
-+    AUDIO_DEVICE_OUT_FM_SPEAKER                = 0x2000000,
-+#endif
-     AUDIO_DEVICE_OUT_DEFAULT                   = AUDIO_DEVICE_BIT_DEFAULT,
-     AUDIO_DEVICE_OUT_ALL      = (AUDIO_DEVICE_OUT_EARPIECE |
-                                  AUDIO_DEVICE_OUT_SPEAKER |
-@@ -450,6 +461,10 @@ enum {
-                                  AUDIO_DEVICE_OUT_FM_TX |
-                                  AUDIO_DEVICE_OUT_SPDIF |
- #endif
-+#if defined(SPRD_HARDWARE)
-+                                 AUDIO_DEVICE_OUT_FM_HEADSET |
-+                                 AUDIO_DEVICE_OUT_FM_SPEAKER |
-+#endif
-                                  AUDIO_DEVICE_OUT_DEFAULT),
-     AUDIO_DEVICE_OUT_ALL_A2DP = (AUDIO_DEVICE_OUT_BLUETOOTH_A2DP |
-                                  AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
-@@ -459,6 +474,10 @@ enum {
-                                  AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT),
-     AUDIO_DEVICE_OUT_ALL_USB  = (AUDIO_DEVICE_OUT_USB_ACCESSORY |
-                                  AUDIO_DEVICE_OUT_USB_DEVICE),
-+#if defined(SPRD_HARDWARE)
-+    AUDIO_DEVICE_OUT_ALL_FM   = (AUDIO_DEVICE_OUT_FM_HEADSET |
-+                                 AUDIO_DEVICE_OUT_FM_SPEAKER),
-+#endif
-
-     /* input devices */
- #if defined(ICS_AUDIO_BLOB) || defined(MR0_AUDIO_BLOB)
 diff --git a/include/system/graphics.h b/include/system/graphics.h
-index 946073f..2c9bf0d 100644
+index c226e90..d26dfd4 100644
 --- a/include/system/graphics.h
 +++ b/include/system/graphics.h
-@@ -250,7 +250,21 @@ enum {
+@@ -461,7 +461,21 @@ enum {
      /* Legacy formats (deprecated), used by ImageFormat.java */
      HAL_PIXEL_FORMAT_YCbCr_422_SP       = 0x10, // NV16
      HAL_PIXEL_FORMAT_YCrCb_420_SP       = 0x11, // NV21
-+#ifdef SPRD_HARDWARE
-+    HAL_PIXEL_FORMAT_YCbCr_422_P        = 0x12,
-+    HAL_PIXEL_FORMAT_YCbCr_420_P        = 0x13,
-+#endif
-     HAL_PIXEL_FORMAT_YCbCr_422_I        = 0x14, // YUY2
-+#ifdef SPRD_HARDWARE
-+    HAL_PIXEL_FORMAT_YCbCr_420_I        = 0x15,
-+    HAL_PIXEL_FORMAT_CbYCrY_422_I       = 0x16,
-+    HAL_PIXEL_FORMAT_CbYCrY_420_I       = 0x17,
-+    HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED = 0x18,
-+    HAL_PIXEL_FORMAT_YCbCr_420_SP       = 0x19,
-+    HAL_PIXEL_FORMAT_YCrCb_420_SP_TILED = 0x1A,
-+    HAL_PIXEL_FORMAT_YCrCb_422_SP       = 0x1B,
-+    HAL_PIXEL_FORMAT_YCrCb_420_P        = 0x1C,
-+#endif
+-    HAL_PIXEL_FORMAT_YCbCr_422_I        = 0x14, // YUY2
++    #ifdef SPRD_HARDWARE
++      HAL_PIXEL_FORMAT_YCbCr_422_P        = 0x12,
++      HAL_PIXEL_FORMAT_YCbCr_420_P        = 0x13,
++    #endif
++      HAL_PIXEL_FORMAT_YCbCr_422_I        = 0x14, // YUY2
++    #ifdef SPRD_HARDWARE
++      HAL_PIXEL_FORMAT_YCbCr_420_I        = 0x15,
++      HAL_PIXEL_FORMAT_CbYCrY_422_I       = 0x16,
++      HAL_PIXEL_FORMAT_CbYCrY_420_I       = 0x17,
++      HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED = 0x18,
++      HAL_PIXEL_FORMAT_YCbCr_420_SP       = 0x19,
++      HAL_PIXEL_FORMAT_YCrCb_420_SP_TILED = 0x1A,
++      HAL_PIXEL_FORMAT_YCrCb_422_SP       = 0x1B,
++      HAL_PIXEL_FORMAT_YCrCb_420_P        = 0x1C,
++    #endif
  };
-
+ 
  /*
+diff --git a/include/utils/AndroidThreads.h b/include/utils/AndroidThreads.h
+index aad1e82..8dd75b0 100644
+--- a/include/utils/AndroidThreads.h
++++ b/include/utils/AndroidThreads.h
+@@ -73,6 +73,9 @@ extern void androidSetCreateThreadFunc(android_create_thread_fn func);
+ // ------------------------------------------------------------------
+ // Extra functions working with raw pids.
+ 
++// Get pid for the current thread.
++extern pid_t androidGetTid();
++
+ #ifdef HAVE_ANDROID_OS
+ // Change the priority AND scheduling group of a particular thread.  The priority
+ // should be one of the ANDROID_PRIORITY constants.  Returns INVALID_OPERATION
 diff --git a/init/Android.mk b/init/Android.mk
-index 138f92b..74e9944 100644
+index eb2543a..73234ae 100755
 --- a/init/Android.mk
 +++ b/init/Android.mk
-@@ -69,6 +69,8 @@ LOCAL_STATIC_LIBRARIES := \
- 	libselinux \
- 	libmincrypt \
- 	libext4_utils_static
+@@ -80,6 +80,8 @@ LOCAL_STATIC_LIBRARIES := \
+     libext2_blkid \
+     libext2_uuid_static
+ 
 +LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 +LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/mtd
-
- ifneq ($(strip $(TARGET_PLATFORM_DEVICE_BASE)),)
- LOCAL_CFLAGS += -D_PLATFORM_BASE="\"$(TARGET_PLATFORM_DEVICE_BASE)\""
-diff --git a/init/builtins.c b/init/builtins.c
-index 4070578..b32845f 100644
---- a/init/builtins.c
-+++ b/init/builtins.c
-@@ -50,6 +50,8 @@
- #include "log.h"
-
+ 
+ # Create symlinks
+ LOCAL_POST_INSTALL_CMD := $(hide) mkdir -p $(TARGET_ROOT_OUT)/sbin; \
+diff --git a/init/builtins.cpp b/init/builtins.cpp
+index ab7b60e..ebcf520 100644
+--- a/init/builtins.cpp
++++ b/init/builtins.cpp
+@@ -43,6 +43,8 @@
+ #include <cutils/partition_utils.h>
+ #include <cutils/android_reboot.h>
  #include <private/android_filesystem_config.h>
 +#include <sys/ioctl.h>
 +#include "ubi-user.h"
-
- void add_environment(const char *name, const char *value);
-
-@@ -391,6 +393,34 @@ int do_mkdir(int nargs, char **args)
+ 
+ #include "init.h"
+ #include "keywords.h"
+@@ -363,7 +365,33 @@ int do_mknod(int nargs, char **args)
      return 0;
  }
-
+ 
 +#define UBI_CTRL_DEV "/dev/ubi_ctrl"
 +int do_ubiAttach(int nargs, char **args)
 +{
 +    struct ubi_attach_req req;
 +    int fd;
 +    int ret;
-+
+ 
 +    ERROR("do_ubiAttach %s %s\n",args[1],args[2]);
 +
 +    memset(&req, 0, sizeof(struct ubi_attach_req));
@@ -156,14 +109,13 @@ index 4070578..b32845f 100644
 +    }
 +    return 0;
 +}
-+
+ 
  static struct {
      const char *name;
-     unsigned flag;
-@@ -515,6 +545,93 @@ exit_success:
-
+@@ -506,6 +534,94 @@ static int wipe_data_via_recovery()
+     while (1) { pause(); }  // never reached
  }
-
+ 
 +/* SPRD: add for storage manage  @{ */
 +
 +#define PROC_MOUNTS_FILENAME   "/proc/mounts"
@@ -251,33 +203,44 @@ index 4070578..b32845f 100644
 +}
 +/* @} */
 +
- int do_mount_all(int nargs, char **args)
- {
-     pid_t pid;
-@@ -562,12 +679,19 @@ int do_mount_all(int nargs, char **args)
-     if (ret == 1) {
++
+ /*
+  * This function might request a reboot, in which case it will
+  * not return.
+@@ -563,12 +679,10 @@ int do_mount_all(int nargs, char **args)
          property_set("ro.crypto.state", "encrypted");
-         property_set("vold.decrypt", "1");
-+/* SPRD: modify for storage manage  @{
-+  @orig
-     } else if (ret == 0) {
-+ */
-+    } else {
-+        if (ret == 0 || !enusure_data_mounted()) {
-+/* @} */
-         property_set("ro.crypto.state", "unencrypted");
-         /* If fs_mgr determined this is an unencrypted device, then trigger
-          * that action.
+         property_set("ro.crypto.type", "block");
+         property_set("vold.decrypt", "trigger_default_encryption");
+-    } else if (ret == FS_MGR_MNTALL_DEV_NOT_ENCRYPTED) {
+-        property_set("ro.crypto.state", "unencrypted");
+-        /* If fs_mgr determined this is an unencrypted device, then trigger
+-         * that action.
++        /* SPRD: modify for storage manage  @{
++          @orig
++           } else if (ret == 0) {
           */
-         action_for_each_trigger("nonencrypted", action_add_queue_tail);
-+        }
+-        action_for_each_trigger("nonencrypted", action_add_queue_tail);
+     } else if (ret == FS_MGR_MNTALL_DEV_NEEDS_RECOVERY) {
+         /* Setup a wipe via recovery, and reboot into recovery */
+         ERROR("fs_mgr_mount_all suggested recovery, so wiping data via recovery.\n");
+@@ -593,6 +707,13 @@ int do_mount_all(int nargs, char **args)
+         property_set("vold.decrypt", "trigger_restart_min_framework");
+     } else if (ret > 0) {
+         ERROR("fs_mgr_mount_all returned unexpected error %d\n", ret);
++    } else if (ret == 0 || !enusure_data_mounted()) {
++/* @} */
++        property_set("ro.crypto.state", "unencrypted");
++        /* If fs_mgr determined this is an unencrypted device, then trigger
++         * that action.
++         */
++        action_for_each_trigger("nonencrypted", action_add_queue_tail);
      }
-
-     return ret;
-@@ -968,3 +1092,13 @@ int do_wait(int nargs, char **args)
-     } else
+     /* else ... < 0: error */
+ 
+@@ -936,6 +1057,17 @@ int do_wait(int nargs, char **args)
          return -1;
  }
+ 
 +
 +int do_pipe(int nargs, char **args) {
 +    mode_t mode = get_mode(args[1]);
@@ -288,157 +251,261 @@ index 4070578..b32845f 100644
 +    return 0;
 +
 +}
-diff --git a/init/init_parser.c b/init/init_parser.c
-index 291cf97..cc3afbc 100644
---- a/init/init_parser.c
-+++ b/init/init_parser.c
-@@ -135,6 +135,7 @@ int lookup_keyword(const char *s)
++
+ /*
+  * Callback to make a directory from the ext4 code
+  */
+diff --git a/init/init.cpp b/init/init.cpp
+index b332588..4104601 100644
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -807,7 +807,7 @@ static void export_kernel_boot_props() {
+         { "ro.boot.mode",       "ro.bootmode",   "unknown", },
+         { "ro.boot.baseband",   "ro.baseband",   "unknown", },
+         { "ro.boot.bootloader", "ro.bootloader", "unknown", },
+-        { "ro.boot.hardware",   "ro.hardware",   "unknown", },
++        { "ro.boot.hardware",   "ro.hardware",   "sc8830", },
+         { "ro.boot.revision",   "ro.revision",   "0", },
+     };
+     for (size_t i = 0; i < ARRAY_SIZE(prop_map); i++) {
+diff --git a/init/init_parser.cpp b/init/init_parser.cpp
+index e5793f1..db42d7b 100644
+--- a/init/init_parser.cpp
++++ b/init/init_parser.cpp
+@@ -178,6 +178,7 @@ static int lookup_keyword(const char *s)
          break;
      case 'p':
          if (!strcmp(s, "owerctl")) return K_powerctl;
 +        if (!strcmp(s, "ipe")) return K_pipe;   //sprd add for loopback test
+         break;
      case 'r':
          if (!strcmp(s, "estart")) return K_restart;
-         if (!strcmp(s, "estorecon")) return K_restorecon;
-@@ -165,6 +166,7 @@ int lookup_keyword(const char *s)
+@@ -207,6 +208,7 @@ static int lookup_keyword(const char *s)
          break;
      case 'u':
          if (!strcmp(s, "ser")) return K_user;
 +        if (!strcmp(s, "biattach")) return K_ubiattach;
          break;
-     case 'w':
-         if (!strcmp(s, "rite")) return K_write;
+     case 'v':
+         if (!strcmp(s, "erity_load_state")) return K_verity_load_state;
 diff --git a/init/keywords.h b/init/keywords.h
-index 8b3c089..983fe60 100644
+index 2171492..8e1fd53 100644
 --- a/init/keywords.h
 +++ b/init/keywords.h
-@@ -13,6 +13,7 @@ int do_hostname(int nargs, char **args);
- int do_ifup(int nargs, char **args);
+@@ -15,6 +15,7 @@ int do_ifup(int nargs, char **args);
  int do_insmod(int nargs, char **args);
+ int do_installkey(int nargs, char **args);
  int do_mkdir(int nargs, char **args);
 +int do_ubiAttach(int nargs, char **args);
  int do_mount_all(int nargs, char **args);
  int do_mount(int nargs, char **args);
  int do_powerctl(int nargs, char **args);
-@@ -39,6 +40,7 @@ int do_chown(int nargs, char **args);
- int do_chmod(int nargs, char **args);
+@@ -39,6 +40,7 @@ int do_chmod(int nargs, char **args);
  int do_loglevel(int nargs, char **args);
  int do_load_persist_props(int nargs, char **args);
+ int do_load_system_props(int nargs, char **args);
 +int do_pipe(int nargs, char **args);
+ int do_verity_load_state(int nargs, char **args);
+ int do_verity_update_state(int nargs, char **args);
  int do_wait(int nargs, char **args);
- #define __MAKE_KEYWORD_ENUM__
- #define KEYWORD(symbol, flags, nargs, func) K_##symbol,
-@@ -66,6 +68,7 @@ enum {
-     KEYWORD(import,      SECTION, 1, 0)
+@@ -77,8 +79,10 @@ enum {
      KEYWORD(keycodes,    OPTION,  0, 0)
+     KEYWORD(load_system_props,     COMMAND, 0, do_load_system_props)
+     KEYWORD(load_persist_props,    COMMAND, 0, do_load_persist_props)
++    KEYWORD(pipe,        COMMAND, 2, do_pipe)
+     KEYWORD(loglevel,    COMMAND, 1, do_loglevel)
      KEYWORD(mkdir,       COMMAND, 1, do_mkdir)
 +    KEYWORD(ubiattach,   COMMAND, 2, do_ubiAttach)
      KEYWORD(mount_all,   COMMAND, 1, do_mount_all)
      KEYWORD(mount,       COMMAND, 3, do_mount)
-     KEYWORD(on,          SECTION, 0, 0)
-@@ -102,6 +105,7 @@ enum {
-     KEYWORD(chmod,       COMMAND, 2, do_chmod)
-     KEYWORD(loglevel,    COMMAND, 1, do_loglevel)
-     KEYWORD(load_persist_props,    COMMAND, 0, do_load_persist_props)
-+    KEYWORD(pipe,        COMMAND, 2, do_pipe)
-     KEYWORD(ioprio,      OPTION,  0, 0)
- #ifdef __MAKE_KEYWORD_ENUM__
-     KEYWORD_COUNT,
-diff --git a/init/property_service.c b/init/property_service.c
-index 38c5248..c85d786 100644
---- a/init/property_service.c
-+++ b/init/property_service.c
-@@ -72,6 +72,7 @@ struct {
-     { "net.lte",          AID_RADIO,    0 },
-     { "net.cdma",         AID_RADIO,    0 },
-     { "ril.",             AID_RADIO,    0 },
-+    { "ril.",             AID_SYSTEM,   0 },
-     { "gsm.",             AID_RADIO,    0 },
-     { "persist.radio",    AID_RADIO,    0 },
-     { "net.dns",          AID_RADIO,    0 },
-@@ -84,7 +85,7 @@ struct {
-     { "sys.powerctl",     AID_SHELL,    0 },
-     { "service.",         AID_SYSTEM,   0 },
-     { "wlan.",            AID_SYSTEM,   0 },
--    { "bluetooth.",       AID_BLUETOOTH,    0 },
-+    { "bluetooth.",       AID_BLUETOOTH,   0 },
-     { "dhcp.",            AID_SYSTEM,   0 },
-     { "dhcp.",            AID_DHCP,     0 },
-     { "debug.",           AID_SYSTEM,   0 },
-@@ -94,9 +95,11 @@ struct {
-     { "service.adb.tcp.port", AID_SHELL,    0 },
-     { "persist.mmac.", AID_SYSTEM, 0 },
-     { "persist.sys.",     AID_SYSTEM,   0 },
-+    { "persist.msms.",    AID_RADIO,   0 },//SPRD: add for dsds
-     { "persist.service.", AID_SYSTEM,   0 },
-     { "persist.service.", AID_RADIO,    0 },
-     { "persist.security.", AID_SYSTEM,   0 },
-+    { "media.", AID_MEDIA,   0 },
-     { "persist.service.bdroid.", AID_BLUETOOTH,   0 },
-     { "selinux."         , AID_SYSTEM,   0 },
-     { "wc_transport.",     AID_BLUETOOTH,   AID_SYSTEM },
-@@ -437,8 +440,8 @@ void handle_property_set_fd()
-             if (check_perms(msg.name, cr.uid, cr.gid, source_ctx)) {
-                 property_set((char*) msg.name, (char*) msg.value);
-             } else {
--                ERROR("sys_prop: permission denied uid:%d  name:%s\n",
--                      cr.uid, msg.name);
-+                ERROR("sys_prop: permission denied pid:%d uid:%d name:%s\n",
-+                      cr.pid, cr.uid, msg.name);
-             }
-
-             // Note: bionic's property client code assumes that the
-diff --git a/libcutils/properties.c b/libcutils/properties.c
-index 84fd96c..dac8ab3 100644
---- a/libcutils/properties.c
-+++ b/libcutils/properties.c
-@@ -15,6 +15,7 @@
-  */
-
- #define LOG_TAG "properties"
-+#define LOG_NDEBUG 0
-
+     KEYWORD(oneshot,     OPTION,  0, 0)
+diff --git a/init/property_service.cpp b/init/property_service.cpp
+index 5f3caa5..3793820 100644
+--- a/init/property_service.cpp
++++ b/init/property_service.cpp
+@@ -203,7 +203,9 @@ static int property_set_impl(const char* name, const char* value) {
+     size_t namelen = strlen(name);
+     size_t valuelen = strlen(value);
+ 
+-    if (!is_legal_property_name(name, namelen)) return -1;
++    if (!is_legal_property_name(name, namelen)) {
++      return -1;
++    }
+     if (valuelen >= PROP_VALUE_MAX) return -1;
+ 
+     if (strcmp("selinux.reload_policy", name) == 0 && strcmp("1", value) == 0) {
+diff --git a/libcutils/iosched_policy.c b/libcutils/iosched_policy.c
+index 8946d3c..745e2b6 100644
+--- a/libcutils/iosched_policy.c
++++ b/libcutils/iosched_policy.c
+@@ -1,9 +1,10 @@
+ /*
+-** Copyright 2007, The Android Open Source Project
++** Copyright 2007-2014, The Android Open Source Project
++** Copyright 2015, The CyanogenMod Project
+ **
+-** Licensed under the Apache License, Version 2.0 (the "License"); 
+-** you may not use this file except in compliance with the License. 
+-** You may obtain a copy of the License at 
++** Licensed under the Apache License, Version 2.0 (the "License");
++** you may not use this file except in compliance with the License.
++** You may obtain a copy of the License at
+ **
+ **     http://www.apache.org/licenses/LICENSE-2.0 
+ **
+@@ -20,28 +21,30 @@
  #include <stdlib.h>
  #include <string.h>
-diff --git a/libion/Android.mk b/libion/Android.mk
-index 0f023d6..756abc6 100644
---- a/libion/Android.mk
-+++ b/libion/Android.mk
-@@ -1,11 +1,8 @@
- LOCAL_PATH:= $(call my-dir)
-
- include $(CLEAR_VARS)
-+LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
-+LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
- LOCAL_SRC_FILES := ion.c
- LOCAL_MODULE := libion
- LOCAL_MODULE_TAGS := optional
-@@ -13,10 +10,10 @@ LOCAL_SHARED_LIBRARIES := liblog
- include $(BUILD_SHARED_LIBRARY)
-
- include $(CLEAR_VARS)
-+LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
-+LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
- LOCAL_SRC_FILES := ion.c ion_test.c
- LOCAL_MODULE := iontest
- LOCAL_MODULE_TAGS := optional tests
- LOCAL_SHARED_LIBRARIES := liblog
- include $(BUILD_EXECUTABLE)
--
--endif
-diff --git a/libion/ion.c b/libion/ion.c
-index 4cd1697..8c5ab7f 100644
---- a/libion/ion.c
-+++ b/libion/ion.c
-@@ -149,14 +147,18 @@ int ion_import(int fd, int share_fd, struct ion_handle **handle)
-         return ret;
+ #include <unistd.h>
++#include <pthread.h>
+ 
+ #include <cutils/iosched_policy.h>
++#define LOG_TAG "iosched_policy"
++#include <cutils/log.h>
++
++#define __android_unused __attribute__((__unused__))
+ 
+ #ifdef HAVE_ANDROID_OS
+ #include <linux/ioprio.h>
+ #include <sys/syscall.h>
+-#define __android_unused
+-#else
+-#define __android_unused __attribute__((__unused__))
+-#endif
++#include <sys/stat.h>
++
++static int __rtio_cgroup_supported = -1;
++static pthread_once_t __rtio_init_once = PTHREAD_ONCE_INIT;
+ 
+ int android_set_ioprio(int pid __android_unused, IoSchedClass clazz __android_unused, int ioprio __android_unused) {
+-#ifdef HAVE_ANDROID_OS
+     if (syscall(SYS_ioprio_set, IOPRIO_WHO_PROCESS, pid, ioprio | (clazz << IOPRIO_CLASS_SHIFT))) {
+         return -1;
+     }
+-#endif
+     return 0;
  }
-
-+int ion_invalidate_fd(int fd, int handle_fd)
-+{
-+    struct ion_fd_data data = {
-+        .fd = handle_fd,
-+    };
-+    return ion_ioctl(fd, ION_IOC_INVALIDATE, &data);
+ 
+ int android_get_ioprio(int pid __android_unused, IoSchedClass *clazz, int *ioprio) {
+-#ifdef HAVE_ANDROID_OS
+     int rc;
+ 
+     if ((rc = syscall(SYS_ioprio_get, IOPRIO_WHO_PROCESS, pid)) < 0) {
+@@ -50,9 +53,83 @@ int android_get_ioprio(int pid __android_unused, IoSchedClass *clazz, int *iopri
+ 
+     *clazz = (rc >> IOPRIO_CLASS_SHIFT);
+     *ioprio = (rc & 0xff);
++    return 0;
 +}
 +
++static void __initialize_rtio(void) {
++    if (!access("/sys/fs/cgroup/bfqio/tasks", W_OK) ||
++        !access("/sys/fs/cgroup/bfqio/rt-display/tasks", W_OK)) {
++        __rtio_cgroup_supported = 1;
++    } else {
++        __rtio_cgroup_supported = 0;
++    }
++}
++
++int android_set_rt_ioprio(int tid, int rt) {
++    int fd = -1, rc = -1;
++
++    pthread_once(&__rtio_init_once, __initialize_rtio);
++    if (__rtio_cgroup_supported != 1) {
++        return -1;
++    }
++
++    if (rt) {
++        fd = open("/sys/fs/cgroup/bfqio/rt-display/tasks", O_WRONLY | O_CLOEXEC);
++    } else {
++        fd = open("/sys/fs/cgroup/bfqio/tasks", O_WRONLY | O_CLOEXEC);
++    }
++
++    if (fd < 0) {
++        return -1;
++    }
++
++#ifdef HAVE_GETTID
++    if (tid == 0) {
++        tid = gettid();
++    }
++#endif
++
++    // specialized itoa -- works for tid > 0
++    char text[22];
++    char *end = text + sizeof(text) - 1;
++    char *ptr = end;
++    *ptr = '\0';
++    while (tid > 0) {
++        *--ptr = '0' + (tid % 10);
++        tid = tid / 10;
++    }
++
++    rc = write(fd, ptr, end - ptr);
++    if (rc < 0) {
++        /*
++         * If the thread is in the process of exiting,
++         * don't flag an error
++         */
++        if (errno == ESRCH) {
++            rc = 0;
++        } else {
++            SLOGV("android_set_rt_ioprio failed to write '%s' (%s); fd=%d\n",
++                  ptr, strerror(errno), fd);
++        }
++    }
++
++    close(fd);
++    return rc;
++}
++
+ #else
++int android_set_ioprio(int pid __android_unused, IoSchedClass clazz __android_unused, int ioprio __android_unused) {
++    return 0;
++}
++
++int android_get_ioprio(int pid __android_unused, IoSchedClass *clazz, int *ioprio) {
+     *clazz = IoSchedClass_NONE;
+     *ioprio = 0;
+-#endif
+     return 0;
+ }
++
++int android_set_rt_ioprio(int tid __android_unused, int rt __android_unused)
++{
++    return 0;
++}
++#endif
+diff --git a/libcutils/properties.c b/libcutils/properties.c
+index 4e46e02..1bc2996 100644
+--- a/libcutils/properties.c
++++ b/libcutils/properties.c
+@@ -15,7 +15,7 @@
+  */
+ 
+ #define LOG_TAG "properties"
+-// #define LOG_NDEBUG 0
++#define LOG_NDEBUG 0
+ 
+ #include <stdlib.h>
+ #include <string.h>
+diff --git a/libutils/Threads.cpp b/libutils/Threads.cpp
+index 1e014c6..e0c0f4f 100644
+--- a/libutils/Threads.cpp
++++ b/libutils/Threads.cpp
+@@ -301,6 +301,15 @@ void androidSetCreateThreadFunc(android_create_thread_fn func)
+     gCreateThreadFn = func;
+ }
+ 
++pid_t androidGetTid()
++{
++#ifdef HAVE_GETTID
++    return gettid();
++#else
++    return getpid();
++#endif
++}
++
+ #ifdef HAVE_ANDROID_OS
+ int androidSetThreadPriority(pid_t tid, int pri)
+ {
