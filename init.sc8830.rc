@@ -38,10 +38,6 @@ on init
     # for tsp command
     chown system system /sys/class/sec/tsp/cmd
 
-    #SPRD: Add support for install apk to internal sdcard @{
-    mkdir /mnt/secure/internal-asec 0700 root root
-    # @}
-
     mkdir /efs 0771 radio system
     mkdir /efs/imei 0775 radio system
 
@@ -137,6 +133,10 @@ on post-fs-data
 
     # Set indication (checked by vold) that we have finished this action
     setprop vold.post_fs_data_done 1
+
+    #SPRD: Add support for install apk to internal sdcard @{
+    mkdir /mnt/secure/internal-asec 0700 root root
+    # @}
 
     mkdir /data/ssh 0750 root shell
     mkdir /data/ssh/empty 0700 root root

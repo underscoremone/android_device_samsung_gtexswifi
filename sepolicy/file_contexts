@@ -98,5 +98,3 @@
 /system/bin/smdexe  u:object_r:smdexe_exec:s0
 /system/bin/charon  u:object_r:charon_exec:s0
 /system/bin/scs     u:object_r:scs_exec:s0
-
-/mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0
