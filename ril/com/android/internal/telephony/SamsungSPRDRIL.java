@@ -362,8 +362,6 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
                                   dc.uusInfo.getUserData().length));
                   riljLogv("Incoming UUS : data (string)="
                           + new String(dc.uusInfo.getUserData()));
-                  riljLogv("Incoming UUS : data (hex): "
-                          + IccUtils.bytesToHexString(dc.uusInfo.getUserData()));
               } else {
                   riljLogv("Incoming UUS : NOT present!");
               }

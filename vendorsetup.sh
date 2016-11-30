@@ -1,2 +1,2 @@
-add_lunch_combo omni_samsung_gtexslte-userdebug
-add_lunch_combo omni_samsung_gtexslte-eng
+add_lunch_combo cm_gtexslte-userdebug
+add_lunch_combo cm_gtexslte-eng
