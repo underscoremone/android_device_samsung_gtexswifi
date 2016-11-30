@@ -24,105 +24,18 @@ import android.os.Message;
 import android.os.Parcel;
 import android.os.SystemProperties;
 import android.telephony.Rlog;
+import com.android.internal.telephony.RILConstants;
+import java.util.Collections;
 import android.telephony.PhoneNumberUtils;
 
-import com.android.internal.telephony.uicc.SpnOverride;
-import com.android.internal.telephony.RILConstants;
-
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 
 /**
- * Custom RIL to handle unique behavior of SPRD RIL
+ * Custom RIL to handle unique behavior of D2 radio
  *
  * {@hide}
  */
 public class SamsungSPRDRIL extends RIL implements CommandsInterface {
-
-    //SAMSUNG STATES
-    static final int RIL_REQUEST_GET_CELL_BROADCAST_CONFIG = 10002;
-
-    static final int RIL_REQUEST_SEND_ENCODED_USSD = 10005;
-    static final int RIL_REQUEST_SET_PDA_MEMORY_STATUS = 10006;
-    static final int RIL_REQUEST_GET_PHONEBOOK_STORAGE_INFO = 10007;
-    static final int RIL_REQUEST_GET_PHONEBOOK_ENTRY = 10008;
-    static final int RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY = 10009;
-    static final int RIL_REQUEST_DIAL_VIDEO_CALL = 10010;
-    static final int RIL_REQUEST_CALL_DEFLECTION = 10011;
-    static final int RIL_REQUEST_READ_SMS_FROM_SIM = 10012;
-    static final int RIL_REQUEST_USIM_PB_CAPA = 10013;
-    static final int RIL_REQUEST_LOCK_INFO = 10014;
-
-    static final int RIL_REQUEST_DIAL_EMERGENCY = 10016;
-    static final int RIL_REQUEST_GET_STOREAD_MSG_COUNT = 10017;
-    static final int RIL_REQUEST_STK_SIM_INIT_EVENT = 10018;
-    static final int RIL_REQUEST_GET_LINE_ID = 10019;
-    static final int RIL_REQUEST_SET_LINE_ID = 10020;
-    static final int RIL_REQUEST_GET_SERIAL_NUMBER = 10021;
-    static final int RIL_REQUEST_GET_MANUFACTURE_DATE_NUMBER = 10022;
-    static final int RIL_REQUEST_GET_BARCODE_NUMBER = 10023;
-    static final int RIL_REQUEST_UICC_GBA_AUTHENTICATE_BOOTSTRAP = 10024;
-    static final int RIL_REQUEST_UICC_GBA_AUTHENTICATE_NAF = 10025;
-    static final int RIL_REQUEST_SIM_TRANSMIT_BASIC = 10026;
-    static final int RIL_REQUEST_SIM_OPEN_CHANNEL = 10027;
-    static final int RIL_REQUEST_SIM_CLOSE_CHANNEL = 10028;
-    static final int RIL_REQUEST_SIM_TRANSMIT_CHANNEL = 10029;
-    static final int RIL_REQUEST_SIM_AUTH = 10030;
-    static final int RIL_REQUEST_PS_ATTACH = 10031;
-    static final int RIL_REQUEST_PS_DETACH = 10032;
-    static final int RIL_REQUEST_ACTIVATE_DATA_CALL = 10033;
-    static final int RIL_REQUEST_CHANGE_SIM_PERSO = 10034;
-    static final int RIL_REQUEST_ENTER_SIM_PERSO = 10035;
-    static final int RIL_REQUEST_GET_TIME_INFO = 10036;
-    static final int RIL_REQUEST_OMADM_SETUP_SESSION = 10037;
-    static final int RIL_REQUEST_OMADM_SERVER_START_SESSION = 10038;
-    static final int RIL_REQUEST_OMADM_CLIENT_START_SESSION = 10039;
-    static final int RIL_REQUEST_OMADM_SEND_DATA = 10040;
-    static final int RIL_REQUEST_CDMA_GET_DATAPROFILE = 10041;
-    static final int RIL_REQUEST_CDMA_SET_DATAPROFILE = 10042;
-    static final int RIL_REQUEST_CDMA_GET_SYSTEMPROPERTIES = 10043;
-    static final int RIL_REQUEST_CDMA_SET_SYSTEMPROPERTIES = 10044;
-    static final int RIL_REQUEST_SEND_SMS_COUNT = 10045;
-    static final int RIL_REQUEST_SEND_SMS_MSG = 10046;
-    static final int RIL_REQUEST_SEND_SMS_MSG_READ_STATUS = 10047;
-    static final int RIL_REQUEST_MODEM_HANGUP = 10048;
-    static final int RIL_REQUEST_SET_SIM_POWER = 10049;
-    static final int RIL_REQUEST_SET_PREFERRED_NETWORK_LIST = 10050;
-    static final int RIL_REQUEST_GET_PREFERRED_NETWORK_LIST = 10051;
-    static final int RIL_REQUEST_HANGUP_VT = 10052;
-
-    static final int RIL_UNSOL_RELEASE_COMPLETE_MESSAGE = 11001;
-    static final int RIL_UNSOL_STK_SEND_SMS_RESULT = 11002;
-    static final int RIL_UNSOL_STK_CALL_CONTROL_RESULT = 11003;
-    static final int RIL_UNSOL_DUN_CALL_STATUS = 11004;
-
-    static final int RIL_UNSOL_O2_HOME_ZONE_INFO = 11007;
-    static final int RIL_UNSOL_DEVICE_READY_NOTI = 11008;
-    static final int RIL_UNSOL_GPS_NOTI = 11009;
-    static final int RIL_UNSOL_AM = 11010;
-    static final int RIL_UNSOL_DUN_PIN_CONTROL_SIGNAL = 11011;
-    static final int RIL_UNSOL_DATA_SUSPEND_RESUME = 11012;
-    static final int RIL_UNSOL_SAP = 11013;
-
-    static final int RIL_UNSOL_SIM_SMS_STORAGE_AVAILALE = 11015;
-    static final int RIL_UNSOL_HSDPA_STATE_CHANGED = 11016;
-    static final int RIL_UNSOL_TWO_MIC_STATE = 11018;
-    static final int RIL_UNSOL_DHA_STATE = 11019;
-    static final int RIL_UNSOL_UART = 11020;
-    static final int RIL_UNSOL_RESPONSE_HANDOVER = 11021;
-    static final int RIL_UNSOL_IPV6_ADDR = 11022;
-    static final int RIL_UNSOL_NWK_INIT_DISC_REQUEST = 11023;
-    static final int RIL_UNSOL_RTS_INDICATION = 11024;
-    static final int RIL_UNSOL_OMADM_SEND_DATA = 11025;
-    static final int RIL_UNSOL_DUN = 11026;
-    static final int RIL_UNSOL_SYSTEM_REBOOT = 11027;
-    static final int RIL_UNSOL_VOICE_PRIVACY_CHANGED = 11028;
-    static final int RIL_UNSOL_UTS_GETSMSCOUNT = 11029;
-    static final int RIL_UNSOL_UTS_GETSMSMSG = 11030;
-    static final int RIL_UNSOL_UTS_GET_UNREAD_SMS_STATUS = 11031;
-    static final int RIL_UNSOL_MIP_CONNECT_STATUS = 11032;
-
     public SamsungSPRDRIL(Context context, int networkMode, int cdmaSubscription) {
         this(context, networkMode, cdmaSubscription, null);
     }
@@ -130,44 +43,18 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
     public SamsungSPRDRIL(Context context, int networkMode,
             int cdmaSubscription, Integer instanceId) {
         super(context, networkMode, cdmaSubscription, instanceId);
-        mQANElements = SystemProperties.getInt("ro.telephony.ril_qanelements", 6);
+        mQANElements = 6;
     }
 
-    public void setUiccSubscription(int slotId, int appIndex, int subId,
-              int subStatus, Message result) {
-          if (RILJ_LOGD) riljLog("setUiccSubscription" + slotId + " " + appIndex + " " + subId + " " + subStatus);
-
-          // Fake response (note: should be sent before mSubscriptionStatusRegistrants or
-          // SubscriptionManager might not set the readiness correctly)
-          AsyncResult.forMessage(result, 0, null);
-          result.sendToTarget();
-
-          // TODO: Actually turn off/on the radio (and don't fight with the ServiceStateTracker)
-          if (subStatus == 1 /* ACTIVATE */) {
-              // Subscription changed: enabled
-              if (mSubscriptionStatusRegistrants != null) {
-                  mSubscriptionStatusRegistrants.notifyRegistrants(
-                          new AsyncResult (null, new int[] {1}, null));
-              }
-          } else if (subStatus == 0 /* DEACTIVATE */) {
-              // Subscription changed: disabled
-              if (mSubscriptionStatusRegistrants != null) {
-                  mSubscriptionStatusRegistrants.notifyRegistrants(
-                          new AsyncResult (null, new int[] {0}, null));
-              }
-          }
-    }
-
-    @Override
     public void
     dial(String address, int clirMode, UUSInfo uusInfo, Message result) {
         RILRequest rr = RILRequest.obtain(RIL_REQUEST_DIAL, result);
 
         rr.mParcel.writeString(address);
         rr.mParcel.writeInt(clirMode);
-        rr.mParcel.writeInt(0);     // CallDetails.call_type
-        rr.mParcel.writeInt(1);     // CallDetails.call_domain
-        rr.mParcel.writeString(""); // CallDetails.getCsvFromExtras
+        rr.mParcel.writeInt(0); // UUS information is absent: Samsung BCM compat
+        rr.mParcel.writeInt(1); // Samsung magic
+        rr.mParcel.writeString(""); // Samsung magic
 
         if (uusInfo == null) {
             rr.mParcel.writeInt(0); // UUS information is absent
@@ -183,20 +70,49 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
         send(rr);
     }
 
+    public void setUiccSubscription(int slotId, int appIndex, int subId,
+            int subStatus, Message result) {
+        if (RILJ_LOGD) riljLog("setUiccSubscription" + slotId + " " + appIndex + " " + subId + " " + subStatus);
+
+        // Fake response (note: should be sent before mSubscriptionStatusRegistrants or
+        // SubscriptionManager might not set the readiness correctly)
+        AsyncResult.forMessage(result, 0, null);
+        result.sendToTarget();
+
+        // TODO: Actually turn off/on the radio (and don't fight with the ServiceStateTracker)
+        if (subStatus == 1 /* ACTIVATE */) {
+            // Subscription changed: enabled
+            if (mSubscriptionStatusRegistrants != null) {
+                mSubscriptionStatusRegistrants.notifyRegistrants(
+                        new AsyncResult (null, new int[] {1}, null));
+            }
+        } else if (subStatus == 0 /* DEACTIVATE */) {
+            // Subscription changed: disabled
+            if (mSubscriptionStatusRegistrants != null) {
+                mSubscriptionStatusRegistrants.notifyRegistrants(
+                        new AsyncResult (null, new int[] {0}, null));
+            }
+        }
+    }
+
+    public void setDataSubscription(Message result) {
+          int simId = mInstanceId == null ? 0 : mInstanceId;
+          if (RILJ_LOGD) riljLog("Setting data subscription to " + simId);
+          invokeOemRilRequestRaw(new byte[] {(byte) 9, (byte) 4}, result);
+    }
+
     public void setDefaultVoiceSub(int subIndex, Message response) {
         // Fake the message
         AsyncResult.forMessage(response, 0, null);
         response.sendToTarget();
     }
 
-    @Override
-    protected void notifyRegistrantsRilConnectionChanged(int rilVer) {
-        super.notifyRegistrantsRilConnectionChanged(rilVer);
+    private void invokeOemRilRequestSprd(byte key, byte value, Message response) {
+        invokeOemRilRequestRaw(new byte[] { 'S', 'P', 'R', 'D', key, value }, response);
     }
 
-    @Override
     protected RILRequest
-    processSolicited(Parcel p) {
+    processSolicited (Parcel p) {
         int serial, error;
 
         serial = p.readInt();
@@ -218,9 +134,9 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
             // either command succeeds or command fails but with data payload
             try {switch (rr.mRequest) {
             /*
- cat libs/telephony/ril_commands.h \
- | egrep "^ *{RIL_" \
- | sed -re 's/\{([^,]+),[^,]+,([^}]+).+/case \1: ret = \2(p); break;/'
+  cat libs/telephony/ril_commands.h \
+  | egrep "^ *{RIL_" \
+  | sed -re 's/\{([^,]+),[^,]+,([^}]+).+/case \1: ret = \2(p); break;/'
              */
             case RIL_REQUEST_GET_SIM_STATUS: ret =  responseIccCardStatus(p); break;
             case RIL_REQUEST_ENTER_SIM_PIN: ret =  responseInts(p); break;
@@ -338,6 +254,9 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
             case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU: ret = responseVoid(p); break;
             case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS: ret = responseICC_IO(p); break;
             case RIL_REQUEST_VOICE_RADIO_TECH: ret = responseInts(p); break;
+            case RIL_REQUEST_SET_INITIAL_ATTACH_APN: ret = responseVoid(p); break;
+            case RIL_REQUEST_GET_RADIO_CAPABILITY: ret =  responseRadioCapability(p); break;
+            case RIL_REQUEST_SET_RADIO_CAPABILITY: ret =  responseRadioCapability(p); break;
             default:
                 throw new RuntimeException("Unrecognized solicited response: " + rr.mRequest);
             //break;
@@ -395,88 +314,84 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
     }
 
     @Override
-    protected Object
-    responseCallList(Parcel p) {
-        int num;
-        int voiceSettings;
-        ArrayList<DriverCall> response;
-        DriverCall dc;
+      protected Object
+      responseCallList(Parcel p) {
+          int num;
+          int voiceSettings;
+          ArrayList<DriverCall> response;
+          DriverCall dc;
 
-        num = p.readInt();
-        response = new ArrayList<DriverCall>(num);
+          num = p.readInt();
+          response = new ArrayList<DriverCall>(num);
 
-        if (RILJ_LOGV) {
-            riljLog("responseCallList: num=" + num +
-                    " mEmergencyCallbackModeRegistrant=" + mEmergencyCallbackModeRegistrant +
-                    " mTestingEmergencyCall=" + mTestingEmergencyCall.get());
-        }
-        for (int i = 0 ; i < num ; i++) {
-            dc = new DriverCall();
+          if (RILJ_LOGV) {
+              riljLog("responseCallList: num=" + num +
+                      " mEmergencyCallbackModeRegistrant=" + mEmergencyCallbackModeRegistrant +
+                      " mTestingEmergencyCall=" + mTestingEmergencyCall.get());
+          }
+          for (int i = 0 ; i < num ; i++) {
+              dc = new DriverCall();
 
-            dc.state = DriverCall.stateFromCLCC(p.readInt());
-            // & 0xff to truncate to 1 byte added for us, not in RIL.java
-            dc.index = p.readInt() & 0xff;
-            dc.TOA = p.readInt();
-            dc.isMpty = (0 != p.readInt());
-            dc.isMT = (0 != p.readInt());
-            dc.als = p.readInt();
-            voiceSettings = p.readInt();
-            dc.isVoice = (0 != voiceSettings);
-            boolean isVideo = (0 != p.readInt());
-            int call_type = p.readInt();            // Samsung CallDetails
-            int call_domain = p.readInt();          // Samsung CallDetails
-            p.readString();            // Samsung CallDetails
-            dc.number = p.readString();
-            int np = p.readInt();
-            dc.numberPresentation = DriverCall.presentationFromCLIP(np);
-            dc.name = p.readString();
-            dc.namePresentation = p.readInt();
-            int uusInfoPresent = p.readInt();
-            if (uusInfoPresent == 1) {
-                dc.uusInfo = new UUSInfo();
-                dc.uusInfo.setType(p.readInt());
-                dc.uusInfo.setDcs(p.readInt());
-                byte[] userData = p.createByteArray();
-                dc.uusInfo.setUserData(userData);
-                riljLogv(String.format("Incoming UUS : type=%d, dcs=%d, length=%d",
-                                dc.uusInfo.getType(), dc.uusInfo.getDcs(),
-                                dc.uusInfo.getUserData().length));
-                riljLogv("Incoming UUS : data (string)="
-                        + new String(dc.uusInfo.getUserData()));
-                riljLogv("Incoming UUS : data (hex): "
-                        + IccUtils.bytesToHexString(dc.uusInfo.getUserData()));
-            } else {
-                riljLogv("Incoming UUS : NOT present!");
-            }
+              dc.state = DriverCall.stateFromCLCC(p.readInt());
+              // & 0xff to truncate to 1 byte added for us, not in RIL.java
+              dc.index = p.readInt() & 0xff;
+              dc.TOA = p.readInt();
+              dc.isMpty = (0 != p.readInt());
+              dc.isMT = (0 != p.readInt());
+              dc.als = p.readInt();
+              voiceSettings = p.readInt();
+              dc.isVoice = (0 != voiceSettings);
+              boolean isVideo = (0 != p.readInt());
+              int call_type = p.readInt();            // Samsung CallDetails
+              int call_domain = p.readInt();          // Samsung CallDetails
+              p.readString();            // Samsung CallDetails
+              dc.number = p.readString();
+              int np = p.readInt();
+              dc.numberPresentation = DriverCall.presentationFromCLIP(np);
+              dc.name = p.readString();
+              dc.namePresentation = p.readInt();
+              int uusInfoPresent = p.readInt();
+              if (uusInfoPresent == 1) {
+                  dc.uusInfo = new UUSInfo();
+                  dc.uusInfo.setType(p.readInt());
+                  dc.uusInfo.setDcs(p.readInt());
+                  byte[] userData = p.createByteArray();
+                  dc.uusInfo.setUserData(userData);
+                  riljLogv(String.format("Incoming UUS : type=%d, dcs=%d, length=%d",
+                                  dc.uusInfo.getType(), dc.uusInfo.getDcs(),
+                                  dc.uusInfo.getUserData().length));
+                  riljLogv("Incoming UUS : data (string)="
+                          + new String(dc.uusInfo.getUserData()));
+                  riljLogv("Incoming UUS : data (hex): "
+                          + IccUtils.bytesToHexString(dc.uusInfo.getUserData()));
+              } else {
+                  riljLogv("Incoming UUS : NOT present!");
+              }
 
-            // Make sure there's a leading + on addresses with a TOA of 145
-            dc.number = PhoneNumberUtils.stringFromStringAndTOA(dc.number, dc.TOA);
+              // Make sure there's a leading + on addresses with a TOA of 145
+              dc.number = PhoneNumberUtils.stringFromStringAndTOA(dc.number, dc.TOA);
 
-            response.add(dc);
+              response.add(dc);
 
-            if (dc.isVoicePrivacy) {
-                mVoicePrivacyOnRegistrants.notifyRegistrants();
-                riljLog("InCall VoicePrivacy is enabled");
-            } else {
-                mVoicePrivacyOffRegistrants.notifyRegistrants();
-                riljLog("InCall VoicePrivacy is disabled");
-            }
-        }
+              if (dc.isVoicePrivacy) {
+                  mVoicePrivacyOnRegistrants.notifyRegistrants();
+                  riljLog("InCall VoicePrivacy is enabled");
+              } else {
+                  mVoicePrivacyOffRegistrants.notifyRegistrants();
+                  riljLog("InCall VoicePrivacy is disabled");
+              }
+          }
 
-        Collections.sort(response);
+          Collections.sort(response);
 
-        if ((num == 0) && mTestingEmergencyCall.getAndSet(false)) {
-            if (mEmergencyCallbackModeRegistrant != null) {
-                riljLog("responseCallList: call ended, testing emergency call," +
-                            " notify ECM Registrants");
-                mEmergencyCallbackModeRegistrant.notifyRegistrant();
-            }
-        }
+          if ((num == 0) && mTestingEmergencyCall.getAndSet(false)) {
+              if (mEmergencyCallbackModeRegistrant != null) {
+                  riljLog("responseCallList: call ended, testing emergency call," +
+                              " notify ECM Registrants");
+                  mEmergencyCallbackModeRegistrant.notifyRegistrant();
+              }
+          }
 
-        return response;
-    }
-
-    private void invokeOemRilRequestSprd(byte key, byte value, Message response) {
-        invokeOemRilRequestRaw(new byte[] { 'S', 'P', 'R', 'D', key, value }, response);
-    }
+          return response;
+      }
 }

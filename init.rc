@@ -10,11 +10,7 @@ import /init.sc8830.rc
 import /init.usb.configfs.rc
 import /init.${ro.zygote}.rc
 import /init.trace.rc
-import /init.rilcommon.rc
-import /init.fac.rc
-import /init.sec_debug.rc
 import /init.omni.rc
-
 
 on early-init
     # Set init and its forked children's oom_adj.
@@ -30,13 +26,6 @@ on early-init
 on init
     sysclktz 0
 
-    # SEC_SELINUX
-    # for audit message
-    chown system system /proc/avc_msg
-    chmod 0660 /proc/avc_msg
-    restorecon /dev/pipes
-
-    export LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
     # Backward compatibility.
     symlink /system/etc /etc
     symlink /sys/kernel/debug /d
@@ -70,15 +59,10 @@ on init
 
     # Mount staging areas for devices managed by vold
     # See storage config details at http://source.android.com/tech/storage/
-    mkdir /mnt/shell 0750 shell shell
-    mkdir /mnt/media_rw 0700 media_rw media_rw
-    mkdir /storage 0751 root sdcard_r
-
     mkdir /mnt 0755 root system
     mount tmpfs tmpfs /mnt mode=0755,uid=0,gid=1000
     restorecon_recursive /mnt
 
-    # Directory for putting things only root should see.
     mkdir /mnt/secure 0700 root root
     mkdir /mnt/secure/asec 0700 root root
     mkdir /mnt/asec 0755 root system
@@ -87,10 +71,6 @@ on init
     mkdir /mnt/user 0755 root root
     mkdir /mnt/user/0 0755 root root
     mkdir /mnt/expand 0771 system system
-
-
-    mkdir /efs 0771 radio system
-    mkdir /efs/imei 0775 radio system
 
     # Storage views to support runtime permissions
     mkdir /storage 0755 root root
@@ -101,31 +81,6 @@ on init
     mkdir /mnt/runtime/read/self 0755 root root
     mkdir /mnt/runtime/write 0755 root root
     mkdir /mnt/runtime/write/self 0755 root root
-
-## Samsung ODE >>>
-    # Create private mountpoint so we can MS_MOVE from staging
-    mount tmpfs tmpfs /mnt/secure mode=0700,uid=0,gid=0
-## Samsung ODE <<<
-
-    # Directory for staging bindmounts
-    mkdir /mnt/secure/staging 0700 root root
-    restorecon_recursive /mnt/secure/staging
-
-    # Directory-target for where the secure container
-    # imagefile directory will be bind-mounted
-    mkdir /mnt/secure/asec  0700 root root
-    restorecon_recursive /mnt/secure/asec
-
-    # Secure container public mount points.
-    mkdir /mnt/asec  0700 root system
-    mount tmpfs tmpfs /mnt/asec mode=0755,gid=1000
-    restorecon_recursive /mnt/asec
-
-    # Filesystem image public mount points.
-    mkdir /mnt/obb 0700 root system
-    mount tmpfs tmpfs /mnt/obb mode=0755,gid=1000
-    restorecon_recursive /mnt/obb
-
 
     # Symlink to keep legacy apps working in multi-user world
     symlink /storage/self/primary /sdcard
@@ -244,9 +199,6 @@ on init
     # checker programs.
     mkdir /dev/fscklogs 0770 root system
 
-    # To sync between sdcard & installd
-    setprop installd.sdcard_manipulate_done 0
-
     # pstore/ramoops previous console log
     mount pstore pstore /sys/fs/pstore
     chown system log /sys/fs/pstore/console-ramoops
@@ -301,22 +253,11 @@ on late-init
 
 
 on post-fs
-    chown system system /proc/uid_cputime/show_uid_stat
-    chmod 0440 /proc/uid_cputime/show_uid_stat
-    chown system system /proc/uid_cputime/remove_uid_range
-    chmod 0660 /proc/uid_cputime/remove_uid_range
-
     start logd
     # once everything is setup, no need to modify /
     mount rootfs rootfs / ro remount
     # Mount shared so changes propagate into child namespaces
     mount rootfs rootfs / shared rec
-
-## Samsung ODE >>>
-    mount tmpfs tmpfs /mnt/secure private rec
-    mount tmpfs tmpfs /mnt/secure/asec shared rec
-## Samsung ODE <<<
-
     # Mount default storage into root namespace
     mount none /mnt/runtime/default /storage slave bind rec
 
@@ -324,7 +265,7 @@ on post-fs
     chown system cache /cache
     chmod 0770 /cache
     # We restorecon /cache in case the cache partition has been reset.
-    restorecon /cache
+    restorecon_recursive /cache
 
     # Create /cache/recovery in case it's not there. It'll also fix the odd
     # permissions if created by the recovery system.
@@ -352,9 +293,6 @@ on post-fs
     mkdir /cache/lost+found 0770 root root
 
 on post-fs-data
-    # sec_efs_file
-    mkdir /efs/sec_efs 0775 radio system
-
     # We chown/chmod /data again so because mount is run as root + defaults
     chown system system /data
     chmod 0771 /data
@@ -398,8 +336,6 @@ on post-fs-data
     mkdir /data/misc/wifi 0770 wifi wifi
     mkdir /data/misc/wifi/sockets 0770 wifi wifi
     mkdir /data/misc/wifi/wpa_supplicant 0770 wifi wifi
-    mkdir /data/misc/wifi_share_profile 0771 wifi system
-    mkdir /data/misc/wifi_hostapd 0771 wifi system
     mkdir /data/misc/ethernet 0770 system system
     mkdir /data/misc/dhcp 0770 dhcp dhcp
     mkdir /data/misc/user 0771 root root
@@ -409,8 +345,6 @@ on post-fs-data
     mkdir /data/local 0751 root root
     mkdir /data/misc/media 0700 media media
     mkdir /data/misc/vold 0700 root root
-   /* SPRD: For saving the hprof */
-    mkdir /data/misc/hprofs 0770 system system
 
     # For security reasons, /data/local/tmp should always be empty.
     # Do not place files or directories in /data/local/tmp
@@ -422,45 +356,10 @@ on post-fs-data
     mkdir /data/app 0771 system system
     mkdir /data/property 0700 root root
     mkdir /data/tombstones 0771 system system
-    mkdir /data/ssh 0750 root shell
-    mkdir /data/ssh/empty 0700 root root
-
-
-    # SA, System SW, SAMSUNG create log directory
-    mkdir /data/log 0775 system log
-    chown system log /data/log
-    mkdir /data/anr 0775 system system
-    chown system system /data/anr
-    chmod 0775 /data/log
-    chmod 0775 /data/anr
-    restorecon /data/log
-    restorecon /data/anr
-
-    # MUIC
-    chown system radio /sys/class/sec/switch/uart_en
 
     # create dalvik-cache, so as to enforce our permissions
-    mkdir /data/dalvik-cache 0771 system system
-
-    # SA, System SW, SAMSUNG create log directory
-    mkdir /data/log 0775 system log
-    chown system log /data/log
-    mkdir /data/anr 0775 system system
-    chown system system /data/anr
-    chmod 0775 /data/log
-    chmod 0775 /data/anr
-    restorecon /data/log
-    restorecon /data/anr
-
-    # create dalvik-cache, so as to enforce our permissions
-    mkdir /data/dalvik-cache 0771 system system
+    mkdir /data/dalvik-cache 0771 root root
     mkdir /data/dalvik-cache/profiles 0711 system system
-
-
-    # MTP device permission
-    chmod 0660 /dev/usb_mtp_gadget
-    chown system mtp /dev/usb_mtp_gadget
-    mkdir /dev/socket/mtp 0770 system mtp
 
     # create resource-cache and double-check the perms
     mkdir /data/resource-cache 0771 system system
@@ -477,42 +376,6 @@ on post-fs-data
     # create directory for MediaDrm plug-ins - give drm the read/write access to
     # the following directory.
     mkdir /data/mediadrm 0770 mediadrm mediadrm
-
-    # MTP permission
-    chmod 0660 /dev/usb_mtp_gadget
-    chown system mtp /dev/usb_mtp_gadget
-    mkdir /dev/socket/mtp 0770 system mtp
-
-# [ SEC_MM_DRM
-    # OMA DB directory creation
-    mkdir /data/system/databases 0775
-    chown system system /data/system/databases
-    chmod 0775 /data/system/databases
-
-    # DRM directory creation
-    mkdir /system/etc/security/.drm 0775
-    chown root root /system/etc/security/.drm
-    chmod 0775 /system/etc/security/.drm
-
-    # Added for Playready DRM Support
-    mkdir /data/data/.drm 0775
-    chown drm system /data/data/.drm
-    chmod 0775 /data/data/.drm
-    mkdir /data/data/.drm/.playready 0775
-    chown drm system /data/data/.drm/.playready
-    chmod 0775 /data/data/.drm/.playready
-
-    # Added drm folder to copy drm plugins
-    mkdir /system/lib/drm 0775
-    chown root root /system/lib/drm
-    chmod 0775 /system/lib/drm
-
-    restorecon -R /efs
-    restorecon -R /carrier
-    restorecon_recursive /data/misc/keystore
-    restorecon_recursive /data/property
-    restorecon_recursive /data/security
-# ]
 
     mkdir /data/adb 0700 root root
 
@@ -566,17 +429,6 @@ on boot
     chmod 0664 /sys/module/lowmemorykiller/parameters/adj
     chown root system /sys/module/lowmemorykiller/parameters/minfree
     chmod 0664 /sys/module/lowmemorykiller/parameters/minfree
-
-    # for BT MAC address
-    mkdir /efs/bluetooth 0775 radio system
-    # if already exist
-    chown radio system /efs/bluetooth
-    chmod 0775 /efs/bluetooth
-    setprop ro.bt.bdaddr_path "/efs/bluetooth/bt_addr"
-    chown bluetooth net_bt_stack ro.bt.bdaddr_path
-    chown radio net_bt_stack /efs/bluetooth/bt_addr
-    chmod 0640 /efs/bluetooth/bt_addr
-
 
     # Tweak background writeout
     write /proc/sys/vm/dirty_expire_centisecs 200
@@ -646,44 +498,8 @@ on boot
     chown system system /sys/kernel/ipv4/tcp_rmem_max
     chown root radio /proc/cmdline
 
-
-    # permissions for Input booster
-    chmod 0660 /sys/class/input_booster/level
-    chown system radio /sys/class/input_booster/level
-    chmod 0660 /sys/class/input_booster/head
-    chown system radio /sys/class/input_booster/head
-    chmod 0660 /sys/class/input_booster/tail
-    chown system radio /sys/class/input_booster/tail
-
- # permission for CHARGING
-   chown system radio /sys/class/power_supply/battery/batt_reset_soc
-   chown system radio /sys/class/power_supply/battery/batt_slate_mode
-   chown system radio /sys/class/power_supply/battery/factory_mode
-   chown system radio /sys/class/power_supply/battery/siop_level
-   chown system radio /sys/class/power_supply/battery/wc_enable
-   chown system radio /sys/class/power_supply/battery/update
-   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/call
-   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/video
-   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/music
-   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/browser
-   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/hotspot
-   chown sdcard_rw sdcard_rw /sys/class/power_supply/battery/camera
-   chown system radio /sys/class/power_supply/battery/talk_wcdma
-   chown system radio /sys/class/power_supply/battery/talk_gsm
-   chown system radio /sys/class/power_supply/battery/call
-   chown system radio /sys/class/power_supply/battery/data_call
-   chown system radio /sys/class/power_supply/battery/gps
-   chown system radio /sys/class/power_supply/battery/wifi
-   chown system radio /sys/class/power_supply/battery/lte
-   chown system radio /sys/class/power_supply/battery/lcd
-   chmod 0664 /sys/class/power_supply/battery/charge_otg_control
-   chown media sdcard_rw /sys/class/power_supply/battery/store_mode
-
     # Define default initial receive window size in segments.
     setprop net.tcp.default_init_rwnd 60
-	setprop persist.sys.cmdservice.enable disable
-
-    write /sys/block/mmcblk0/queue/scheduler noop
 
     class_start core
 
@@ -746,17 +562,6 @@ on property:sys.powerctl=*
 on property:sys.sysctl.extra_free_kbytes=*
     write /proc/sys/vm/extra_free_kbytes ${sys.sysctl.extra_free_kbytes}
 
-# Activate Background Compaction
-on property:sys.sysctl.compact_memory=1
-    setprop sys.sysctl.compact_memory 0
-    start compact_memory
-
-service compact_memory /sbin/bgcompact
-    user root
-    seclabel u:r:sswap:s0
-    oneshot
-    disabled
-
 # "tcp_default_init_rwnd" Is too long!
 on property:sys.sysctl.tcp_def_init_rwnd=*
     write /proc/sys/net/ipv4/tcp_default_init_rwnd ${sys.sysctl.tcp_def_init_rwnd}
@@ -764,28 +569,11 @@ on property:sys.sysctl.tcp_def_init_rwnd=*
 on property:security.perf_harden=0
     write /proc/sys/kernel/perf_event_paranoid 1
 
-# SAMSUNG DRS Service
-service drsd /system/bin/drsd
-    class main
-    socket drsd stream 660 system system
-
-# SEC_SELINUX
-service auditd /system/bin/auditd -k
-    class main
-    seclabel u:r:auditd:s0
-    disabled
-    oneshot
-
 on property:security.perf_harden=1
     write /proc/sys/kernel/perf_event_paranoid 3
 
 ## Daemon processes to be run by init.
 ##
-service sysmon /system/bin/sysmon
-    class core
-    user root
-    oneshot
-
 service ueventd /sbin/ueventd
     class core
     critical
@@ -810,11 +598,6 @@ service healthd /sbin/healthd
     seclabel u:r:healthd:s0
     group root system
 
-
-service lpm /system/bin/lpm
-    class charger
-    critical
-
 service console /system/bin/sh
     class core
     console
@@ -822,21 +605,6 @@ service console /system/bin/sh
     user shell
     group shell log
     seclabel u:r:shell:s0
-
-## WTL_EDM_START
-## EDM AuditLog
-service edmaudit /system/bin/edmaudit
-    class main
-    user root
-
-## WTL_EDM_END
-
-service prepare_param /system/bin/prepare_param.sh /dev/block/platform/sdio_emmc/by-name/PARAM
-    class core
-    user root
-    group root
-    seclabel u:r:prepare_param:s0
-    oneshot
 
 on property:ro.debuggable=1
     start console
@@ -857,12 +625,6 @@ service lmkd /system/bin/lmkd
     critical
     socket lmkd seqpacket 0660 system system
     writepid /dev/cpuset/system-background/tasks
-
-service scs /system/bin/scs
-    class main
-    user system
-    group system
-    oneshot
 
 service servicemanager /system/bin/servicemanager
     class core
@@ -906,21 +668,6 @@ service ril-daemon /system/bin/rild
     user root
     group radio cache inet misc audio log system
 
-service DR-daemon /system/bin/ddexe
-    class main
-    user root
-    group system radio inet net_raw
-
-service SMD-daemon /system/bin/smdexe
-    class main
-    user root
-    group system radio inet net_raw
-
-service BCS-daemon /system/bin/connfwexe
-    class main
-    user root
-    group system radio inet net_raw
-
 service surfaceflinger /system/bin/surfaceflinger
     class core
     user system
@@ -937,11 +684,10 @@ service drm /system/bin/drmserver
 #    group drm system inet drmrpc
 # ]
 
-
 service media /system/bin/mediaserver
     class main
     user media
-    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r shell mediadrm media_rw  radio
+    group system audio camera inet net_bt net_bt_admin net_bw_acct drmrpc sdcard_r shell mediadrm media_rw radio
     ioprio rt 4
 
 # One shot invocation to deal with encrypted volume.
@@ -966,16 +712,6 @@ service bootanim /system/bin/bootanimation
     oneshot
     writepid /dev/cpuset/system-background/tasks
 
-# bootchecker
-service bootchecker /system/bin/bootchecker
-    class late_start
-    user system
-    group system log
-    oneshot
-
-on property:init.svc.zygote=restarting
-    restart bootchecker
-
 service gatekeeperd /system/bin/gatekeeperd /data/misc/gatekeeper
     class late_start
     user system
@@ -983,20 +719,6 @@ service gatekeeperd /system/bin/gatekeeperd /data/misc/gatekeeper
 service installd /system/bin/installd
     class main
     socket installd stream 600 system system
-
-service flash_recovery /system/bin/install-recovery.sh
-    class main
-    seclabel u:r:install_recovery:s0
-    oneshot
-
-# Strongswan VPN
-service charon /system/bin/charon
-    class main
-    socket charon stream 600 system system
-    # charon will setuid to vpn after getting necessary resources.
-    group vpn net_admin inet
-    disabled
-    oneshot
 
 service racoon /system/bin/racoon
     class main
@@ -1025,11 +747,6 @@ service dumpstate /system/bin/dumpstate -s
     disabled
     oneshot
 
-service sdumpstate /system/bin/dumpstate -P
-    class main
-    disabled
-    oneshot
-
 service mdnsd /system/bin/mdnsd
     class main
     user mdnsr
@@ -1042,25 +759,6 @@ service uncrypt /system/bin/uncrypt
     class main
     disabled
     oneshot
-
-service cmd_services /system/bin/cmd_services
-    class main
-    user root
-    disabled
-    oneshot
-
-on property:persist.sys.cmdservice.enable=enable
-    start cmd_services
-on property:persist.sys.cmdservice.enable=disable
-    stop  cmd_services
-
-on property:sys.boot_completed=1
-    write /sys/block/mmcblk0/queue/scheduler cfq
-
-service mobex-daemon /system/bin/npsmobex
-    class main
-    user system
-    group system radio inet sdcard_r sdcard_rw media_rw shell
 
 service pre-recovery /system/bin/uncrypt --reboot
     class main
