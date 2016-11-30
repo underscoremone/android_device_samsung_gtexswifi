@@ -1,0 +1,73 @@
+diff --git a/core/jni/com_android_internal_os_Zygote.cpp b/core/jni/com_android_internal_os_Zygote.cpp
+index af6483c..f42cdbc 100644
+--- a/core/jni/com_android_internal_os_Zygote.cpp
++++ b/core/jni/com_android_internal_os_Zygote.cpp
+@@ -721,4 +721,3 @@ int register_com_android_internal_os_Zygote(JNIEnv* env) {
+   return RegisterMethodsOrDie(env, "com/android/internal/os/Zygote", gMethods, NELEM(gMethods));
+ }
+ }  // namespace android
+-
+diff --git a/services/core/java/com/android/server/display/ColorFade.java b/services/core/java/com/android/server/display/ColorFade.java
+index 835ba17..29d581e 100644
+--- a/services/core/java/com/android/server/display/ColorFade.java
++++ b/services/core/java/com/android/server/display/ColorFade.java
+@@ -42,6 +42,7 @@ import android.view.Surface.OutOfResourcesException;
+ import android.view.Surface;
+ import android.view.SurfaceControl;
+ import android.view.SurfaceSession;
++import android.os.SystemProperties;
+ 
+ import libcore.io.Streams;
+ 
+@@ -91,6 +92,7 @@ final class ColorFade {
+     private EGLSurface mEglSurface;
+     private boolean mSurfaceVisible;
+     private float mSurfaceAlpha;
++    private final int mHWRotation;
+ 
+     // Texture names.  We only use one texture, which contains the screenshot.
+     private final int[] mTexNames = new int[1];
+@@ -124,6 +126,7 @@ final class ColorFade {
+ 
+     public ColorFade(int displayId) {
+         mDisplayId = displayId;
++        mHWRotation = Integer.parseInt(SystemProperties.get("ro.sf.hwrotation", "0")) / 90;
+         mDisplayManagerInternal = LocalServices.getService(DisplayManagerInternal.class);
+     }
+ 
+@@ -595,7 +598,7 @@ final class ColorFade {
+             mSurface.copyFrom(mSurfaceControl);
+ 
+             mSurfaceLayout = new NaturalSurfaceLayout(mDisplayManagerInternal,
+-                    mDisplayId, mSurfaceControl);
++                    mDisplayId, mSurfaceControl, mHWRotation);
+             mSurfaceLayout.onDisplayTransaction();
+         } finally {
+             SurfaceControl.closeTransaction();
+@@ -728,13 +731,16 @@ final class ColorFade {
+         private final DisplayManagerInternal mDisplayManagerInternal;
+         private final int mDisplayId;
+         private SurfaceControl mSurfaceControl;
++        private final int mHWRotation;
+ 
+         public NaturalSurfaceLayout(DisplayManagerInternal displayManagerInternal,
+-                int displayId, SurfaceControl surfaceControl) {
++                int displayId, SurfaceControl surfaceControl,
++                int hwRotation) {
+             mDisplayManagerInternal = displayManagerInternal;
+             mDisplayId = displayId;
+             mSurfaceControl = surfaceControl;
+             mDisplayManagerInternal.registerDisplayTransactionListener(this);
++            mHWRotation = hwRotation;
+         }
+ 
+         public void dispose() {
+@@ -752,7 +758,7 @@ final class ColorFade {
+                 }
+ 
+                 DisplayInfo displayInfo = mDisplayManagerInternal.getDisplayInfo(mDisplayId);
+-                switch (displayInfo.rotation) {
++                switch ((displayInfo.rotation + mHWRotation) % 4) {
+                     case Surface.ROTATION_0:
+                         mSurfaceControl.setPosition(0, 0);
+                         mSurfaceControl.setMatrix(1, 0, 0, 1);

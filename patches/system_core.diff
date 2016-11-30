@@ -489,6 +489,58 @@ index 4e46e02..1bc2996 100644
  
  #include <stdlib.h>
  #include <string.h>
+diff --git a/libsparse/output_file.c b/libsparse/output_file.c
+index cd30800..da5b076 100644
+--- a/libsparse/output_file.c
++++ b/libsparse/output_file.c
+@@ -353,6 +353,7 @@ static int write_sparse_skip_chunk(struct output_file *out, int64_t skip_len)
+ 	chunk_header.reserved1 = 0;
+ 	chunk_header.chunk_sz = skip_len / out->block_size;
+ 	chunk_header.total_sz = CHUNK_HEADER_LEN;
++	chunk_header.samsung_magic = SAMSUNG_CHUNK_MAGIC;
+ 	ret = out->ops->write(out, &chunk_header, sizeof(chunk_header));
+ 	if (ret < 0)
+ 		return -1;
+@@ -378,6 +379,7 @@ static int write_sparse_fill_chunk(struct output_file *out, unsigned int len,
+ 	chunk_header.reserved1 = 0;
+ 	chunk_header.chunk_sz = rnd_up_len / out->block_size;
+ 	chunk_header.total_sz = CHUNK_HEADER_LEN + sizeof(fill_val);
++	chunk_header.samsung_magic = SAMSUNG_CHUNK_MAGIC;
+ 	ret = out->ops->write(out, &chunk_header, sizeof(chunk_header));
+ 
+ 	if (ret < 0)
+@@ -414,6 +416,7 @@ static int write_sparse_data_chunk(struct output_file *out, unsigned int len,
+ 	chunk_header.reserved1 = 0;
+ 	chunk_header.chunk_sz = rnd_up_len / out->block_size;
+ 	chunk_header.total_sz = CHUNK_HEADER_LEN + rnd_up_len;
++	chunk_header.samsung_magic = SAMSUNG_CHUNK_MAGIC;
+ 	ret = out->ops->write(out, &chunk_header, sizeof(chunk_header));
+ 
+ 	if (ret < 0)
+diff --git a/libsparse/sparse_format.h b/libsparse/sparse_format.h
+index c41f12a..8d0f3e9 100644
+--- a/libsparse/sparse_format.h
++++ b/libsparse/sparse_format.h
+@@ -30,9 +30,11 @@ typedef struct sparse_header {
+   __le32	image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
+ 				/* as 0. Standard 802.3 polynomial, use a Public Domain */
+ 				/* table implementation */
++  __le32  samsung_reserved;
+ } sparse_header_t;
+ 
+ #define SPARSE_HEADER_MAGIC	0xed26ff3a
++#define SAMSUNG_CHUNK_MAGIC 0xf7776f58
+ 
+ #define CHUNK_TYPE_RAW		0xCAC1
+ #define CHUNK_TYPE_FILL		0xCAC2
+@@ -44,6 +46,7 @@ typedef struct chunk_header {
+   __le16	reserved1;
+   __le32	chunk_sz;	/* in blocks in output image */
+   __le32	total_sz;	/* in bytes of chunk input file including chunk header and data */
++  __le32  samsung_magic;
+ } chunk_header_t;
+ 
+ /* Following a Raw or Fill or CRC32 chunk is data.
 diff --git a/libutils/Threads.cpp b/libutils/Threads.cpp
 index 1e014c6..e0c0f4f 100644
 --- a/libutils/Threads.cpp
