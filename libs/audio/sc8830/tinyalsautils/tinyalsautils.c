@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define ALOG_NDEBUG 0
+//#define ALOG_NDEBUG 0
 #define LOG_TAG "TinyAlsaUtils"
 #include <utils/Log.h>
 
@@ -24,7 +24,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <sys/ioctl.h>
 
 #include <sys/mman.h>
@@ -40,7 +39,7 @@
 
 #define SND_FILE_CONTROL ALSA_DEVICE_DIRECTORY "controlC%i"
 
-struct snd_ctl_card_info_t
+struct snd_ctl_card_info_t 
 {
 	int card;			/* card number */
 	int pad;			/* reserved for future (was type) */
@@ -62,7 +61,7 @@ static int get_snd_card_name(int card, char *name)
 
     fd = open(control, O_RDONLY);
     if (fd < 0) {
-        ALOGE("open snd control failed: %s", strerror(errno));
+        ALOGE("open snd control failed.");
         return -1;
     }
     if (ioctl(fd, SNDRV_CTL_IOCTL_CARD_INFO, &info) < 0) {
@@ -74,16 +73,20 @@ static int get_snd_card_name(int card, char *name)
     ALOGI("card name is %s, query card=%d", info.name, card);
     //get card name
     if (name)
-        strcpy(name, (char *)info.name);
+	strcpy(name, (char *)info.name);
     return 0;
 }
 
 int get_snd_card_number(const char *card_name)
 {
+    int i = 0;
+    int ret = 0;
+    char cur_name[64] = {0};
+
     //loop search card number, which is in the ascending order.
-    for (int i = 0; i < 32; i++) {
-        char cur_name[64] = { 0 };
-        if (get_snd_card_name(i, &cur_name[0]) < 0)
+    for (i = 0; i < 32; i++) {
+        ret = get_snd_card_name(i, &cur_name[0]);
+        if (ret < 0)
             break;
         if (strcmp(cur_name, card_name) == 0) {
             ALOGI("Search Completed, cur_name is %s, card_num=%d", cur_name, i);

@@ -107,7 +107,8 @@ PRODUCT_PACKAGES += \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
 		libion \
-		libion_sprd
+		libion_sprd \
+		libmemtrack
 
 # Usb accessory
 PRODUCT_PACKAGES += \

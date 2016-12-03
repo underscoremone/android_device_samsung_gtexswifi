@@ -37,9 +37,11 @@
 
 
 #include <ui/GraphicBufferAllocator.h>
-#include "SprdUtil.h"
-#include "dump.h"
 #include <ui/GraphicBufferMapper.h>
+
+#include "dump.h"
+#include "SprdUtil.h"
+#include "../HWCUtils/Utils.h"
 
 using namespace android;
 
@@ -403,7 +405,7 @@ int SprdUtil:: acquireTmpBuffer(int width, int height, int format, private_handl
 
 AllocGFXBuffer:
 #ifdef GSP_ADDR_TYPE_PHY
-    GraphicBufferAllocator::get().alloc(width, height, format, GRALLOC_USAGE_OVERLAY_BUFFER, (buffer_handle_t*)&tmpBuffer, &stride);
+    GraphicBufferAllocator::get().allocate(width, height, format, GRALLOC_USAGE_OVERLAY_BUFFER, (buffer_handle_t*)&tmpBuffer, &stride, getUniqueId(), std::move("HWC"));
 #elif defined (GSP_ADDR_TYPE_IOVA)
     GraphicBufferAllocator::get().alloc(width, height, format, 0, (buffer_handle_t*)&tmpBuffer, &stride);
 #endif

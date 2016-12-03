@@ -21,7 +21,7 @@
 #include <media/stagefright/foundation/ABase.h>
 #include <media/stagefright/foundation/AString.h>
 #include <utils/RefBase.h>
-#include <MemoryHeapIon_SPRD.h>
+#include <MemoryHeapIon.h>
 #include <OMX_Component.h>
 
 #define SPRD_INDEX_PARAM_ENABLE_ANB "OMX.google.android.index.enableAndroidNativeBuffers"
@@ -209,4 +209,3 @@ private:
 }  // namespace android
 
 #endif  // SPRD_OMX_COMPONENT_H_
-

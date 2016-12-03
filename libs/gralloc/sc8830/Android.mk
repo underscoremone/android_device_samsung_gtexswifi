@@ -1,6 +1,6 @@
-# 
+#
 # Copyright (C) 2010 ARM Limited. All rights reserved.
-# 
+#
 # Copyright (C) 2008 The Android Open Source Project
 #
 # Copyright (C) 2016 The CyanogenMod Project
@@ -55,6 +55,7 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := \
 	$(LOCAL_C_INCLUDES) \
 
 LOCAL_CFLAGS := \
+	-DSPRD_HARDWARE \
 	-DLOG_TAG=\"gralloc.$(TARGET_BOARD_PLATFORM)\" \
 
 ifeq ($(strip $(USE_UI_OVERLAY)),true)

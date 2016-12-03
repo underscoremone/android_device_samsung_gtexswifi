@@ -34,7 +34,7 @@
 //#include <gui/ISurfaceTexture.h>
 
 #include <linux/ion.h>
-#include <MemoryHeapIon_SPRD.h>
+#include <MemoryHeapIon.h>
 
 #include <dlfcn.h>
 

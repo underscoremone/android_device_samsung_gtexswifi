@@ -427,6 +427,7 @@ struct tiny_audio_device {
     volatile int vbc_2arm;
     pthread_mutex_t vbc_lock;/*for multiple vb pipe.*/
     float voice_volume;
+    bool volume_boost;
     struct tiny_stream_in *active_input;
     struct tiny_stream_out *active_output;
     bool mic_mute;
@@ -2538,7 +2539,7 @@ static void audio_bt_sco_thread_destory(struct tiny_audio_device *adev)
     ALOGE("bt sco : duplicate thread destory before");
     ret = pthread_join(adev->bt_sco_manager.dup_thread, NULL);
     ALOGE("bt sco : duplicate thread destory ret is %d", ret);
-    adev->bt_sco_manager.dup_thread = NULL;
+    adev->bt_sco_manager.dup_thread = 0;
 
     pthread_mutex_destroy(&adev->bt_sco_manager.dup_mutex);
     pthread_mutex_destroy(&adev->bt_sco_manager.cond_mutex);
@@ -3490,6 +3491,18 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
         }
     }
 
+    ret = str_parms_get_str(parms, "volume_boost", value, sizeof(value));
+    if (ret >= 0) {
+        // TODO find the actual value of extra volume on stock
+        if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) == 0) {
+            adev->volume_boost = true;
+            at_cmd_extra_volume(1);
+        } else {
+            adev->volume_boost = false;
+            at_cmd_extra_volume(0);
+        }
+    }
+
     str_parms_destroy(parms);
     return ret;
 }
@@ -3497,7 +3510,29 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 static char * adev_get_parameters(const struct audio_hw_device *dev,
         const char *keys)
 {
-    return strdup("");
+    struct tiny_audio_device *adev = (struct tiny_audio_device *)dev;
+    struct str_parms *query = str_parms_create_str(keys);
+    char *str;
+    char value[32];
+    struct str_parms *reply = str_parms_create();
+    int ret;
+
+    ret = str_parms_get_str(query, "volume_boost", value, sizeof(value));
+    if (ret >= 0) {
+        str_parms_add_str(reply, "volume_boost", adev->volume_boost
+                ? AUDIO_PARAMETER_VALUE_ON
+                : AUDIO_PARAMETER_VALUE_OFF);
+    }
+
+    if (ret >= 0) {
+        str = strdup(str_parms_to_str(reply));
+    } else {
+        str = strdup(keys);
+    }
+
+    str_parms_destroy(query);
+    str_parms_destroy(reply);
+    return str;
 }
 
 static int adev_init_check(const struct audio_hw_device *dev)

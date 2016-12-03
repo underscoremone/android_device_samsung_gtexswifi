@@ -1373,6 +1373,57 @@ int vbc_ctrl_voip_open(struct voip_res *res)
     return 0;
 }
 
+//this function is the interface to set adev->realCall value  adev-> mutex must get
+void voip_forbid (struct tiny_audio_device * adev  ,bool value){
+    ALOGV("%s, in",__func__);
+	if(adev->voip_timer.created){
+	    ALOGV("%s ,have create timer,so we delete it",__func__);
+	    timer_delete(adev->voip_timer.timer_id);
+	    adev->voip_timer.created = false;
+	}
+	adev->realCall = value;
+	ALOGV("%s, out",__func__);
+}
+
+//the timeout function to do that set adev->realCall to false for voip
+void timer_handler(union sigval arg){
+   ALOGV("%s in",__func__);
+   struct tiny_audio_device *adev = (struct tiny_audio_device *)arg.sival_ptr;
+   pthread_mutex_lock(&adev->lock);
+   voip_forbid(adev,false);
+   pthread_mutex_unlock(&adev->lock);
+   ALOGV("%s out",__func__);
+}
+
+//adev-> mutex must get
+void voip_forbid_cancel(struct tiny_audio_device * adev,int delay){
+    ALOGV("%s ,in",__func__);
+    int status;
+    struct sigevent se;
+    struct itimerspec ts;
+
+    se.sigev_notify = SIGEV_THREAD;
+    se.sigev_value.sival_ptr = adev;
+    se.sigev_notify_function = timer_handler;
+    se.sigev_notify_attributes = NULL;
+
+    ts.it_value.tv_sec = delay;
+    ts.it_value.tv_nsec = 0;
+    ts.it_interval.tv_sec = 0;
+    ts.it_interval.tv_nsec = 0;
+
+    status = timer_create(CLOCK_MONOTONIC, &se,&((adev->voip_timer).timer_id));
+    if(status == 0){
+        adev->voip_timer.created = true;
+        timer_settime((adev->voip_timer).timer_id, 0, &ts, 0);
+        ALOGV("%s :timer for voip when call end is created",__func__);
+    }else{
+        adev->voip_timer.created = false;
+        ALOGE("create timer err !");
+    }
+    ALOGV("%s ,out",__func__);
+}
+
 static int vbc_call_end_process(struct tiny_audio_device *adev,int is_timeout)
 {
     ALOGW("voice:vbc_call_end_process in");
@@ -1686,62 +1737,11 @@ VOIP_EXIT:
     return 0;
 }
 
-//the timeout function to do that set adev->realCall to false for voip
-void timer_handler(union sigval arg){
-   ALOGV("%s in",__func__);
-   struct tiny_audio_device *adev = (struct tiny_audio_device *)arg.sival_ptr;
-   pthread_mutex_lock(&adev->lock);
-   voip_forbid(adev,false);
-   pthread_mutex_unlock(&adev->lock);
-   ALOGV("%s out",__func__);
-}
-
-//this function is the interface to set adev->realCall value  adev-> mutex must get
-void voip_forbid (struct tiny_audio_device * adev  ,bool value){
-    ALOGV("%s, in",__func__);
-	if(adev->voip_timer.created){
-	    ALOGV("%s ,have create timer,so we delete it",__func__);
-	    timer_delete(adev->voip_timer.timer_id);
-	    adev->voip_timer.created = false;
-	}
-	adev->realCall = value;
-	ALOGV("%s, out",__func__);
-}
-
 // set a timer for voip if the real call is end  adev-> mutex must get
 bool voip_is_forbid(struct tiny_audio_device * adev)
 {
 	return adev->realCall;
 
-}
-
-//adev-> mutex must get
-void voip_forbid_cancel(struct tiny_audio_device * adev,int delay){
-    ALOGV("%s ,in",__func__);
-    int status;
-    struct sigevent se;
-    struct itimerspec ts;
-
-    se.sigev_notify = SIGEV_THREAD;
-    se.sigev_value.sival_ptr = adev;
-    se.sigev_notify_function = timer_handler;
-    se.sigev_notify_attributes = NULL;
-
-    ts.it_value.tv_sec = delay;
-    ts.it_value.tv_nsec = 0;
-    ts.it_interval.tv_sec = 0;
-    ts.it_interval.tv_nsec = 0;
-
-    status = timer_create(CLOCK_MONOTONIC, &se,&((adev->voip_timer).timer_id));
-    if(status == 0){
-        adev->voip_timer.created = true;
-        timer_settime((adev->voip_timer).timer_id, 0, &ts, 0);
-        ALOGV("%s :timer for voip when call end is created",__func__);
-    }else{
-        adev->voip_timer.created = false;
-        ALOGE("create timer err !");
-    }
-    ALOGV("%s ,out",__func__);
 }
 
 void *vbc_ctrl_thread_routine(void *arg)
@@ -1777,8 +1777,8 @@ void *vbc_ctrl_thread_routine(void *arg)
     write_common_head.cmd_type = VBC_CMD_NONE;
     write_common_head.paras_size = 0;
     MY_TRACE("voice:vbc_ctrl_thread_routine in pipe_name:%s.", para->vbpipe);
-    if( para->vbpipe == NULL)
-		goto EXIT;
+//    if( para->vbpipe == 0 )
+//		goto EXIT;
 
 RESTART:
     /* open vbpipe to build connection.*/
@@ -2079,9 +2079,9 @@ RESTART:
         pthread_mutex_unlock(&adev->vbc_lock);
     }
 
-EXIT:
-    ALOGW("voice:vbc_ctrl_thread exit, pipe:%s!!!", para->vbpipe);
-    return 0;
+//EXIT:
+//    ALOGW("voice:vbc_ctrl_thread exit, pipe:%s!!!", para->vbpipe);
+//    return 0;
 }
 
 char *mystrstr(char *s1 , char *s2)
@@ -2153,7 +2153,7 @@ static void * vbc_ctl_modem_monitor_routine(void *arg)
     ALOGD("vbc_ctl_modem_monitor_routine in");
     if( !adev) {
             ALOGD("vbc_ctl_modem_monitor_routine:error adev is null");
-            return -1;
+            return (void*)-1;
     }
 reconnect:
     do {

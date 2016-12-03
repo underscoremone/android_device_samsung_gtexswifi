@@ -1,2 +1,1 @@
-allow system_app system_app_data_file:file  { execute execute_no_trans };
 allow system_app kernel:system module_request;

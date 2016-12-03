@@ -17,4 +17,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
+LOCAL_CFLAGS += \
+	-DSPRD_HARDWARE
+
 include $(call all-makefiles-under,$(LOCAL_PATH))

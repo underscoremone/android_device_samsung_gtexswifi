@@ -393,7 +393,9 @@ int SprdPrimaryDisplayDevice:: reclaimPlaneBuffer(bool condition)
         if (status == PLANE_SHOULD_CLOSED)
         {
             mPrimaryPlane->close();
+#ifdef OVERLAY_COMPOSER_GPU
             mWindow->releaseNativeBuffer();
+#endif
         }
 
         ret = 0;

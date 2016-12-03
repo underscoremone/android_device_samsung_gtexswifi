@@ -18,7 +18,7 @@
 #define SPRD_MPEG4_DECODER_H_
 
 #include <SprdSimpleOMXComponent.h>
-#include <MemoryHeapIon_SPRD.h>
+#include <MemoryHeapIon.h>
 
 #include "m4v_h263_dec_api.h"
 

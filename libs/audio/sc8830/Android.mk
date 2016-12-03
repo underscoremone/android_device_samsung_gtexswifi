@@ -23,17 +23,15 @@ LOCAL_MODULE := audio.primary.$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_RELATIVE_PATH := hw
 
 LOCAL_CFLAGS := \
+	-DSPRD_HARDWARE \
 	-D_POSIX_SOURCE \
 	-Wno-multichar \
 	-g \
-	-Wno-unused-parameter
+	-Wno-unused-parameter \
+	-Wmissing-braces
 
 ifeq ($(BOARD_USES_LINE_CALL), true)
 LOCAL_CFLAGS += -D_VOICE_CALL_VIA_LINEIN
-endif
-
-ifeq ($(TARGET_BUILD_VARIANT),userdebug)
-LOCAL_CFLAGS += -DAUDIO_DEBUG
 endif
 
 ifneq ($(filter scx35_sc9620referphone scx35_sc9620openphone scx35_sc9620openphone_zt, $(TARGET_BOARD)),)
@@ -105,4 +103,3 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
 endif
-

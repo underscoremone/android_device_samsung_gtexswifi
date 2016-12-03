@@ -23,7 +23,7 @@
 #include <camera/Camera.h>
 #include <camera/CameraParameters.h>
 #include <utils/List.h>
-#include <MemoryHeapIon_SPRD.h>
+#include <MemoryHeapIon.h>
 #include <binder/MemoryBase.h>
 #include "SprdBaseThread.h"
 #include "gralloc_priv.h"

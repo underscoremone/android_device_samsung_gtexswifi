@@ -597,8 +597,8 @@ OMX_ERRORTYPE SPRDAVCDecoder::internalSetParameter(
 
         if (defParams->nBufferCountActual
                 != port->mDef.nBufferCountActual) {
-            CHECK_GE(defParams->nBufferCountActual,
-                     port->mDef.nBufferCountMin);
+            if (defParams->nBufferCountActual < port->mDef.nBufferCountMin)
+                return OMX_ErrorUnsupportedSetting;
 
             port->mDef.nBufferCountActual = defParams->nBufferCountActual;
         }
@@ -1008,7 +1008,7 @@ void SPRDAVCDecoder::onQueueFilled(OMX_U32 portIndex) {
                 return ;
             }
             ALOGV("%s, %d, pBuffer: 0x%x, vaddr: 0x%x", __FUNCTION__, __LINE__, outHeader->pBuffer,vaddr);
-            uint8 *yuv = (uint8 *)(vaddr + outHeader->nOffset);
+            uint8 *yuv = ((uint8 *)vaddr) + outHeader->nOffset;
             ALOGV("%s, %d, yuv: %0x, mPicId: %d, outHeader: %0x, outHeader->pBuffer: %0x, outHeader->nTimeStamp: %lld",
                   __FUNCTION__, __LINE__, yuv, mPicId,outHeader, outHeader->pBuffer, outHeader->nTimeStamp);
             (*mH264Dec_SetCurRecPic)(mHandle, yuv, (uint8 *)picPhyAddr, (void *)outHeader, mPicId);

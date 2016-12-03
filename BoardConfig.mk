@@ -30,7 +30,7 @@ SOC_SCX30G_V2 := true
 # something
 BOARD_USE_SAMSUNG_COLORFORMAT := true
 BOARD_NEEDS_MEMORYHEAPION_SPRD := true
-SPRD_HARDWARE := true
+TARGET_SPRD_HARDWARE := true
 
 TARGET_USERIMAGES_USE_EXT4 := true
 BOARD_BOOTIMAGE_PARTITION_SIZE := 16777216
@@ -95,19 +95,19 @@ TARGET_KERNEL_CONFIG := gtexslte_defconfig
 TARGET_VARIANT_CONFIG := gtexslte_defconfig
 TARGET_SELINUX_CONFIG := gtexslte_defconfig
 
-# SC9830_MODULES:
-# 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
-# 	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
-#
-# TARGET_KERNEL_MODULES := SC9830_MODULES
+SC9830_MODULES:
+	mkdir -p $(PRODUCT_OUT)/root/lib/modules
+	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
+	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
+	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
+	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
+	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
+	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
+	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
+
+TARGET_KERNEL_MODULES := SC9830_MODULES
 
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
 

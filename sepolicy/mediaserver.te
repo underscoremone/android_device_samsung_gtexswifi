@@ -7,4 +7,3 @@ allow mediaserver system_data_file:fifo_file { create open read write setattr };
 allow mediaserver system_data_file:file { open };
 allow mediaserver audio_device:fifo_file { open read write };
 allow mediaserver sysfs_wake_lock:file { open read write };
-allow mediaserver system_file:file execmod;

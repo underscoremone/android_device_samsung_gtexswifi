@@ -123,19 +123,6 @@ on fs
     chown radio system /efs
     chmod 0771 /efs
 
-#For Absolute Persistence Partition 
-    mkdir /persdata 0755 system system
-    mkdir /persdata/absolute 0750 system system
-
-    wait /dev/block/platform/sdio_emmc/by-name/PERSDATA
-    check_fs /dev/block/platform/sdio_emmc/by-name/PERSDATA ext4
-    mount ext4 /dev/block/platform/sdio_emmc/by-name/PERSDATA /persdata/absolute nosuid nodev barrier=1
-
-    chown system system /persdata
-    chmod 0755 /persdata 
-    chown system system /persdata/absolute
-    chmod 0750 /persdata/absolute
-
 # LSI GPS
      chown root system /dev/ttyS3
      chmod 0660 /dev/ttyS3

@@ -13,12 +13,13 @@ LOCAL_C_INCLUDES := \
 	frameworks/native/include/utils \
 	frameworks/native/include/media/hardware \
 	$(LOCAL_PATH)/../../../../../gralloc/$(TARGET_BOARD_PLATFORM) \
-	$(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/video 
+	$(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/video
 
 LOCAL_ADDITIONAL_DEPENDENCIES += \
 	$(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 
 LOCAL_CFLAGS := \
+	-DSPRD_HARDWARE \
 	-DOSCL_EXPORT_REF= \
 	-DOSCL_IMPORT_REF=
 

@@ -920,22 +920,12 @@ service compact_memory /sbin/bgcompact
     oneshot
     disabled
 
-# SAMSUNG DRS Service
-service drsd /system/bin/drsd
-    class main
-    socket drsd stream 660 system system
-
 # SEC_SELINUX
 service auditd /system/bin/auditd -k
     class main
     seclabel u:r:auditd:s0
     disabled
-    oneshot
-
-service sysmon /system/bin/sysmon
-    class core
-    user root
-    oneshot
+     oneshot
 
 service lpm /system/bin/lpm
     class charger

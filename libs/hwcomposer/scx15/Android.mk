@@ -37,7 +37,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libhardware \
 	libui \
 	libsync \
-	libmemoryheapion \
+	libmemoryheapion_sprd \
 
 LOCAL_SRC_FILES := \
 	SprdHWComposer.cpp \
@@ -55,6 +55,7 @@ LOCAL_SRC_FILES := \
 	SprdExternalDisplayDevice/SprdExternalDisplayDevice.cpp \
 	SprdUtil.cpp \
 	dump.cpp \
+	../HWCUtils/Utils.cpp \
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../../gralloc/$(TARGET_BOARD_PLATFORM) \

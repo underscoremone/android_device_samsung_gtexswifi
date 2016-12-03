@@ -19,7 +19,7 @@
 
 #include <SprdSimpleOMXComponent.h>
 #include <utils/KeyedVector.h>
-#include <MemoryHeapIon_SPRD.h>
+#include <MemoryHeapIon.h>
 
 #include "avc_dec_api.h"
 
@@ -174,4 +174,3 @@ private:
 }  // namespace android
 
 #endif  // SPRD_AVC_DECODER_H_
-

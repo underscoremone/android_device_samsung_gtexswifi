@@ -51,7 +51,7 @@ static size_t send_at_wrapper(void *buf, size_t buf_len, int sim_id, const char*
         return outLen;
     } else {
         ALOGE("'send_at' is not initilized!");
-        }
+    }
     return 0;
 }
 

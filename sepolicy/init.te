@@ -1,9 +1,6 @@
 allow init cache_file:blk_file getattr;
 allow init init:capability sys_module;
 allow init unlabeled:blk_file getattr;
-allow init shell_data_file : sock_file { create getattr unlink } ;
-allow init shell_data_file : file { read write create getattr unlink open } ;
-allow init shell_data_file : dir { read write create getattr setattr add_name remove_name search open } ;
 allow init download_exec : file { read getattr execute open } ;
 allow init audio_device:fifo_file create;
 allow init debugfs:dir mounton;

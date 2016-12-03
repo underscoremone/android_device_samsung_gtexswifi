@@ -57,6 +57,7 @@ LOCAL_SRC_FILES := \
 	SprdExternalDisplayDevice/SprdExternalDisplayDevice.cpp \
 	SprdUtil.cpp \
 	dump.cpp \
+	../HWCUtils/Utils.cpp \
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../../gralloc/$(TARGET_BOARD_PLATFORM) \
@@ -72,6 +73,7 @@ LOCAL_CFLAGS += \
 	-D_USE_SPRD_HWCOMPOSER \
 	-DGL_GLEXT_PROTOTYPES \
 	-DEGL_EGLEXT_PROTOTYPES \
+	-DSPRD_HARDWARE
 
 #DEVICE_OVERLAYPLANE_BORROW_PRIMARYPLANE_BUFFER can make SprdPrimaryPlane
 #share the plane buffer to SprdOverlayPlane,
