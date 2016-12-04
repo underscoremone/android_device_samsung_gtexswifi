@@ -28,7 +28,7 @@
 
 #include <hardware/gralloc.h>
 #include <cutils/native_handle.h>
-#include <alloc_device.h>
+#include "alloc_device.h"
 #include <utils/Log.h>
 
 #ifdef MALI_600

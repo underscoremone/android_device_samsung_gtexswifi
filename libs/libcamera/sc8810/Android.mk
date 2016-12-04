@@ -265,7 +265,7 @@ LOCAL_SHARED_LIBRARIES := libexif libutils libbinder libcamera_client libskia li
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8810)
-LOCAL_SHARED_LIBRARIES := libexif libutils libbinder libmemoryheapion libcamera_client libskia libcutils libsqlite libhardware
+LOCAL_SHARED_LIBRARIES := libexif libutils libbinder libmemoryheapion_sprd libcamera_client libskia libcutils libsqlite libhardware
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8830)

@@ -20,5 +20,5 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := healthd.cpp
 LOCAL_MODULE := libhealthd.$(TARGET_BOARD_PLATFORM)
-LOCAL_C_INCLUDES := system/core/healthd
+LOCAL_C_INCLUDES := system/core/healthd/include/healthd
 include $(BUILD_STATIC_LIBRARY)

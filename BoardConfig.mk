@@ -21,6 +21,11 @@ BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8
 BOARD_KERNEL_BASE := 0x80000000
 BOARD_KERNEL_PAGESIZE := 2048
 
+#rild
+BOARD_PROVIDES_RILD := true
+BOARD_PROVIDES_LIBRIL := true
+BOARD_PROVIDES_LIBREFERENCE_RIL := true
+
 # Audio
 BOARD_USES_TINYALSA_AUDIO := true
 BOARD_USES_SS_VOIP := true
@@ -50,19 +55,22 @@ USE_SPRD_HWCOMPOSER := true
 USE_OPENGL_RENDERER := true
 BOARD_USE_MHEAP_SCREENSHOT := true
 TARGET_BOARD_PLATFORM_GPU := ARM Mali-400
-USE_OVERLAY_COMPOSER_GPU := true
+# USE_OVERLAY_COMPOSER_GPU := true
 USE_SPRD_DITHER := true
 DEVICE_FORCE_VIDEO_GO_OVERLAYCOMPOSER := true
 BOARD_EGL_WORKAROUND_BUG_10194508 := true
+BOARD_EGL_NEEDS_HANDLE_VALUE := true
 # HWUI_COMPILE_FOR_PERF := true
 TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS := true
 TARGET_REQUIRES_SYNCHRONOUS_SETSURFACE := true
+BOARD_CANT_REALLOCATE_OMX_BUFFERS := true
 # COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 # COMMON_GLOBAL_CFLAGS += -DBOARD_CANT_REALLOCATE_OMX_BUFFERS
 
 BOARD_RIL_CLASS := ../../../device/samsung/gtexslte/ril
 
 # Bluetooth
+USE_BLUETOOTH_BCM4343 := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_SPRD := true
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
@@ -90,24 +98,24 @@ BOARD_CHARGING_MODE_BOOTING_LPM := /sys/class/power_supply/battery/batt_lp_charg
 
 # Integrated kernel building configs
 
-TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
-TARGET_KERNEL_CONFIG := gtexslte_defconfig
-TARGET_VARIANT_CONFIG := gtexslte_defconfig
-TARGET_SELINUX_CONFIG := gtexslte_defconfig
+# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
+# TARGET_KERNEL_CONFIG := gtexslte_defconfig
+# TARGET_VARIANT_CONFIG := gtexslte_defconfig
+# TARGET_SELINUX_CONFIG := gtexslte_defconfig
+#
+# SC9830_MODULES:
+# 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
+# 	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
+# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
+# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+# 	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
 
-SC9830_MODULES:
-	mkdir -p $(PRODUCT_OUT)/root/lib/modules
-	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
-	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
-	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
-	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
-	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
-	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
-	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
-
-TARGET_KERNEL_MODULES := SC9830_MODULES
+# TARGET_KERNEL_MODULES := SC9830_MODULES
 
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
 
@@ -122,6 +130,7 @@ TARGET_BOARD_FRONT_CAMERA_ROTATION := false
 #rotation capture
 TARGET_BOARD_CAMERA_ROTATION_CAPTURE := false
 TARGET_BOARD_CAMERA_HAL_VERSION := HAL1.0
+TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 
 TARGET_HAS_BACKLIT_KEYS := false
 

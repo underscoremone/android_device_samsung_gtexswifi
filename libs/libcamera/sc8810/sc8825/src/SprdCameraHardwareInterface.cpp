@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <cutils/properties.h>
 
-#include "../../../gralloc/gralloc_priv.h"
+#include "../../../gralloc/sc8830/gralloc_priv.h"
 
 #include <camera/Camera.h>
 #include <media/hardware/MetadataBufferType.h>
@@ -2060,7 +2060,7 @@ static int coordinate_convert(int *rect_arr,int arr_size,int angle,int is_mirror
 	int centre_y;
 	int ret = 0;
 
-	ALOGV("coordinate_convert: mPreviewWidth=%d, mPreviewHeight=%d, arr_size=%d, angle=%d, is_mirror=%d \n", 
+	ALOGV("coordinate_convert: mPreviewWidth=%d, mPreviewHeight=%d, arr_size=%d, angle=%d, is_mirror=%d \n",
 		width, height, arr_size, angle, is_mirror);
 
 	for(i=0;i<arr_size*2;i++)
@@ -2140,7 +2140,7 @@ static int coordinate_convert(int *rect_arr,int arr_size,int angle,int is_mirror
 	{
 		int preview_x, preview_y, preview_w, preview_h;
 		int point_x, point_y;
-		
+
 		ALOGV("CAMERA HAL:coordinate_convert %d: org: %d, %d, %d, %d.\n",i,rect_arr[i*4],rect_arr[i*4+1],rect_arr[i*4+2],rect_arr[i*4+3]);
 
 		// only for angle 90/270
@@ -2155,7 +2155,7 @@ static int coordinate_convert(int *rect_arr,int arr_size,int angle,int is_mirror
 		centre_y		= height - centre_y;
 		ALOGV("CAMERA HAL:coordinate_convert %d: sensor centre pointer: x=%d, y=%d, half_w=%d, half_h=%d.\n",
 				i, centre_x, centre_y, recHalfWidth, recHalfHeight);
-		
+
 		ret = camera_get_preview_rect(&preview_x, &preview_y, &preview_w, &preview_h);
 		if(ret){
 			ALOGV("coordinate_convert: camera_get_preview_rect failed, return \n");
@@ -2163,11 +2163,11 @@ static int coordinate_convert(int *rect_arr,int arr_size,int angle,int is_mirror
 		}
 		ALOGV("CAMERA HAL:coordinate_convert %d: preview rect: x=%d, y=%d, preview_w=%d, preview_h=%d.\n",
 				i, preview_x, preview_y, preview_w, preview_h);
-		
+
 		point_x = preview_x + centre_x*preview_w/width;
 		point_y = preview_y + centre_y*preview_h/height;
 		ALOGV("CAMERA HAL:coordinate_convert %d: out point: x=%d, y=%d\n", i, point_x, point_y);
-		
+
 		rect_arr[i] 	= point_x - recHalfWidth;
 		rect_arr[i+1] 	= point_y - recHalfHeight;
 		rect_arr[i+2] 	= point_x + recHalfWidth;
@@ -3562,4 +3562,3 @@ extern "C" {
 }
 
 }
-

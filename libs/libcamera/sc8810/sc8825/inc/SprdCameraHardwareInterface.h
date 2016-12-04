@@ -2,8 +2,8 @@
 * hardware/sprd/hsdroid/libcamera/sprdcamerahardwareinterface.h
  * Dcam HAL based on sc8800g2
  *
- * Copyright (C) 2011 Spreadtrum 
- * 
+ * Copyright (C) 2011 Spreadtrum
+ *
  * Author: Xiaozhe wang <xiaozhe.wang@spreadtrum.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -22,7 +22,7 @@
 //#include <camera/CameraParameters.h>
 //#include <binder/MemoryBase.h>
 //#include <binder/MemoryHeapBase.h>
-#include <MemoryHeapIon.h>
+#include "../../libmemoryheapion_sprd/MemoryHeapIon.h"
 #include <utils/threads.h>
 extern "C" {
     #include <linux/android_pmem.h>
@@ -72,21 +72,21 @@ public:
     virtual bool        recordingEnabled();
     //virtual void        releaseRecordingFrame(const sp<IMemory>& mem);
     //virtual status_t    autoFocus(autofocus_callback, void *user);
-    virtual status_t    autoFocus();    
+    virtual status_t    autoFocus();
     /*virtual status_t    takePicture(shutter_callback,
                                     raw_callback,
                                     jpeg_callback,
                                     void* user);*/
-   virtual status_t    takePicture();                                  
+   virtual status_t    takePicture();
     /*virtual status_t    cancelPicture(bool cancel_shutter,
                                       bool cancel_raw, bool cancel_jpeg);*/
-    virtual status_t    cancelPicture();                                      
+    virtual status_t    cancelPicture();
     virtual status_t    setParameters(const CameraParameters& params);
     virtual CameraParameters  getParameters() const;
 
     virtual void release();
 
-    //static sp<SprdCameraHardware> createInstance();   
+    //static sp<SprdCameraHardware> createInstance();
     //static sp<SprdCameraHardware> getInstance();
 
 	void FreeCameraMem(void);
@@ -96,11 +96,11 @@ public:
                                      camera_data_timestamp_callback data_cb_timestamp,
                                      camera_request_memory get_memory,
                                      void *user);
-	//for compiler	
+	//for compiler
    // virtual void setCallbacks(notify_callback notify_cb,data_callback data_cb,data_callback_timestamp data_cb_timestamp, void* user){}
     virtual void        enableMsgType(int32_t msgType);
     virtual void        disableMsgType(int32_t msgType);
-    virtual bool        msgTypeEnabled(int32_t msgType);	
+    virtual bool        msgTypeEnabled(int32_t msgType);
    // virtual status_t    startPreview(){return 0;}
    // virtual status_t    startRecording(){return 0;}
    // virtual status_t    autoFocus() {return 0;}
@@ -116,7 +116,7 @@ public:
     virtual status_t    setPreviewWindow(preview_stream_ops *w);
     virtual status_t    storeMetaDataInBuffers(bool enable);
     SprdCameraHardware(int cameraId);
-    virtual             ~SprdCameraHardware();	
+    virtual             ~SprdCameraHardware();
     inline  int         getCameraId() const;
 private:
 
@@ -128,7 +128,7 @@ private:
     //virtual ~SprdCameraHardware();
 /*    status_t startPreviewInternal(preview_callback pcb, void *puser,
                                   recording_callback rcb, void *ruser);*/
-    status_t startPreviewInternal();                              
+    status_t startPreviewInternal();
     void stopPreviewInternal();
 
     static wp<SprdCameraHardware> singleton;
@@ -150,7 +150,7 @@ private:
     int mRawHeight;
     int mRawWidth;
     int mPreviewFormat;//0:YUV422;1:YUV420;2:RGB
-    int mPictureFormat;//0:YUV422;1:YUV420;2:RGB;3:JPEG  
+    int mPictureFormat;//0:YUV422;1:YUV420;2:RGB;3:JPEG
     int interpoation_flag;
     int zoom_flag;
     int zoom_level;
@@ -184,14 +184,14 @@ private:
         virtual ~MemPool() = 0;
 
         void completeInitialization();
-        bool initialized() const { 
+        bool initialized() const {
             //return mHeap != NULL && mHeap->base() != MAP_FAILED;
             if(mHeap != NULL)
 	    {
 		if(MAP_FAILED != mHeap->base())
 			return true;
 	    	else
-			return false;	
+			return false;
             }
 	    else
 		return false;
@@ -267,7 +267,7 @@ private:
         QCS_PREVIEW_IN_PROGRESS,
         QCS_WAITING_RAW,
         QCS_WAITING_JPEG,
-        // internal states 
+        // internal states
         QCS_INTERNAL_PREVIEW_STOPPING,
         QCS_INTERNAL_CAPTURE_STOPPING,
         QCS_INTERNAL_PREVIEW_REQUESTED,
@@ -276,9 +276,9 @@ private:
     };
 
     volatile Sprd_camera_state mCameraState;
-    static const char* const getCameraStateStr(Sprd_camera_state s);    
+    static const char* const getCameraStateStr(Sprd_camera_state s);
     //static const char* getCameraStateStr(Sprd_camera_state s);
-    Sprd_camera_state change_state(Sprd_camera_state new_state, 
+    Sprd_camera_state change_state(Sprd_camera_state new_state,
                                        bool lock = true);
 
     void notifyShutter();
@@ -334,7 +334,7 @@ private:
 
    preview_stream_ops *mPreviewWindow;
    mutable Mutex       mPreviewLock;
-   
+
    static gralloc_module_t const* mGrallocHal;
 
    int32_t             mMsgEnabled;
@@ -345,5 +345,3 @@ private:
 }; // namespace android
 
 #endif //ANDROID_HARDWARE_SPRD_CAMERA_HARDWARE_H
-
-

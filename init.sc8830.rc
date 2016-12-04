@@ -123,7 +123,7 @@ on post-fs-data
     copy /system/etc/bluetooth/bt_stack.conf /data/misc/bluedroid/bt_stack.conf
     chown bluetooth system /data/misc/bluedroid/bt_stack.conf
     chmod 0640 /data/misc/bluedroid/bt_stack.conf
-    mkdir /data/local/media 0770 media system
+    mkdir /data/local/media 0770 media media
     mkdir /data/local/tmp/slogmodem 0770 system system
     mkdir /data/anr 0771 system system
     mkdir /data/tombstones 0771 system system
@@ -846,48 +846,6 @@ service autotest /system/bin/autotest
     user root
     oneshot
 
-service engpcclientt /system/bin/engpc -p t -a /dev/ttyGS0 -d /dev/ttyGS1 -l /dev/ttyGS4
-    class core
-    user system
-    group system radio shell bluetooth net_bt_stack
-    disabled
-    oneshot
-
-service engpcclientlte /system/bin/engpc -p l -a /dev/ttyGS5 -d /dev/ttyGS1 -l /dev/ttyGS1
-    class core
-    user system
-    group system radio shell bluetooth net_bt_stack
-    disabled
-    oneshot
-
-service engpcclientwcn /system/bin/engpc -p wcn -a /dev/ttyGS2 -d /dev/ttyGS3
-    class core
-    user system
-    group system radio shell bluetooth net_bt_stack
-    disabled
-    oneshot
-
-service engpcclientw /system/bin/engpc -p w -a /dev/ttyGS0 -d /dev/ttyGS1 -l /dev/ttyGS4
-    class core
-    user system
-    group system radio shell bluetooth net_bt_stack
-    disabled
-    oneshot
-
-service engpcclienttl /system/bin/engpc -p tl -a /dev/ttyGS5 -d /dev/ttyGS6
-    class core
-    user system
-    group system radio shell
-    disabled
-    oneshot
-
-service engpcclientlf /system/bin/engpc -p lf -a /dev/ttyGS5 -d /dev/ttyGS6 -l /dev/ttyGS7
-    class core
-    user system
-    group system radio shell
-    disabled
-    oneshot
-
 #volte
 service modemDriver /system/bin/modemDriver_vpad_main
     class core
@@ -1010,3 +968,8 @@ service mobex-daemon /system/bin/npsmobex
     class main
     user system
     group system radio inet sdcard_r sdcard_rw media_rw shell
+
+service charger /sbin/healthd -c
+    class charger
+    critical
+    seclabel u:r:healthd:s0

@@ -25,6 +25,16 @@ MEDIA_CONFIGS := \
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
+SYSTEM_INIT_RC_FILES := \
+		device/samsung/gtexslte/system/etc/init/rild.rc \
+		device/samsung/gtexslte/system/etc/init/at_distributor.rc \
+		device/samsung/gtexslte/system/etc/init/mediaserver.rc \
+		device/samsung/gtexslte/system/etc/init/engpc.rc \
+		# device/samsung/gtexslte/system/etc/init/drsd.rc \
+
+PRODUCT_COPY_FILES += \
+	$(foreach f,$(SYSTEM_INIT_RC_FILES),$(f):system/etc/init/$(notdir $(f)))
+
 PRODUCT_COPY_FILES += \
 		device/samsung/gtexslte/init.board.rc:root/init.board.rc \
 		device/samsung/gtexslte/init.sc8830.rc:root/init.sc8830.rc \
@@ -37,13 +47,12 @@ PRODUCT_COPY_FILES += \
 		device/samsung/gtexslte/fstab.sc8830:root/fstab.unknown \
     device/samsung/gtexslte/ueventd.sc8830.rc:root/ueventd.sc8830.rc \
 		device/samsung/gtexslte/ueventd.sc8830.rc:root/ueventd.unknown.rc \
-		device/samsung/gtexslte/init.rilchip.rc:root/init.rilchip.rc \
 		device/samsung/gtexslte/init.rilcommon.rc:root/init.rilcommon.rc \
 		device/samsung/gtexslte/init.wifi.rc:root/init.wifi.rc \
 		device/samsung/gtexslte/init.dhcp.rc:root/init.dhcp.rc \
 		device/samsung/gtexslte/apns-conf.xml:system/etc/apns-conf.xml \
 		device/samsung/gtexslte/bluetooth:system/etc/bluetooth \
-		# device/samsung/gtexslte/init.rc:root/init.rc \
+		device/samsung/gtexslte/init.rc:root/init.rc \
 
 $(call inherit-product, build/target/product/full.mk)
 
@@ -106,9 +115,11 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
-		libion \
 		libion_sprd \
-		libmemtrack
+		libmemtrack.sc8830
+
+PRODUCT_PACKAGES += \
+		 libhealthd.sc8830
 
 # Usb accessory
 PRODUCT_PACKAGES += \

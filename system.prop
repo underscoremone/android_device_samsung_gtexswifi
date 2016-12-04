@@ -92,6 +92,12 @@ ro.digital.fm.support=1
 ro.config.ksm.support=true
 ro.bluetooth.request.master=true
 
+# prevent GPU crash when turning off the device
+ro.egl.destroy_after_detach=true
+
+media.stagefright.less-secure=true
+media.stagefright.legacyencoder=true
+
 debug.hwui.render_dirty_regions=false
 drm.service.enabled=1
 

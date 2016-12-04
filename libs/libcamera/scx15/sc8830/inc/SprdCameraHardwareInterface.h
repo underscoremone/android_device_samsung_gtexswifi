@@ -16,7 +16,7 @@
 #ifndef ANDROID_HARDWARE_SPRD_CAMERA_HARDWARE_H
 #define ANDROID_HARDWARE_SPRD_CAMERA_HARDWARE_H
 
-#include <MemoryHeapIon.h>
+#include "../../libmemoryheapion_sprd/MemoryHeapIon.h"
 #include <utils/threads.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -416,5 +416,3 @@ private:
 }; // namespace android
 
 #endif //ANDROID_HARDWARE_SPRD_CAMERA_HARDWARE_H
-
-

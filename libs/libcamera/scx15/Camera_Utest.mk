@@ -237,7 +237,7 @@ LOCAL_MODULE := utest_camera_$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_TAGS := optional
 
 ifeq ($(strip $(sc8830like)),1)
-LOCAL_SHARED_LIBRARIES := libexif libutils libcamera_client libskia libcutils libsqlite libhardware libmorpho_easy_hdr libcamera_metadata libmemoryheapion
+LOCAL_SHARED_LIBRARIES := libexif libutils libcamera_client libskia libcutils libsqlite libhardware libmorpho_easy_hdr libcamera_metadata libmemoryheapion_sprd
 endif
 
 ifdef CONFIG_CAMERA_ISP

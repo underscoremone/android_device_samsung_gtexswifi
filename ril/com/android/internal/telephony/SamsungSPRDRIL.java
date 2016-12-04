@@ -36,6 +36,12 @@ import java.util.ArrayList;
  * {@hide}
  */
 public class SamsungSPRDRIL extends RIL implements CommandsInterface {
+  protected static final byte[] RAW_HOOK_OEM_CMD_SWITCH_DATAPREFER;
+
+  static {
+      RAW_HOOK_OEM_CMD_SWITCH_DATAPREFER = new byte[] { 0x09, 0x04 };
+  }
+
     public SamsungSPRDRIL(Context context, int networkMode, int cdmaSubscription) {
         this(context, networkMode, cdmaSubscription, null);
     }
@@ -92,6 +98,18 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
                 mSubscriptionStatusRegistrants.notifyRegistrants(
                         new AsyncResult (null, new int[] {0}, null));
             }
+        }
+    }
+
+    @Override
+    public void getRadioCapability(Message response) {
+        String rafString = mContext.getResources().getString(
+            com.android.internal.R.string.config_radio_access_family);
+        if (RILJ_LOGD) riljLog("getRadioCapability: returning static radio capability [" + rafString + "]");
+        if (response != null) {
+            Object ret = makeStaticRadioCapability();
+            AsyncResult.forMessage(response, ret, null);
+            response.sendToTarget();
         }
     }
 
@@ -311,6 +329,20 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
         }
 
         return rr;
+    }
+
+    @Override
+    public void setDataAllowed(boolean allowed, Message result) {
+        if (RILJ_LOGD) riljLog("setDataAllowed: allowed:" + allowed + " msg:" + result);
+        if (allowed) {
+            invokeOemRilRequestRaw(RAW_HOOK_OEM_CMD_SWITCH_DATAPREFER, result);
+        } else {
+            if (result != null) {
+                // Fake the response since we are doing nothing to disallow mobile data
+                AsyncResult.forMessage(result, 0, null);
+                result.sendToTarget();
+            }
+        }
     }
 
     @Override
