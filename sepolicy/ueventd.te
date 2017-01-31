@@ -1,2 +1,4 @@
 allow ueventd kernel:system module_request;
 allow ueventd system_data_file:file open;
+allow ueventd media_data_file:dir search;
+allow ueventd media_data_file:file { getattr open read };

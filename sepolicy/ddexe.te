@@ -16,3 +16,4 @@ allow ddexe system_data_file:sock_file unlink;
 allow ddexe radio_prop:property_service set;
 allow ddexe kernel:system module_request;
 allow ddexe gadget_serial_device:chr_file { read write ioctl open };
+allow ddexe sysfs:file { open read };

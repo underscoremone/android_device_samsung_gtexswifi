@@ -1,1 +1,6 @@
 
+persist.ril.            u:object_r:rild_prop:s0
+media.                  u:object_r:media_prop:s0
+monitor.	              u:object_r:monitor_prop:s0
+slog.	                  u:object_r:slog_prop:s0
+persist.sys.swapoff     u:object_r:sswap_prop:s0

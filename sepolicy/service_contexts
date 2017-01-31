@@ -1,3 +1,5 @@
+camera                                    u:object_r:mediaserver_service:s0
+
 atchannel                                 u:object_r:radio_service:s0
 fm                                        u:object_r:mediaserver_service:s0
 sprdsimphonebook                          u:object_r:radio_service:s0

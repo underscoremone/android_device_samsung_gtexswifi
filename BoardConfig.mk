@@ -33,7 +33,7 @@ BOARD_USE_LIBATCHANNEL_WRAPPER := true
 SOC_SCX30G_V2 := true
 
 # something
-BOARD_USE_SAMSUNG_COLORFORMAT := true
+# BOARD_USE_SAMSUNG_COLORFORMAT := true
 BOARD_NEEDS_MEMORYHEAPION_SPRD := true
 TARGET_SPRD_HARDWARE := true
 
@@ -45,36 +45,33 @@ BOARD_USERDATAIMAGE_PARTITION_SIZE := 5495377408
 BOARD_CACHEIMAGE_PARTITION_SIZE := 209715200
 BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_FLASH_BLOCK_SIZE := 131072
-USE_OPENGL_RENDERER := true
-TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 
 TARGET_BOARD_INFO_FILE := device/samsung/gtexslte/board-info.txt
 BOARD_EGL_CFG := device/samsung/gtexslte/egl.cfg
 
-USE_SPRD_HWCOMPOSER := true
-USE_OPENGL_RENDERER := true
-BOARD_USE_MHEAP_SCREENSHOT := true
-TARGET_BOARD_PLATFORM_GPU := ARM Mali-400
-# USE_OVERLAY_COMPOSER_GPU := true
-USE_SPRD_DITHER := true
-DEVICE_FORCE_VIDEO_GO_OVERLAYCOMPOSER := true
-BOARD_EGL_WORKAROUND_BUG_10194508 := true
+# Graphics
+TARGET_RUNNING_WITHOUT_SYNC_FRAMEWORK := true
 BOARD_EGL_NEEDS_HANDLE_VALUE := true
-# HWUI_COMPILE_FOR_PERF := true
-TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS := true
 TARGET_REQUIRES_SYNCHRONOUS_SETSURFACE := true
-BOARD_CANT_REALLOCATE_OMX_BUFFERS := true
+TARGET_FORCE_SCREENSHOT_CPU_PATH := true
+NUM_FRAMEBUFFER_SURFACE_BUFFERS := 3
+
+# HWComposer
+USE_SPRD_HWCOMPOSER := true
+TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS := true
+
 # COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
 # COMMON_GLOBAL_CFLAGS += -DBOARD_CANT_REALLOCATE_OMX_BUFFERS
 
 BOARD_RIL_CLASS := ../../../device/samsung/gtexslte/ril
+BOARD_GLOBAL_CFLAGS += -DDISABLE_ASHMEM_TRACKING
 
 # Bluetooth
 USE_BLUETOOTH_BCM4343 := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_SPRD := true
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
-BOARD_BLUEDROID_VENDOR_CONF := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
+BOARD_CUSTOM_BT_CONFIG := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 
 # Wifi
 WIFI_DRIVER_MODULE_PATH := /lib/modules/sprdwl.ko
@@ -117,20 +114,104 @@ BOARD_CHARGING_MODE_BOOTING_LPM := /sys/class/power_supply/battery/batt_lp_charg
 
 # TARGET_KERNEL_MODULES := SC9830_MODULES
 
+# Enable WEBGL in WebKit
+ENABLE_WEBGL := true
+
 BOARD_SEPOLICY_DIRS += device/samsung/gtexslte/sepolicy
 
 # Camera
-CAMERA_SUPPORT_SIZE := 5M
-#android zsl capture
-TARGET_BOARD_CAMERA_ANDROID_ZSL_MODE := false
+#zsl capture
+TARGET_BOARD_CAMERA_CAPTURE_MODE := false
+
 #back camera rotation capture
 TARGET_BOARD_BACK_CAMERA_ROTATION := false
+
 #front camera rotation capture
 TARGET_BOARD_FRONT_CAMERA_ROTATION := false
+
 #rotation capture
 TARGET_BOARD_CAMERA_ROTATION_CAPTURE := false
-TARGET_BOARD_CAMERA_HAL_VERSION := HAL1.0
-TARGET_HAS_LEGACY_CAMERA_HAL1 := true
+
+#support hal1.0,hal3.2
+TARGET_BOARD_CAMERA_HAL_VERSION := 1.0
+
+# camera sensor type
+CAMERA_SENSOR_TYPE_BACK := "s5k4h5yc_mipi"
+CAMERA_SENSOR_TYPE_FRONT := "s5k5e3yx_mipi"
+
+# select camera 2M,3M,5M,8M
+CAMERA_SUPPORT_SIZE := 5M
+FRONT_CAMERA_SUPPORT_SIZE := 2M
+TARGET_BOARD_NO_FRONT_SENSOR := false
+TARGET_BOARD_CAMERA_FLASH_CTRL := false
+
+#read sensor otp to isp
+TARGET_BOARD_CAMERA_READOTP_TO_ISP := true
+
+# use sprd auto lens
+TARGET_BOARD_CAMERA_SPRD_AUTOLENS := false
+
+#otp version, v0(OTP on Grandprime, Z3) v1(OTP on J1MINI) v2(Without OTP on TabG)
+TARGET_BOARD_CAMERA_OTP_VERSION := 0
+
+#read otp method 1:from kernel 0:from user
+TARGET_BOARD_CAMERA_READOTP_METHOD := 1
+
+#face detect
+TARGET_BOARD_CAMERA_FACE_DETECT := true
+TARGET_BOARD_CAMERA_FD_LIB := omron
+
+#sensor interface
+TARGET_BOARD_BACK_CAMERA_INTERFACE := mipi
+TARGET_BOARD_FRONT_CAMERA_INTERFACE := mipi
+
+#select camera zsl cap mode
+TARGET_BOARD_CAMERA_CAPTURE_MODE := true
+
+#select camera zsl force cap mode
+TARGET_BOARD_CAMERA_FORCE_ZSL_MODE := true
+
+#rotation capture
+TARGET_BOARD_CAMERA_ROTATION_CAPTURE := false
+
+#select camera not support autofocus
+TARGET_BOARD_CAMERA_NO_AUTOFOCUS_DEV := false
+
+#uv denoise enable
+TARGET_BOARD_CAMERA_CAPTURE_DENOISE := false
+
+#y denoise enable
+TARGET_BOARD_CAMERA_Y_DENOISE := true
+
+#select continuous auto focus
+TARGET_BOARD_CAMERA_CAF := true
+
+#select ACuteLogic awb algorithm
+TARGET_BOARD_USE_ALC_AWB := true
+
+#pre_allocate capture memory
+TARGET_BOARD_CAMERA_PRE_ALLOC_CAPTURE_MEM := true
+
+#sc8830g isp ver 0;sc9630 isp ver 1;tshark2 isp version 2
+TARGET_BOARD_CAMERA_ISP_SOFTWARE_VERSION := 2
+
+#support auto anti-flicker
+TARGET_BOARD_CAMERA_ANTI_FLICKER := true
+
+#multi cap memory mode
+TARGET_BOARD_MULTI_CAP_MEM := true
+
+#select mipi d-phy mode(none, phya, phyb, phyab)
+TARGET_BOARD_FRONT_CAMERA_MIPI := phyc
+TARGET_BOARD_BACK_CAMERA_MIPI := phyab
+
+#select ccir pclk src(source0, source1)
+TARGET_BOARD_FRONT_CAMERA_CCIR_PCLK := source0
+TARGET_BOARD_BACK_CAMERA_CCIR_PCLK := source0
+
+#hdr effect enable
+TARGET_BOARD_CAMERA_HDR_CAPTURE := true
+
 
 TARGET_HAS_BACKLIT_KEYS := false
 
@@ -140,3 +221,17 @@ RECOVERY_GRAPHICS_USE_LINELENGTH := true
 BOARD_HAS_NO_MISC_PARTITION := true
 BOARD_HAS_FLIPPED_SCREEN := true
 BOARD_HAS_NO_SELECT_BUTTON := true
+
+
+# Build system
+USE_NINJA := false
+
+# Use dmalloc() for such low memory devices like us
+MALLOC_SVELTE := true
+BOARD_USES_LEGACY_MMAP := true
+
+# Bionic
+TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS := true
+
+# SELinux
+SERVICES_WITHOUT_SELINUX_DOMAIN := true

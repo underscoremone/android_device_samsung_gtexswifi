@@ -38,6 +38,7 @@
 /dev/stty_lte[0-9]       u:object_r:radio_device:s0
 /dev/stty_lte10          u:object_r:radio_device:s0
 /dev/stty_lte11          u:object_r:tty_device:s0
+/dev/ttyS3               u:object_r:tty_device:s0
 /dev/Trout_FM            u:object_r:audio_device:s0
 /sys/class/rfkill/rfkill[0-9]*/state -- u:object_r:sysfs_bluetooth_writable:s0
 /sys/class/rfkill/rfkill[0-9]*/type -- u:object_r:sysfs_bluetooth_writable:s0
@@ -46,6 +47,7 @@
 /dev/block/mmcblk[0-9].* u:object_r:emmcblk_device:s0
 /dev/block/zram[0-9]		 u:object_r:ram_device:s0
 
+/dev/block/mmcblk0p22    u:object_r:frp_block_device:s0
 /dev/block/mmcblk0p17    u:object_r:efsblk_device:s0
 /dev/block/mmcblk0       u:object_r:mmc_block_device:s0
 /dev/block/mmcblk0p25    u:object_r:systemblk_device:s0
@@ -74,6 +76,9 @@
 /dev/usb-ffs              u:object_r:usb_device:s0
 
 /data/misc/radio(/.*)?	u:object_r:radio_data_file:s0
+/sys/class/android_usb/android0(/.*)?  u:object_r:sysfs_ss_writable:s0
+
+/sbin/sswap           u:object_r:sswap_exec:s0
 
 /system/bin/at_distributor  u:object_r:at_distributor_exec:s0
 /system/bin/bootchecker  u:object_r:bootchecker_exec:s0
@@ -86,6 +91,7 @@
 /system/bin/refnotify   u:object_r:refnotify_exec:s0
 /system/bin/mfgloader   u:object_r:mfgloader_exec:s0
 /system/bin/batterysrv   u:object_r:batterysrv_exec:s0
+/system/bin/npsmobex     u:object_r:npsmobex_exec:s0
 /system/bin/wlandutservice u:object_r:wlandutservice_exec:s0
 /system/bin/slogmodem   u:object_r:slogmodem_exec:s0
 /system/bin/macloader   u:object_r:macloader_exec:s0
@@ -98,3 +104,19 @@
 /system/bin/smdexe  u:object_r:smdexe_exec:s0
 /system/bin/charon  u:object_r:charon_exec:s0
 /system/bin/scs     u:object_r:scs_exec:s0
+
+
+#data
+/data/log(/.*)?	u:object_r:dumplog_data_file:s0
+/data/local/media(/.*)?     u:object_r:media_data_file:s0
+
+#rild related files
+/data/.battery_nv             u:object_r:batterysrv_data_file:s0
+/data/.wifiver.info           u:object_r:radio_data_file:s0
+/data/data/data_usage_rx      u:object_r:radio_data_file:s0
+/data/data/data_usage_tx      u:object_r:radio_data_file:s0
+
+#engpc related files
+/data/file_lock.test          u:object_r:engpc_data_file:s0
+
+/mnt/shell/emulated/([1-9])?[0-9](/.*)?  u:object_r:media_rw_data_file:s0

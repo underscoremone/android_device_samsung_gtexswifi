@@ -1,0 +1,2 @@
+allow blkid device:file { create link rename setattr unlink getattr open write };
+allow blkid device:dir { add_name remove_name write };

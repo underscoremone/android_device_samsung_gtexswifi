@@ -12,31 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-LOCAL_PATH := $(call my-dir)
-
+LOCAL_PATH:= $(call my-dir)
+# HAL module implemenation stored in
+# hw/<COPYPIX_HARDWARE_MODULE_ID>.<ro.board.platform>.so
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := \
-	AtChannel.cpp
-LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)
-LOCAL_SHARED_LIBRARIES := \
-	libcutils \
-	libbinder \
-	libutils \
-	libdl \
-	libsecril-client
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+
+LOCAL_SRC_FILES :=  IAtChannel.cpp \
+			AtChannel.cpp
+
+LOCAL_SHARED_LIBRARIES := libcutils libbinder libutils
+
 LOCAL_MODULE := libatchannel
+
 LOCAL_MODULE_TAGS := optional
+
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
-LOCAL_SHARED_LIBRARIES := \
-	liblog \
-	libcutils \
-	libatchannel \
-	libutils \
-	libdl
-LOCAL_SRC_FILES := \
-	AtChannelTest.cpp
+LOCAL_SHARED_LIBRARIES := liblog libcutils libatchannel libutils
+LOCAL_SRC_FILES := AtChannelTest.cpp
 LOCAL_MODULE := AtChannelTest
 include $(BUILD_EXECUTABLE)

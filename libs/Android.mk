@@ -1,5 +1,6 @@
 #
-# Copyright (C) 2015 The CyanogenMod Project
+# Copyright (C) 2016 The Android Open Source Project
+# Copyright (C) 2016 The CyanogenMod Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +17,11 @@
 
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(TARGET_DEVICE),gtexslte)
+supported_boards := \
+	sc8830 \
+	scx15 \
+	sc8810 \
+
+ifneq (,$(filter $(supported_boards),$(TARGET_BOARD_PLATFORM)))
 include $(call all-makefiles-under,$(LOCAL_PATH))
 endif

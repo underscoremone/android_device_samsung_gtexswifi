@@ -7,7 +7,7 @@ allow wcnd bluetooth_data_file:dir { read search write add_name };
 allow wcnd bluetooth_data_file:file { create open read getattr setattr write };
 allow wcnd download:unix_stream_socket connectto;
 allow wcnd efs_file:dir search;
-allow wcnd proc:file write;
+allow wcnd proc:file { open read write };
 allow wcnd prod_file:dir search;
 allow wcnd shell_exec:file { read open execute execute_no_trans };
 allow wcnd wifi_data_file:dir { add_name read write search };
@@ -17,3 +17,9 @@ allow wcnd wifi_efs_file:dir search;
 allow wcnd wifi_efs_file:file { open read getattr };
 allow wcnd system_file:file execute_no_trans;
 allow wcnd kernel:system module_request;
+
+allow wcnd proc_net:file { getattr open read };
+allow wcnd shell_exec:file getattr;
+allow wcnd system_data_file:file { getattr read };
+allow wcnd toolbox_exec:file { execute execute_no_trans getattr open read };
+# allow wcnd system_data_file:file { write };

@@ -1,2 +1,0 @@
-SprdPrimaryDisplayDevice/SprdPrimaryDisplayDevice.cpp:    if (!(mWindow->Init()))
-SprdPrimaryDisplayDevice/SprdPrimaryDisplayDevice.cpp:            mWindow->releaseNativeBuffer();

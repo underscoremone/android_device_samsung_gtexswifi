@@ -1,1 +1,3 @@
 allow zygote kernel:system module_request;
+allow zygote media_prop:file { open read getattr };
+allow zygote device:file { open write };

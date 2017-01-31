@@ -9,3 +9,4 @@ allow smdexe self:capability setuid;
 allow smdexe system_data_file:sock_file write;
 allow smdexe ddexe:unix_stream_socket connectto;
 allow smdexe kernel:system module_request;
+allow smdexe sysfs:file { open read };

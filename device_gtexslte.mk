@@ -20,17 +20,13 @@ endif
 # Media config
 MEDIA_CONFIGS := \
 	$(LOCAL_PATH)/media/media_codecs.xml \
-	$(LOCAL_PATH)/media/media_profiles.xml
+	$(LOCAL_PATH)/media/media_profiles.xml \
+	frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml \
+	frameworks/av/media/libstagefright/data/media_codecs_google_video.xml \
+	frameworks/av/media/libstagefright/data/media_codecs_google_telephony.xml
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_KERNEL):kernel
-
-SYSTEM_INIT_RC_FILES := \
-		device/samsung/gtexslte/system/etc/init/rild.rc \
-		device/samsung/gtexslte/system/etc/init/at_distributor.rc \
-		device/samsung/gtexslte/system/etc/init/mediaserver.rc \
-		device/samsung/gtexslte/system/etc/init/engpc.rc \
-		# device/samsung/gtexslte/system/etc/init/drsd.rc \
+	$(foreach f,$(MEDIA_CONFIGS),$(f):system/etc/$(notdir $(f)))
 
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(SYSTEM_INIT_RC_FILES),$(f):system/etc/init/$(notdir $(f)))
@@ -70,25 +66,13 @@ PRODUCT_PACKAGES += \
 
 # Codecs
 PRODUCT_PACKAGES += \
-	libstagefrighthw \
-	libstagefright_sprd_soft_mpeg4dec \
-	libstagefright_sprd_soft_h264dec \
-	libstagefright_sprd_mpeg4dec \
-	libstagefright_sprd_mpeg4enc \
-	libstagefright_sprd_h264dec \
-	libstagefright_sprd_h264enc \
-	libstagefright_sprd_vpxdec \
-	libstagefright_sprd_aacdec \
-	libstagefright_sprd_mp3dec \
-	libomx_aacdec_sprd.so \
-	libomx_avcdec_hw_sprd.so \
-	libomx_avcdec_sw_sprd.so \
-	libomx_avcenc_hw_sprd.so \
-	libomx_m4vh263dec_hw_sprd.so \
-	libomx_m4vh263dec_sw_sprd.so \
-	libomx_m4vh263enc_hw_sprd.so \
-	libomx_mp3dec_sprd.so \
-	libomx_vpxdec_hw_sprd.so
+		libcolorformat_switcher \
+		libstagefrighthw \
+		libstagefright_sprd_mpeg4dec \
+		libstagefright_sprd_mpeg4enc \
+		libstagefright_sprd_h264dec \
+		libstagefright_sprd_h264enc \
+		libstagefright_sprd_vpxdec
 
 PRODUCT_PROPERTY_OVERRIDES += \
 		persist.ttydev=ttyVUART0 \
@@ -113,10 +97,15 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 
 # HWC
 PRODUCT_PACKAGES += \
+		libHWCUtils \
+		memtrack.sc8830 \
+		gralloc.sc8830 \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
+		libmemoryheapion \
 		libion_sprd \
-		libmemtrack.sc8830
+		libstagefright_shim \
+		libgps_shim
 
 PRODUCT_PACKAGES += \
 		 libhealthd.sc8830
@@ -158,11 +147,14 @@ PRODUCT_PACKAGES += \
 	audio.r_submix.default \
 	audio.usb.default \
 	audio_vbc_eq \
-	libaudio-resampler \
-	libatchannel \
 	libatchannel_wrapper \
+	libaudio-resampler \
 	libtinyalsa \
-	libeng-audio
+	libeng-audio \
+
+# Camera HAL
+PRODUCT_PACKAGES += \
+	camera.sc8830
 
 # Wifi
 PRODUCT_PACKAGES += \
@@ -175,8 +167,8 @@ PRODUCT_PACKAGES += \
 
 # Permissions
 PERMISSION_XML_FILES := \
-	$(LOCAL_PATH)/permissions/platform.xml \
-	$(LOCAL_PATH)/permissions/tablet_core_hardware.xml \
+	frameworks/native/data/etc/handheld_core_hardware.xml \
+	frameworks/native/data/etc/android.hardware.camera.autofocus.xml \
 	frameworks/native/data/etc/android.hardware.camera.front.xml \
 	frameworks/native/data/etc/android.hardware.camera.xml \
 	frameworks/native/data/etc/android.hardware.bluetooth.xml \
@@ -184,6 +176,7 @@ PERMISSION_XML_FILES := \
 	frameworks/native/data/etc/android.hardware.location.gps.xml \
 	frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml \
 	frameworks/native/data/etc/android.hardware.touchscreen.multitouch.xml \
+	frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml \
 	frameworks/native/data/etc/android.hardware.touchscreen.xml \
 	frameworks/native/data/etc/android.hardware.telephony.gsm.xml \
 	frameworks/native/data/etc/android.hardware.usb.accessory.xml \
@@ -191,10 +184,17 @@ PERMISSION_XML_FILES := \
 	frameworks/native/data/etc/android.software.sip.voip.xml \
 	frameworks/native/data/etc/android.software.sip.xml \
 	frameworks/native/data/etc/android.hardware.wifi.xml \
-	frameworks/native/data/etc/android.hardware.wifi.direct.xml
+	frameworks/native/data/etc/android.hardware.wifi.direct.xml \
+	frameworks/native/data/etc/android.software.midi.xml
 
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(PERMISSION_XML_FILES),$(f):system/etc/permissions/$(notdir $(f)))
+
+	# enable Google-specific location features,
+	# like NetworkLocationProvider and LocationCollector
+PRODUCT_PROPERTY_OVERRIDES += \
+	ro.com.google.locationfeatures=1 \
+	ro.com.google.networklocation=1
 
 # Dalvik Heap config
 include frameworks/native/build/tablet-7in-hdpi-1024-dalvik-heap.mk

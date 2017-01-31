@@ -1,0 +1,7 @@
+allow cameraserver camera_device:chr_file { ioctl open read write };
+allow cameraserver graphics_device:chr_file { open read write };
+allow cameraserver sensors_device:chr_file { open read write ioctl };
+allow cameraserver system_file:file execmod;
+allow cameraserver sysfs:file { open read write };
+
+# allow cameraserver self:tcp_socket create;

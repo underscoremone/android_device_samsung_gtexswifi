@@ -5,6 +5,7 @@ type engpc_exec, exec_type, file_type;
 init_daemon_domain(engpc)
 
 allow engpc usb_serial_device:chr_file { open read write ioctl };
+allow engpc gadget_serial_device:chr_file { write read open ioctl };
 allow engpc devpts:chr_file setattr;
 allow engpc property_socket:sock_file write;
 allow engpc self:netlink_kobject_uevent_socket { create bind setopt read };
@@ -21,7 +22,16 @@ allow engpc prod_file:dir search;
 allow engpc ctl_default_prop:property_service set;
 allow engpc system_prop:property_service set;
 allow engpc slog_device:chr_file { read write open };
-allow engpc shell_exec:file { read open execute execute_no_trans };
+allow engpc shell_exec:file { read open execute execute_no_trans getattr };
 allow engpc system_file:file execute_no_trans;
 allow engpc efs_file:dir search;
-allow engpc kernel:system module_request;
+allow engpc media_data_file:dir { add_name create search write open read ioctl remove_name };
+allow engpc media_data_file:file { create open read write ioctl getattr setattr };
+allow engpc sysfs:file { getattr open read };
+
+allow engpc proc:file { open read };
+allow engpc toolbox_exec:file { execute execute_no_trans getattr open read };
+
+
+type_transition engpc system_data_file:file engpc_data_file;
+allow engpc engpc_data_file:file create_file_perms;

@@ -6,12 +6,32 @@ service ril-daemon /system/bin/rild
     socket rild-cas stream 660  casdrm mmb
     user root
     group radio cache inet misc audio log sdcard_r sdcard_rw vpn system readproc wakelock shell
+    setenv LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
 
 service ril-daemon1 /system/bin/rild -c 2
     class main
     socket rild2 stream 660 root radio
-    socket sap_uim_socket stream 660 bluetooth bluetooth
+    socket sap_uim_socket2 stream 660 bluetooth bluetooth
     socket rild-debug2 stream 660 radio system
     user root
     group radio cache inet misc audio log sdcard_r sdcard_rw vpn system readproc wakelock shell
     disabled
+    setenv LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
+
+service DR-daemon /system/bin/ddexe
+    class main
+    user root
+    group system radio inet net_raw
+    setenv LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
+
+service SMD-daemon /system/bin/smdexe
+    class main
+    user root
+    group system radio inet net_raw
+    setenv LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so
+
+service BCS-daemon /system/bin/connfwexe
+    class main
+    user root
+    group system radio inet net_raw
+    setenv LD_SHIM_LIBS /system/lib/libril.so|libril_shim.so

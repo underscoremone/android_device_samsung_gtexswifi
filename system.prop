@@ -123,6 +123,7 @@ ro.astcenc.astcsupport=0
 ro.mct.compressiontype=ETC1
 ro.telephony.default_network=9
 ro.telephony.ril_class=SamsungGtexslteRIL
+ro.telephony.ril.config=setPrefNwTypeOnUnsolConnected,radiopower
 dalvik.vm.heapstartsize=8m
 dalvik.vm.heapgrowthlimit=96m
 dalvik.vm.heapsize=256m

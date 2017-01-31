@@ -12,4 +12,8 @@ allow rild imei_efs_file:dir search;
 allow rild imei_efs_file:file { open read getattr };
 allow rild at_distributor:dir search;
 allow rild at_distributor:file { open read getattr };
-allow rild at_distributor:file getattr;
+allow rild rild_prop:file { getattr open read};
+allow rild self:capability dac_read_search;
+allow rild rild_prop:property_service set;
+
+allow rild radio_data_file:lnk_file read;

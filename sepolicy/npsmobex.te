@@ -1,0 +1,11 @@
+# cp_diskserver
+type npsmobex, domain;
+type npsmobex_exec, exec_type, file_type;
+
+allow npsmobex system_data_file:dir { add_name remove_name write };
+allow npsmobex system_data_file:sock_file { create setattr unlink };
+allow npsmobex system_prop:property_service set;
+allow npsmobex init:unix_stream_socket connectto;
+allow npsmobex property_socket:sock_file write;
+
+init_daemon_domain(npsmobex)

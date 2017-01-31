@@ -1,1 +1,2 @@
-allow adbd kernel:system module_request;
+allow adbd self:capability dac_override;
+allow adbd usb_device:dir search;

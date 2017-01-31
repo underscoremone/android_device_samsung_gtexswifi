@@ -11,16 +11,6 @@ import /init.rilepdg.rc
 
 on boot
 
-service DR-daemon /system/bin/ddexe
-    class main
-    user root
-    group system radio inet net_raw
-
-service BCS-daemon /system/bin/connfwexe
-    class main
-    user root
-    group system radio inet net_raw
-
 # for ethernet
 service dhcpcd_eth0 /system/bin/dhcpcd -ABKL
     class main

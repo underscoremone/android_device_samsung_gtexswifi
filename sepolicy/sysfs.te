@@ -1,0 +1,1 @@
+allow sysfs_ss_writable sysfs:filesystem associate;

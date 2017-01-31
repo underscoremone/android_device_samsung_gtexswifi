@@ -2,12 +2,10 @@
 #define ANDROID_ATCHANNEL_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-#include <cutils/sockets.h>
-size_t sendAt(void *buf, size_t bufLen, int simId, const char* atCmd);
+const char* sendAt(int modemId, int simId, const char* atCmd);
 
 #ifdef __cplusplus
 }

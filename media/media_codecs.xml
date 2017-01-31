@@ -15,70 +15,39 @@
 -->
 
 <MediaCodecs>
-    <Decoders>
-        <MediaCodec name="OMX.sprd.mpeg4.decoder" type="video/mp4v-es">
-            <Quirk name="requires-allocate-on-output-ports" />
-            <Quirk name="defers-output-buffer-allocation" />
-            <Quirk name="needs-flush-before-disable" />
-        </MediaCodec>
+  <Encoders>
+      <MediaCodec name="OMX.sprd.mpeg4.encoder" type="video/mp4v-es">
+          <Quirk name="video-controller-check-enable" />
+          <!-- profiles and levels:  Simple Profile : Level5 -->
+          <Limit name="size" min="176x144" max="1920x1088" />
+          <Limit name="alignment" value="16x16" />
+          <Limit name="block-size" value="16x16" />
+          <Limit name="blocks-per-second" range="12-245760" />
+          <Limit name="bitrate" range="1-40000000" />
+      </MediaCodec>
+      <MediaCodec name="OMX.sprd.h263.encoder" type="video/3gpp">
+          <Quirk name="video-controller-check-enable" />
+          <!-- profiles and levels:  ProfileBaseline : Level70 -->
+          <Limit name="size" min="176x144" max="1920x1088" />
+          <Limit name="alignment" value="16x16" />
+          <Limit name="block-size" value="16x16" />
+          <Limit name="blocks-per-second" range="12-245760" />
+          <Limit name="bitrate" range="1-40000000" />
+      </MediaCodec>
+      <MediaCodec name="OMX.sprd.h264.encoder" type="video/avc">
+          <Quirk name="video-controller-check-enable" />
+          <!-- profiles and levels:  ProfileBaseline : Level2 -->
+          <Limit name="size" min="176x144" max="1920x1088" />
+          <Limit name="alignment" value="16x16" />
+          <Limit name="block-size" value="16x16" />
+          <Limit name="blocks-per-second" range="1-245760" />
+          <Limit name="bitrate" range="1-40000000" />
+      </MediaCodec>
+  </Encoders>
 
-        <MediaCodec name="OMX.sprd.h263.decoder" type="video/3gpp">
-            <Quirk name="requires-allocate-on-output-ports" />
-            <Quirk name="defers-output-buffer-allocation" />
-            <Quirk name="needs-flush-before-disable" />
-        </MediaCodec>
 
-        <MediaCodec name="OMX.sprd.h264.decoder" type="video/avc">
-            <Quirk name="requires-allocate-on-output-ports" />
-            <Quirk name="defers-output-buffer-allocation" />
-            <Quirk name="needs-flush-before-disable" />
-        </MediaCodec>
-
-        <MediaCodec name="OMX.sprd.vpx.decoder" type="video/x-vnd.on2.vp8">
-            <Quirk name="requires-allocate-on-output-ports" />
-            <Quirk name="defers-output-buffer-allocation" />
-            <Quirk name="needs-flush-before-disable" />
-        </MediaCodec>
-
-        <MediaCodec name="OMX.sprd.mp3.decoder">
-            <Type name="audio/mpeg" />
-            <Type name="audio/mpeg-L1" />
-            <Type name="audio/mpeg-L2" />
-        </MediaCodec>
-
-        <MediaCodec name="OMX.sprd.aac.decoder" type="audio/mp4a-latm" />
-
-        <MediaCodec name="OMX.sprd.soft.mpeg4.decoder" type="video/mp4v-es" />
-        <MediaCodec name="OMX.sprd.soft.h263.decoder" type="video/3gpp" />
-        <MediaCodec name="OMX.sprd.soft.h264.decoder" type="video/avc" />
-
-        <MediaCodec name="OMX.google.mp3.decoder" type="audio/mpeg" />
-        <MediaCodec name="OMX.google.amrnb.decoder" type="audio/3gpp" />
-        <MediaCodec name="OMX.google.amrwb.decoder" type="audio/amr-wb" />
-        <MediaCodec name="OMX.google.aac.decoder" type="audio/mp4a-latm" />
-        <MediaCodec name="OMX.google.g711.alaw.decoder" type="audio/g711-alaw" />
-        <MediaCodec name="OMX.google.g711.mlaw.decoder" type="audio/g711-mlaw" />
-        <MediaCodec name="OMX.google.vorbis.decoder" type="audio/vorbis" />
-        <MediaCodec name="OMX.google.gsm.decoder" type="audio/gsm" />
-
-        <MediaCodec name="OMX.google.mpeg4.decoder" type="video/mp4v-es" />
-        <MediaCodec name="OMX.google.h263.decoder" type="video/3gpp" />
-        <MediaCodec name="OMX.google.h264.decoder" type="video/avc" />
-        <MediaCodec name="OMX.google.vp8.decoder" type="video/x-vnd.on2.vp8" />
-        <MediaCodec name="OMX.google.vp9.decoder" type="video/x-vnd.on2.vp9" />
-    </Decoders>
-
-    <Encoders>
-        <MediaCodec name="OMX.sprd.mpeg4.encoder" type="video/mp4v-es" />
-        <MediaCodec name="OMX.sprd.h263.encoder" type="video/3gpp" />
-        <MediaCodec name="OMX.sprd.h264.encoder" type="video/avc"/>
-
-        <MediaCodec name="OMX.google.aac.encoder" type="audio/mp4a-latm" />
-        <MediaCodec name="OMX.google.amrnb.encoder" type="audio/3gpp" />
-        <MediaCodec name="OMX.google.amrwb.encoder" type="audio/amr-wb" />
-        <MediaCodec name="OMX.google.h263.encoder" type="video/3gpp" />
-        <MediaCodec name="OMX.google.h264.encoder" type="video/avc" />
-        <MediaCodec name="OMX.google.mpeg4.encoder" type="video/mp4v-es" />
-        <MediaCodec name="OMX.google.flac.encoder" type="audio/flac" />
-    </Encoders>
+    <Include href="media_codecs_google_audio.xml" />
+    <Include href="media_codecs_google_video.xml" />
+    <Include href="media_codecs_google_telephony.xml" />
+    <Include href="media_codecs_ffmpeg.xml" />
 </MediaCodecs>

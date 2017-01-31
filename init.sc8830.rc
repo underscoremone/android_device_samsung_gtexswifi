@@ -15,9 +15,9 @@ on early-init
     write /proc/sys/kernel/core_pattern /dev/null
 # radio pipe
     mkdir /dev/rpipe 0550 radio radio
-    pipe 666 /dev/rpipe/ril.vt.0
-    pipe 666 /dev/rpipe/ril.vt.1
-    pipe 666 /dev/rpipe/ril.vt.2
+    exec -- mkfifo /dev/rpipe/ril.vt.0
+    exec -- mkfifo /dev/rpipe/ril.vt.1
+    exec -- mkfifo /dev/rpipe/ril.vt.2
 
 on init
     # Support Preload install apks
@@ -195,7 +195,7 @@ on early-boot
 
     # Support audio loopback test
     mkdir /dev/pipe 0755 system system
-    pipe 666 /dev/pipe/mmi.audio.ctrl
+    exec -- mkfifo /dev/pipe/mmi.audio.ctrl
 
     chmod 220 /proc/cpt/cp_crash
     chmod 660 /proc/cpt/wdtirq
@@ -909,21 +909,6 @@ service scs /system/bin/scs
     user system
     group system
     oneshot
-
-service DR-daemon /system/bin/ddexe
-    class main
-    user root
-    group system radio inet net_raw
-
-service SMD-daemon /system/bin/smdexe
-    class main
-    user root
-    group system radio inet net_raw
-
-service BCS-daemon /system/bin/connfwexe
-    class main
-    user root
-    group system radio inet net_raw
 
 # bootchecker
 service bootchecker /system/bin/bootchecker

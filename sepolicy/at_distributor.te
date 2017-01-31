@@ -20,3 +20,4 @@ allow at_distributor system_data_file:sock_file write;
 allow at_distributor ddexe:unix_stream_socket connectto;
 allow at_distributor sysfs_wake_lock:file { read write open };
 allow at_distributor kernel:system module_request;
+allow at_distributor proc:file { getattr open read };

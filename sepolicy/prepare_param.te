@@ -13,3 +13,5 @@ allow prepare_param self:capability { fowner chown fsetid };
 allow prepare_param block_device:dir add_name;
 allow prepare_param block_device:lnk_file create;
 allow prepare_param kernel:system module_request;
+allow prepare_param shell_exec:file getattr;
+allow prepare_param toolbox_exec:file { execute execute_no_trans getattr open read };
