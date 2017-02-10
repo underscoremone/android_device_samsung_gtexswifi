@@ -154,6 +154,10 @@ on post-fs-data
     restorecon /data/log
     restorecon /data/anr
 
+    # symlink telphony data files
+    symlink /data/user_de/0/com.android.providers.telephony/databases /data/data/com.android.providers.telephony/databases
+    symlink /data/user_de/0/com.android.providers.telephony/shared_prefs /data/data/com.android.providers.telephony/shared_prefs
+
     # MUIC
     chown system radio /sys/class/sec/switch/uart_en
 

@@ -3,3 +3,4 @@ allow wpa radio_data_file:dir search;
 allow wpa radio_data_file:file { open read getattr };
 allow wpa wpa_device:chr_file { open read };
 allow wpa device:file { write getattr };
+allow wpa wifi_data_file:sock_file { create setattr };

@@ -28,6 +28,15 @@ MEDIA_CONFIGS := \
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(MEDIA_CONFIGS),$(f):system/etc/$(notdir $(f)))
 
+# System init .rc files
+SYSTEM_INIT_RC_FILES := \
+		device/samsung/gtexslte/system/etc/init/at_distributor.rc \
+		device/samsung/gtexslte/system/etc/init/engpc.rc \
+		device/samsung/gtexslte/system/etc/init/mediacodec.rc \
+		device/samsung/gtexslte/system/etc/init/mediaserver.rc \
+		device/samsung/gtexslte/system/etc/init/rild.rc \
+		device/samsung/gtexslte/system/etc/init/surfaceflinger.rc \
+
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(SYSTEM_INIT_RC_FILES),$(f):system/etc/init/$(notdir $(f)))
 
@@ -59,6 +68,10 @@ PRODUCT_COPY_FILES += \
 	$(LOCAL_PATH)/keylayout/sec_touchkey.kl:system/usr/keylayout/sec_touchkey.kl \
 	$(LOCAL_PATH)/keylayout/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl
 
+#Wallpaper/Apps
+PRODUCT_PACKAGES += \
+	CMWallpapers
+
 # Charger
 PRODUCT_PACKAGES += \
 	charger \
@@ -66,6 +79,7 @@ PRODUCT_PACKAGES += \
 
 # Codecs
 PRODUCT_PACKAGES += \
+		libstagefright_shim \
 		libcolorformat_switcher \
 		libstagefrighthw \
 		libstagefright_sprd_mpeg4dec \
@@ -95,9 +109,10 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 		persist.radio.add_power_save=1 \
 		rild.libpath=/system/lib/libsec-ril.so
 
-# HWC
+# Graphics & HWC
 PRODUCT_PACKAGES += \
 		libHWCUtils \
+		libGLES_mali.so \
 		memtrack.sc8830 \
 		gralloc.sc8830 \
 		hwcomposer.sc8830 \
@@ -117,7 +132,8 @@ PRODUCT_PACKAGES += \
 # Bluetooth
 PRODUCT_PACKAGES += \
 	bluetooth.default \
-	audio.a2dp.default
+	audio.a2dp.default \
+	libbt-vendor
 
 # Bluetooth
 PRODUCT_PACKAGES += \
@@ -135,7 +151,8 @@ PRODUCT_COPY_FILES += \
 # Media config
 MEDIA_CONFIGS := \
 	$(LOCAL_PATH)/media/media_codecs.xml \
-	$(LOCAL_PATH)/media/media_profiles.xml
+	$(LOCAL_PATH)/media/media_profiles.xml \
+
 
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(MEDIA_CONFIGS),$(f):system/etc/$(notdir $(f)))
@@ -161,9 +178,11 @@ PRODUCT_PACKAGES += \
 	wpa_supplicant \
 	hostapd \
 
-# Graphics
+#ril
 PRODUCT_PACKAGES += \
-	libmemtrack \
+	wcnd \
+	wcnd_cli \
+	libril_shim \
 
 # Permissions
 PERMISSION_XML_FILES := \
@@ -194,7 +213,8 @@ PRODUCT_COPY_FILES += \
 	# like NetworkLocationProvider and LocationCollector
 PRODUCT_PROPERTY_OVERRIDES += \
 	ro.com.google.locationfeatures=1 \
-	ro.com.google.networklocation=1
+	ro.com.google.networklocation=1 \
+	ro.sys.sdcardfs=true \
 
 # Dalvik Heap config
 include frameworks/native/build/tablet-7in-hdpi-1024-dalvik-heap.mk

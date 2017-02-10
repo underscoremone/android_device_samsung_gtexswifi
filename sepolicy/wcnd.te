@@ -23,3 +23,9 @@ allow wcnd shell_exec:file getattr;
 allow wcnd system_data_file:file { getattr read };
 allow wcnd toolbox_exec:file { execute execute_no_trans getattr open read };
 # allow wcnd system_data_file:file { write };
+
+allow wcnd ctl_default_prop:property_service set;
+allow wcnd init:unix_stream_socket connectto;
+allow wcnd property_socket:sock_file write;
+allow wcnd sysfs:dir { open read };
+allow wcnd system_prop:property_service set;

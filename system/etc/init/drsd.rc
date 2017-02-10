@@ -1,4 +1,0 @@
-# SAMSUNG DRS Service
-service drsd /system/bin/drsd
-    class main
-    socket drsd stream 660 system system
