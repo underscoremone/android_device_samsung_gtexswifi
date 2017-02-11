@@ -1,0 +1,35 @@
+diff --git a/libc/bionic/libc_init_common.cpp b/libc/bionic/libc_init_common.cpp
+index 71c0b5f..ffb0d5d 100644
+--- a/libc/bionic/libc_init_common.cpp
++++ b/libc/bionic/libc_init_common.cpp
+@@ -243,7 +243,7 @@ static bool __is_unsafe_environment_variable(const char* name) {
+     "LD_ORIGIN_PATH",
+     "LD_PRELOAD",
+     "LD_PROFILE",
+-    "LD_SHIM_LIBS",
++    // "LD_SHIM_LIBS",
+     "LD_SHOW_AUXV",
+     "LD_USE_LOAD_BIAS",
+     "LOCALDOMAIN",
+diff --git a/linker/linker.cpp b/linker/linker.cpp
+index bff9b9f..1abd272 100644
+--- a/linker/linker.cpp
++++ b/linker/linker.cpp
+@@ -4327,7 +4327,7 @@ static ElfW(Addr) __linker_init_post_relocation(KernelArgumentBlock& args, ElfW(
+   const char* ldpath_env = nullptr;
+   const char* ldpreload_env = nullptr;
+   const char* ldshim_libs_env = nullptr;
+-  if (!getauxval(AT_SECURE)) {
++  // if (!getauxval(AT_SECURE)) {
+     ldpath_env = getenv("LD_LIBRARY_PATH");
+     if (ldpath_env != nullptr) {
+       INFO("[ LD_LIBRARY_PATH set to \"%s\" ]", ldpath_env);
+@@ -4337,7 +4337,7 @@ static ElfW(Addr) __linker_init_post_relocation(KernelArgumentBlock& args, ElfW(
+       INFO("[ LD_PRELOAD set to \"%s\" ]", ldpreload_env);
+     }
+     ldshim_libs_env = getenv("LD_SHIM_LIBS");
+-  }
++  // }
+ 
+   struct stat file_stat;
+   // Stat "/proc/self/exe" instead of executable_path because

@@ -1,90 +1,64 @@
-diff --git a/core/jni/android_view_GLES20Canvas.cpp b/core/jni/android_view_GLES20Canvas.cpp
-index b720e73..2c2842a 100644
---- a/core/jni/android_view_GLES20Canvas.cpp
-+++ b/core/jni/android_view_GLES20Canvas.cpp
-@@ -966,7 +966,7 @@ static void android_view_GLES20Canvas_flushLayerUpdates(JNIEnv* env, jobject cla
- static jboolean android_view_GLES20Canvas_isAvailable(JNIEnv* env, jobject clazz) {
- #ifdef USE_OPENGL_RENDERER
-     char prop[PROPERTY_VALUE_MAX];
--    if (property_get("ro.kernel.qemu", prop, NULL) == 0) {
-+    if (property_get("ro.kernel.qemu", prop, NULL) == 0 || atoi(prop) == 0) {
-         // not in the emulator
-         return JNI_TRUE;
+diff --git a/services/core/java/com/android/server/display/ColorFade.java b/services/core/java/com/android/server/display/ColorFade.java
+index 7a5f523..eae6a0e 100644
+--- a/services/core/java/com/android/server/display/ColorFade.java
++++ b/services/core/java/com/android/server/display/ColorFade.java
+@@ -43,6 +43,7 @@ import android.view.Surface.OutOfResourcesException;
+ import android.view.Surface;
+ import android.view.SurfaceControl;
+ import android.view.SurfaceSession;
++import android.os.SystemProperties;
+ 
+ import libcore.io.Streams;
+ 
+@@ -95,6 +96,7 @@ final class ColorFade {
+     private EGLSurface mEglSurface;
+     private boolean mSurfaceVisible;
+     private float mSurfaceAlpha;
++    private final int mHWRotation;
+ 
+     // Texture names.  We only use one texture, which contains the screenshot.
+     private final int[] mTexNames = new int[1];
+@@ -128,6 +130,7 @@ final class ColorFade {
+ 
+     public ColorFade(int displayId) {
+         mDisplayId = displayId;
++        mHWRotation = Integer.parseInt(SystemProperties.get("ro.sf.hwrotation", "0")) / 90;
+         mDisplayManagerInternal = LocalServices.getService(DisplayManagerInternal.class);
      }
-diff --git a/telephony/java/android/telephony/MSimTelephonyManager.java b/telephony/java/android/telephony/MSimTelephonyManager.java
-index ef9889b..89ad489 100644
---- a/telephony/java/android/telephony/MSimTelephonyManager.java
-+++ b/telephony/java/android/telephony/MSimTelephonyManager.java
-@@ -951,41 +951,25 @@ public class MSimTelephonyManager {
+ 
+@@ -603,7 +606,7 @@ final class ColorFade {
+                 mSurface.copyFrom(mSurfaceControl);
+ 
+                 mSurfaceLayout = new NaturalSurfaceLayout(mDisplayManagerInternal,
+-                        mDisplayId, mSurfaceControl);
++                  mDisplayId, mSurfaceControl, mHWRotation);
+                 mSurfaceLayout.onDisplayTransaction();
+             }
+         } finally {
+@@ -737,13 +740,16 @@ final class ColorFade {
+         private final DisplayManagerInternal mDisplayManagerInternal;
+         private final int mDisplayId;
+         private SurfaceControl mSurfaceControl;
++        private final int mHWRotation;
+ 
+         public NaturalSurfaceLayout(DisplayManagerInternal displayManagerInternal,
+-                int displayId, SurfaceControl surfaceControl) {
++                int displayId, SurfaceControl surfaceControl,
++                int hwRotation) {
+             mDisplayManagerInternal = displayManagerInternal;
+             mDisplayId = displayId;
+             mSurfaceControl = surfaceControl;
+             mDisplayManagerInternal.registerDisplayTransactionListener(this);
++            mHWRotation = hwRotation;
          }
-     }
  
-+    /*
-+     * vivalto3gvn uses this naming scheme
-+     */
-+    private static String getPropNameForPhoneId(int phoneId, String prop) {
-+        return phoneId <= 0 ? prop : prop + (phoneId + 1);
-+    }
-+
-     /**
-      * Sets the telephony property with the value specified.
-      *
-      * @hide
-      */
-     public static void setTelephonyProperty(String property, int index, String value) {
--        String propVal = "";
--        String p[] = null;
--        String prop = SystemProperties.get(property);
--
--        if (value == null) {
--            value = "";
--        }
--
--        if (prop != null) {
--            p = prop.split(",");
--        }
--
--        if (index < 0) return;
--
--        for (int i = 0; i < index; i++) {
--            String str = "";
--            if ((p != null) && (i < p.length)) {
--                str = p[i];
--            }
--            propVal = propVal + str + ",";
-+        String propVal = value == null ? "" : value;
-+        if (property.length() > SystemProperties.PROP_NAME_MAX
-+                || propVal.length() > SystemProperties.PROP_VALUE_MAX) {
-+            return;
-         }
--
--        propVal = propVal + value;
--        if (p != null) {
--            for (int i = index+1; i < p.length; i++) {
--                propVal = propVal + "," + p[i];
--            }
--        }
--        SystemProperties.set(property, propVal);
-+        SystemProperties.set(getPropNameForPhoneId(index, property), propVal);
-     }
+         public void dispose() {
+@@ -761,7 +767,7 @@ final class ColorFade {
+                 }
  
-     /**
-@@ -994,16 +978,8 @@ public class MSimTelephonyManager {
-      * @hide
-      */
-     public static String getTelephonyProperty(String property, int index, String defaultVal) {
--        String propVal = null;
--        String prop = SystemProperties.get(property);
--
--        if ((prop != null) && (prop.length() > 0)) {
--            String values[] = prop.split(",");
--            if ((index >= 0) && (index < values.length) && (values[index] != null)) {
--                propVal = values[index];
--            }
--        }
--        return propVal == null ? defaultVal : propVal;
-+        String propVal = SystemProperties.get(getPropNameForPhoneId(index, property));
-+        return propVal == null || propVal.length() == 0 ? defaultVal : propVal;
-     }
- 
-     /**
+                 DisplayInfo displayInfo = mDisplayManagerInternal.getDisplayInfo(mDisplayId);
+-                switch (displayInfo.rotation) {
++                switch ((displayInfo.rotation + mHWRotation) % 4) {
+                     case Surface.ROTATION_0:
+                         mSurfaceControl.setPosition(0, 0);
+                         mSurfaceControl.setMatrix(1, 0, 0, 1);
