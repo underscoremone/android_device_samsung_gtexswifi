@@ -17,6 +17,7 @@ allow wcnd wifi_efs_file:dir search;
 allow wcnd wifi_efs_file:file { open read getattr };
 allow wcnd system_file:file execute_no_trans;
 allow wcnd kernel:system module_request;
+allow wcnd radio_data_file:file { create_file_perms getattr read write open getattr };
 
 allow wcnd proc_net:file { getattr open read };
 allow wcnd shell_exec:file getattr;
@@ -29,3 +30,5 @@ allow wcnd init:unix_stream_socket connectto;
 allow wcnd property_socket:sock_file write;
 allow wcnd sysfs:dir { open read };
 allow wcnd system_prop:property_service set;
+
+type_transition wcnd system_data_file:file radio_data_file;

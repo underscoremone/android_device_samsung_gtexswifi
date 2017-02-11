@@ -10,3 +10,4 @@ allow smdexe system_data_file:sock_file write;
 allow smdexe ddexe:unix_stream_socket connectto;
 allow smdexe kernel:system module_request;
 allow smdexe sysfs:file { open read };
+allow smdexe device:file { getattr read write };

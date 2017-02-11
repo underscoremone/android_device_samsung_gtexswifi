@@ -17,3 +17,9 @@ allow rild self:capability dac_read_search;
 allow rild rild_prop:property_service set;
 
 allow rild radio_data_file:lnk_file read;
+
+allow rild system_server:dir search;
+allow rild system_server:file { read getattr open };
+
+type_transition rild system_data_file:file radio_data_file;
+allow rild radio_data_file:file create_file_perms;
