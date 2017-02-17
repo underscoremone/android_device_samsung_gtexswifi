@@ -1,0 +1,15 @@
+/boot		emmc	/dev/block/platform/sdio_emmc/by-name/KERNEL
+/recovery	emmc	/dev/block/platform/sdio_emmc/by-name/RECOVERY		flags=backup=1
+/system		ext4	/dev/block/platform/sdio_emmc/by-name/SYSTEM
+/data		ext4	/dev/block/platform/sdio_emmc/by-name/userdata		flags=encryptable=footer;length=-16384
+/cache		ext4	/dev/block/platform/sdio_emmc/by-name/CACHE
+/wmodem		emmc	/dev/block/platform/sdio_emmc/by-name/MODEM		flags=backup=1;display="Modem"
+/efs		ext4	/dev/block/platform/sdio_emmc/by-name/efs		flags=backup=1;display="EFS"
+/preload	ext4	/dev/block/platform/sdio_emmc/by-name/HIDDEN
+/productinfo	ext4	/dev/block/platform/sdio_emmc/by-name/prodnv
+/wdsp		emmc	/dev/block/platform/sdio_emmc/by-name/WDSP
+/persistent	emmc	/dev/block/platform/sdio_emmc/by-name/PERSISTENT
+/persdata	ext4	/dev/block/platform/sdio_emmc/by-name/persdata
+/external_sd	vfat	/dev/block/mmcblk1p1 /dev/block/mmcblk1			flags=display="Micro SDcard";storage;wipeingui;removable
+/usb-otg	vfat	/dev/block/sda /dev/block/sda1				flags=display="USB-OTG";storage;wipeingui;removable
+
