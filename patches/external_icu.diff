@@ -1,0 +1,12 @@
+diff --git a/icu4c/source/common/Android.mk b/icu4c/source/common/Android.mk
+index 8e5f757..0581299 100644
+--- a/icu4c/source/common/Android.mk
++++ b/icu4c/source/common/Android.mk
+@@ -78,6 +78,7 @@ src_files := \
+ 	ulistformatter.cpp \
+ 	uloc.cpp \
+ 	uloc_keytype.cpp \
++	icu53.c \
+ 	uloc_tag.c \
+ 	umapfile.c \
+ 	umath.c \

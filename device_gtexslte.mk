@@ -123,7 +123,8 @@ PRODUCT_PACKAGES += \
 		libgps_shim
 
 PRODUCT_PACKAGES += \
-		 libhealthd.sc8830
+		 libhealthd.sc8830 \
+		 power.sc8830 \
 
 # Usb accessory
 PRODUCT_PACKAGES += \
@@ -183,6 +184,9 @@ PRODUCT_PACKAGES += \
 	wcnd \
 	wcnd_cli \
 	libril_shim \
+
+PRODUCT_PACKAGES += \
+	degas-mkbootimg
 
 # Permissions
 PERMISSION_XML_FILES := \

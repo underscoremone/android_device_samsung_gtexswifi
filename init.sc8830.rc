@@ -11,8 +11,6 @@ on early-init
     # set core dump resource limit
     setrlimit 4 2147483647 2147483647
 
-    # coredump file will not be generated in release version
-    write /proc/sys/kernel/core_pattern /dev/null
 # radio pipe
     mkdir /dev/rpipe 0550 radio radio
     exec -- mkfifo /dev/rpipe/ril.vt.0

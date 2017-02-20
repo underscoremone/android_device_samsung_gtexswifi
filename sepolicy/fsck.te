@@ -4,3 +4,4 @@ allow fsck kernel:system module_request;
 allow fsck self:capability dac_override;
 allow fsck userdatablk_device:blk_file { read write getattr ioctl open };
 allow fsck swap_device:blk_file getattr;
+allow fsck device:file { write open };

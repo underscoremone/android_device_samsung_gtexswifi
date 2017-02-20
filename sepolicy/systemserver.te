@@ -8,3 +8,4 @@ allow system_server self:unix_stream_socket ioctl;
 allow system_server sysfs_ss_writable:lnk_file read;
 allow system_server unlabeled:file unlink;
 allow system_server wifi_data_file:sock_file unlink;
+allow system_server media_prop:file read;

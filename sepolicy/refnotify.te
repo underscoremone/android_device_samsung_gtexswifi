@@ -7,6 +7,6 @@ init_daemon_domain(refnotify)
 allow refnotify refnotify_device:chr_file { read write open ioctl };
 allow refnotify clock_device:chr_file { open read write ioctl };
 allow refnotify kernel:system module_request;
-allow refnotify cache_file:dir { write add_name };
+allow refnotify cache_file:dir { write add_name search };
 allow refnotify cache_file:fifo_file create;
 allow refnotify sysfs:file { open read };

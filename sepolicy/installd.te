@@ -1,5 +1,0 @@
-allow installd kernel:system module_request;
-allow installd device:dir { add_name remove_name write };
-allow installd device:file { create open write };
-allow installd null_device:chr_file unlink;
-allow installd device:file unlink;

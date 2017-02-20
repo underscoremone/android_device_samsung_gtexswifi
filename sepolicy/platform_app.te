@@ -1,2 +1,3 @@
 allow platform_app rild:unix_stream_socket connectto;
 allow platform_app wcnd:unix_stream_socket connectto;
+allow platform_app media_prop:file read;

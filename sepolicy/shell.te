@@ -1,0 +1,13 @@
+allow shell device:dir { open read };
+allow shell efs_file:dir getattr;
+allow shell prod_file:dir getattr;
+allow shell rootfs:file getattr;
+allow shell unlabeled:dir getattr;
+allow shell init_exec:file getattr;
+allow shell audio_device:dir getattr;
+allow shell device:chr_file getattr;
+allow shell device:file getattr;
+allow shell fscklogs:dir getattr;
+allow shell i2c_device:chr_file getattr;
+allow shell usb_device:dir getattr;
+allow shell sysfs:lnk_file getattr;
