@@ -1,0 +1,2 @@
+add_lunch_combo lineage_gtexswifi-eng
+add_lunch_combo lineage_gtexswifi-userdebug
