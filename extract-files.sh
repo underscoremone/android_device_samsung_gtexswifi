@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+export DEVICE=gtexswifi
+export VENDOR=samsung
+
 set -e
 
 # Load extract_utils and do some sanity checks
