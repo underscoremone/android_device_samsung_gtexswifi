@@ -56,3 +56,37 @@ LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)
 LOCAL_SRC_FILES := etc/ueventd.sc8830.rc
 include $(BUILD_PREBUILT)
+
+# Modules
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := autotst.ko
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/lib/modules
+LOCAL_SRC_FILES := etc/modules/autotst.ko
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := mali.ko
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/lib/modules
+LOCAL_SRC_FILES := etc/modules/mali.ko
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := mmc_test.ko
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/lib/modules
+LOCAL_SRC_FILES := etc/modules/mmc_test.ko
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := sprdwl.ko
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/lib/modules
+LOCAL_SRC_FILES := etc/modules/sprdwl.ko
+include $(BUILD_PREBUILT)

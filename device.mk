@@ -37,6 +37,13 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/keylayout/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl \
     $(LOCAL_PATH)/keylayout/sec_touchkey.kl:system/usr/keylayout/sec_touchkey.kl
 
+# Modules
+PRODUCT_PACKAGES += \
+    autotst.ko \
+    mali.ko \
+    mmc_test.ko \
+    sprdwl.ko
+
 # Ramdisk
 PRODUCT_PACKAGES += \
     fstab.sc8830 \
