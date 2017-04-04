@@ -26,16 +26,55 @@ PRODUCT_PACKAGES += \
     audio_para \
     audio_policy.conf \
     codec_pga.xml \
-    tiny_hw.xml
+    tiny_hw.xml \
+    audio.primary.sc8830
+
+# Camera
+PRODUCT_PACKAGES += \
+    camera.sc8830
+
+# Codecs
+PRODUCT_PACKAGES += \
+    libcolorformat_switcher \
+    libstagefrighthw \
+    libstagefright_sprd_aacdec \
+    libstagefright_sprd_mp3dec \
+    libstagefright_sprd_h264dec \
+    libstagefright_sprd_h264enc \
+    libstagefright_sprd_mpeg4dec \
+    libstagefright_sprd_mpeg4enc \
+    libstagefright_sprd_vpxdec
 
 # GPS
 PRODUCT_PACKAGES += \
     gps.xml
 
+# HWC
+PRODUCT_PACKAGES += \
+    gralloc.sc8830 \
+    hwcomposer.sc8830 \
+    sprd_gsp.sc8830 \
+    libmemoryheapion \
+    libion_sprd
+
 # Keylayouts
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/keylayout/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl \
     $(LOCAL_PATH)/keylayout/sec_touchkey.kl:system/usr/keylayout/sec_touchkey.kl
+
+# Lights
+PRODUCT_PACKAGES += \
+    lights.sc8830
+
+# Media config
+MEDIA_XML_CONFIGS := \
+    frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml \
+    frameworks/av/media/libstagefright/data/media_codecs_google_video.xml
+PRODUCT_COPY_FILES += \
+    $(foreach f,$(MEDIA_XML_CONFIGS),$(f):system/etc/$(notdir $(f)))
+PRODUCT_PACKAGES += \
+    media_codecs.xml \
+    media_profiles.xml
 
 # Modules
 PRODUCT_PACKAGES += \
@@ -43,6 +82,10 @@ PRODUCT_PACKAGES += \
     mali.ko \
     mmc_test.ko \
     sprdwl.ko
+
+# PowerHAL
+PRODUCT_PACKAGES += \
+    power.sc8830
 
 # Ramdisk
 PRODUCT_PACKAGES += \
