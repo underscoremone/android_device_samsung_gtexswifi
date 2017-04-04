@@ -19,6 +19,19 @@ TARGET_SCREEN_WIDTH := 800
 TARGET_SCREEN_HEIGHT := 1280
 TARGET_BOOTANIMATION_HALF_RES := true
 
+# Audio
+PRODUCT_PACKAGES += \
+    audio_effects.conf \
+    audio_hw.xml \
+    audio_para \
+    audio_policy.conf \
+    codec_pga.xml \
+    tiny_hw.xml
+
+# GPS
+PRODUCT_PACKAGES += \
+    gps.xml
+
 # Keylayouts
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/keylayout/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl \
@@ -33,3 +46,10 @@ PRODUCT_PACKAGES += \
     init.storage.rc \
     init.wifi.rc \
     ueventd.sc8830.rc
+
+# WiFi
+PRODUCT_PACKAGES += \
+    p2p_supplicant_overlay.conf \
+    wpa_supplicant.conf \
+    wpa_supplicant_overlay.conf
+
