@@ -1,0 +1,13 @@
+######
+# for emulated internal and
+# internal storage is primary
+# @{
+on boot
+    write /sys/class/android_usb/android0/f_mass_storage/board_support_luns 1
+on early-fs
+
+    export PRIMARY_STORAGE_TYPE internal
+    export INTERNAL_STORAGE_TYPE emulated
+# @}
+######
+

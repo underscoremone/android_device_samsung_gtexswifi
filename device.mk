@@ -19,3 +19,12 @@ TARGET_SCREEN_WIDTH := 800
 TARGET_SCREEN_HEIGHT := 1280
 TARGET_BOOTANIMATION_HALF_RES := true
 
+# Ramdisk
+PRODUCT_PACKAGES += \
+    fstab.sc8830 \
+    init.board.rc \
+    init.sc8830.rc \
+    init.sc8830.usb.rc \
+    init.storage.rc \
+    init.wifi.rc \
+    ueventd.sc8830.rc
