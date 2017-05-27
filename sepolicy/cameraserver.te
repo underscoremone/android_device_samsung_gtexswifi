@@ -6,4 +6,4 @@ allow cameraserver sysfs:file { open read write };
 allow cameraserver graphics_device:dir search;
 allow cameraserver graphics_device:chr_file ioctl;
 
-allow cameraserver self:tcp_socket create;
+# allow cameraserver self:tcp_socket create; 
