@@ -1,8 +1,10 @@
 allow audioserver media_prop:property_service set;
-allow audioserver media_data_file:file { getattr open write };
+allow audioserver media_data_file:file { getattr create open write };
 allow audioserver media_prop:file { getattr open read };
 allow audioserver proc:file write;
 allow audioserver init:unix_stream_socket connectto;
 allow audioserver property_socket:sock_file write;
-allow audioserver media_data_file:fifo_file { open read setattr };
+allow audioserver media_data_file:fifo_file { create open read setattr };
+allow audioserver media_data_file:fifo_file create;
+
 allow audioserver rild:unix_stream_socket connectto;

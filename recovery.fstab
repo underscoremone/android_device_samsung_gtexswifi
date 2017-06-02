@@ -1,8 +1,15 @@
-/boot       emmc        /dev/block/platform/sdio_emmc/by-name/KERNEL
-/system     ext4        /dev/block/platform/sdio_emmc/by-name/SYSTEM
-/data       ext4        /dev/block/platform/sdio_emmc/by-name/userdata  length=-16384
-/cache      ext4        /dev/block/platform/sdio_emmc/by-name/CACHE
-/recovery   emmc        /dev/block/platform/sdio_emmc/by-name/RECOVERY
-/efs        ext4        /dev/block/platform/sdio_emmc/by-name/efs                            flags=display="EFS";backup=1
-/external_sd     vfat       /dev/block/mmcblk1p1    /dev/block/mmcblk1   flags=display="Micro SDcard";storage;wipeingui;removable
-/modem      emmc        /dev/block/platform/sdio_emmc/by-name/l_modem
+/boot		emmc		/dev/block/platform/sdio_emmc/by-name/KERNEL
+/cache	f2fs		/dev/block/platform/sdio_emmc/by-name/CACHE
+/data		f2fs		/dev/block/platform/sdio_emmc/by-name/userdata
+/recovery	emmc		/dev/block/platform/sdio_emmc/by-name/RECOVERY
+/system		ext4		/dev/block/platform/sdio_emmc/by-name/SYSTEM
+/efs		emmc		/dev/block/mmcblk0p17 flags=display="EFS";backup=1
+
+/modem		emmc		/dev/block/platform/sdio_emmc/by-name/MODEM flags=display="Modem";backup=1
+/preload	ext4		/dev/block/platform/sdio_emmc/by-name/HIDDEN
+/system_image     emmc      /dev/block/platform/sdio_emmc/by-name/SYSTEM
+/cache_image        emmc      /dev/block/platform/sdio_emmc/by-name/CACHE
+/hidden_image      emmc     /dev/block/platform/sdio_emmc/by-name/HIDDEN
+
+/external_sdcard vfat       /dev/block/mmcblk1p1      /dev/block/mmcblk1   flags=display="Micro SDcard";storage;wipeingui;removable
+/usb-otg         vfat       /dev/block/sdd1	/dev/block/sda	flags=display="USB-OTG";storage;wipeingui;removable
