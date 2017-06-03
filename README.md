@@ -20,14 +20,32 @@ Touch:            Melfas MCS8040
 LineageOS 14.1 Building Guide
 ------------------------------
 
+Download dependent repos
+
+Spreadtrum hardware libraries and drivers
+-----------------------------
+
+https://github.com/jedld/hardware_sprd.git
+
+
+There are some issues with the stock bluetooth app and library used by LineageOS 14.1
+
+download the custom bluetooth packages from the following repos:
+
+https://github.com/jedld/packages_apps_Bluetooth
+https://github.com/jedld/system_bt
+
+These are ported over from OMNI 7.0 souces which is close to AOSP.
+
 Prepare Build environment, using an Ubuntu 16.10 system
 
 - Prepare build environment for LineageOS 14.1
 - Download this device tree into devices/samsung/gtexslte
 - Download kernel sources into kernel/samsung/gtexslte
-- Download vendor proprietary blobk into vendor/samsung/gtexste
+- Download vendor proprietary block into vendor/samsung/gtexste
 - Download spreadtrum open source into /vendor/sprd
 - apply source code patches from devices/samsung/gtexslte/patches
+
 
 Start build
 
