@@ -13,7 +13,7 @@ index 4c2dd49..54eba7e 100644
  // Change the priority AND scheduling group of a particular thread.  The priority
  // should be one of the ANDROID_PRIORITY constants.  Returns INVALID_OPERATION
 diff --git a/init/init.cpp b/init/init.cpp
-index 9992b47..3e32451 100755
+index 7a37059..0899e6f 100755
 --- a/init/init.cpp
 +++ b/init/init.cpp
 @@ -366,7 +366,7 @@ static void export_kernel_boot_props() {

@@ -147,7 +147,10 @@ PRODUCT_PACKAGES += \
 # gps
 PRODUCT_COPY_FILES += \
 	$(LOCAL_PATH)/gps/gps.conf:system/etc/gps.conf \
-	$(LOCAL_PATH)/gps/gps.xml:system/etc/gps.xml
+	$(LOCAL_PATH)/gps/gps.xml:system/etc/gps.xml \
+
+# PRODUCT_PACKAGES += \
+# 	libsprd_agps_agent
 
 # Media config
 MEDIA_CONFIGS := \

@@ -80,6 +80,7 @@
 
 /sbin/sswap           u:object_r:sswap_exec:s0
 
+/system/bin/atd  u:object_r:agps_exec:s0
 /system/bin/at_distributor  u:object_r:at_distributor_exec:s0
 /system/bin/bootchecker  u:object_r:bootchecker_exec:s0
 /system/bin/drsd    u:object_r:drsd_exec:s0

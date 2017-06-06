@@ -1,0 +1,8 @@
+# AT distributor
+type agps, domain;
+type agps_exec, exec_type, file_type;
+
+init_daemon_domain(agps)
+
+allow agps device:dir { add_name write remove_name };
+allow agps device:lnk_file { create unlink };

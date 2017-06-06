@@ -45,9 +45,10 @@ import java.util.Collections;
  */
 public class SamsungSPRDRIL extends RIL implements CommandsInterface {
 
-    public static final int RIL_UNSOL_DEVICE_READY_NOTI = 11008;
-    public static final int RIL_UNSOL_AM = 11010;
     public static final int RIL_UNSOL_SIM_PB_READY = 11021;
+    public static final int RIL_UNSOL_GPS_NOTI = 11009;
+    public static final int RIL_UNSOL_AM = 11010;
+    public static final int RIL_UNSOL_STK_CALL_CONTROL_RESULT = 11003;
 
     protected static final byte[] RAW_HOOK_OEM_CMD_SWITCH_DATAPREFER;
 
@@ -128,50 +129,48 @@ public class SamsungSPRDRIL extends RIL implements CommandsInterface {
         return failCause;
     }
 
-    @Override
-    protected void processUnsolicited(Parcel p, int type) {
-        int originalDataPosition = p.dataPosition();
-        int response = p.readInt();
-        Object ret;
-        try {
-            switch (response) {
-            case RIL_UNSOL_DEVICE_READY_NOTI:
-                ret = responseVoid(p);
-                break;
-            case RIL_UNSOL_AM:
-                ret = responseString(p);
-                break;
-            case RIL_UNSOL_SIM_PB_READY:
-                ret = responseVoid(p);
-                break;
-            default:
-                p.setDataPosition(originalDataPosition);
-                super.processUnsolicited(p, type);
-                return;
-            }
-        } catch (Throwable tr) {
-            Rlog.e(RILJ_LOG_TAG, "Exception processing unsol response: " + response +
-                    "Exception:" + tr.toString());
-            return;
-        }
-        switch (response) {
-        case RIL_UNSOL_DEVICE_READY_NOTI:
-            if (RILJ_LOGD) riljLog("[UNSL]< UNSOL_DEVICE_READY_NOTI");
-            break;
-        case RIL_UNSOL_AM: {
-            String amString = (String) ret;
-            if (RILJ_LOGD) riljLog("[UNSL]< UNSOL_AM '" + amString + "'");
-            try {
-                Runtime.getRuntime().exec("am " + amString);
-            } catch (IOException e) {
-                e.printStackTrace();
-                Rlog.e(RILJ_LOG_TAG, "am " + amString + " could not be executed.");
-            }
-            break;
-        }
-        case RIL_UNSOL_SIM_PB_READY:
-            if (RILJ_LOGD) riljLog("[UNSL]< UNSOL_SIM_PB_READY");
-            break;
-        }
-    }
+      @Override
+      protected void processUnsolicited (Parcel p, int type) {
+          Object ret;
+          int dataPosition = p.dataPosition(); // save off position within the Parcel
+          int response = p.readInt();
+          Rlog.e(RILJ_LOG_TAG, "ProcessUnsolicited: " + response);
+          switch(response) {
+              case 11008: // RIL_UNSOL_DEVICE_READY_NOTI
+                  ret = responseVoid(p); // Currently we'll bypass logcat for this first
+                  break;
+              // SAMSUNG STATES
+              case RIL_UNSOL_GPS_NOTI:
+                  ret = responseVoid(p);
+                  break;
+              case RIL_UNSOL_AM: // RIL_UNSOL_AM:
+                  ret = responseString(p);
+                  String amString = (String) ret;
+                  Rlog.d(RILJ_LOG_TAG, "Executing AM: " + amString);
+
+                  try {
+                      Runtime.getRuntime().exec("am " + amString);
+                  } catch (IOException e) {
+                      e.printStackTrace();
+                      Rlog.e(RILJ_LOG_TAG, "am " + amString + " could not be executed.");
+                  }
+                  break;
+              case RIL_UNSOL_SIM_PB_READY: // RIL_UNSOL_RESPONSE_HANDOVER:
+                  ret = responseVoid(p);
+                  break;
+              case RIL_UNSOL_STK_CALL_CONTROL_RESULT:
+                  ret = responseVoid(p);
+                  break;
+              case 20012:
+                  ret = responseVoid(p);
+                  break;
+              default:
+                  // Rewind the Parcel
+                  p.setDataPosition(dataPosition);
+
+                  // Forward responses that we are not overriding to the super class
+                  super.processUnsolicited(p, type);
+                  return;
+          }
+      }
 }
