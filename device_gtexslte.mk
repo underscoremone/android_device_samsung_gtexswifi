@@ -70,7 +70,7 @@ PRODUCT_COPY_FILES += \
 
 #Wallpaper/Apps
 PRODUCT_PACKAGES += \
-	CMWallpapers
+	CMWallpapers \
 
 # Charger
 PRODUCT_PACKAGES += \
@@ -79,19 +79,34 @@ PRODUCT_PACKAGES += \
 
 # Codecs
 PRODUCT_PACKAGES += \
-		libstagefright_shim \
-		libcolorformat_switcher \
-		libstagefrighthw \
-		libstagefright_sprd_mpeg4dec \
-		libstagefright_sprd_mpeg4enc \
-		libstagefright_sprd_h264dec \
-		libstagefright_sprd_h264enc \
-		libstagefright_sprd_vpxdec
+	libstagefright_shim \
+	libcolorformat_switcher \
+	libstagefrighthw \
+	libstagefright_sprd_soft_mpeg4dec \
+	libstagefright_sprd_soft_h264dec \
+	libstagefright_sprd_mpeg4dec \
+	libstagefright_sprd_mpeg4enc \
+	libstagefright_sprd_h264dec \
+	libstagefright_sprd_h264enc \
+	libstagefright_sprd_vpxdec \
+	libstagefright_soft_mjpgdec \
+	libstagefright_soft_imaadpcmdec \
+	libstagefright_sprd_mp3dec
+
+#vpu
+PRODUCT_PACKAGES += \
+	libstagefrighthw_cm \
+	libomxil-bellagio \
+	libtheoraparser \
+	libvpu \
+	libomxvpu
 
 PRODUCT_PROPERTY_OVERRIDES += \
 		persist.ttydev=ttyVUART0 \
 		ro.sf.lcd_density=213 \
 		ro.sf.hwrotation=180 \
+		ro.sf.xdpi=216.17 \
+		ro.sf.ydpi=216.746 \
 		ro.opengles.version=131072 \
 		ro.product.hardware=SS_SHARKLS \
 		ro.product.modem.mode=GSM,EDGE,TD-SCDMA,WCDMA,TD-LTE,FDD-LTE \
@@ -138,7 +153,8 @@ PRODUCT_PACKAGES += \
 
 # Bluetooth
 PRODUCT_PACKAGES += \
-	libbluetooth_jni
+	libbluetooth_jni \
+
 
 # Lights
 PRODUCT_PACKAGES += \
@@ -149,14 +165,17 @@ PRODUCT_COPY_FILES += \
 	$(LOCAL_PATH)/gps/gps.conf:system/etc/gps.conf \
 	$(LOCAL_PATH)/gps/gps.xml:system/etc/gps.xml \
 
-# PRODUCT_PACKAGES += \
-# 	libsprd_agps_agent
+PRODUCT_PACKAGES += \
+	libsprd_agps_agent
 
 # Media config
 MEDIA_CONFIGS := \
 	$(LOCAL_PATH)/media/media_codecs.xml \
 	$(LOCAL_PATH)/media/media_profiles.xml \
 
+#trustzone
+PRODUCT_PACKAGES += \
+	libtrusty
 
 PRODUCT_COPY_FILES += \
 	$(foreach f,$(MEDIA_CONFIGS),$(f):system/etc/$(notdir $(f)))
@@ -184,6 +203,7 @@ PRODUCT_PACKAGES += \
 
 #ril
 PRODUCT_PACKAGES += \
+	engpc \
 	wcnd \
 	wcnd_cli \
 	libril_shim \

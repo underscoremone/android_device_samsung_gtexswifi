@@ -52,6 +52,9 @@ on boot
 	chown system system /sys/class/mdnie/mdnie/auto_brightness
 	chmod 0664 /sys/class/mdnie/mdnie/auto_brightness
 
+# tweak KSM settings
+  write /sys/kernel/mm/ksm/sleep_millisecs 1000
+
 # permissions for cpufreq
     chown radio system sys/power/cpufreq_min_limit
     chown radio system sys/power/cpufreq_max_limit

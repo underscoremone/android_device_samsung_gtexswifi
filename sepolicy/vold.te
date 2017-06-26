@@ -3,3 +3,4 @@ allow vold efs_file : file { ioctl read write create getattr setattr lock append
 allow vold userdatablk_device:blk_file { read write open getattr ioctl };
 allow vold prod_file:dir { open read getattr ioctl };
 allow vold kernel:system module_request;
+allow vold teetz_device:chr_file { open read write ioctl };

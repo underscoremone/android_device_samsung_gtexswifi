@@ -1,1 +1,2 @@
 allow gatekeeperd kernel:system module_request;
+allow vold teetz_device:chr_file { open read write ioctl };

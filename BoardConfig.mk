@@ -61,11 +61,16 @@ TARGET_FORCE_SCREENSHOT_CPU_PATH := true
 NUM_FRAMEBUFFER_SURFACE_BUFFERS := 3
 TARGET_GPU_USE_TILE_ALIGN := true
 USE_OVERLAY_COMPOSER_GPU := true
+USE_UI_OVERLAY := true
 USE_SPRD_DITHER := true
+TARGET_GPU_PLATFORM := utgard
+
+#1080 hw acceleration
+BOARD_VSP_SUPPORT_1080I := true
 
 # HWComposer
 USE_SPRD_HWCOMPOSER := true
-# USE_OVERLAY_COMPOSER_GPU := true
+USE_OVERLAY_COMPOSER_GPU := true
 TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS := true
 
 # COMMON_GLOBAL_CFLAGS += -DSC8830_HWC
@@ -82,20 +87,25 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/samsung/gtexslte/bluetooth
 BOARD_CUSTOM_BT_CONFIG := device/samsung/gtexslte/bluetooth/libbt_vndcfg.txt
 SPRD_WCNBT_CHISET := marlin
 BOARD_SPRD_WCNBT_MARLIN := true
+BOARD_HAVE_FM_TROUT := true
+BOARD_USE_SPRD_FMAPP := true
+SPRD_CP_LOG_WCN := MARLIN
+WCN_EXTENSION := true
 
-# Wifi
-WIFI_DRIVER_MODULE_PATH := /lib/modules/sprdwl.ko
-WIFI_DRIVER_FW_PATH_PARAM := /data/misc/wifi/fwpath
 BOARD_WPA_SUPPLICANT_DRIVER := NL80211
-WIFI_DRIVER_MODULE_NAME := sprdwl
-BOARD_WLAN_DEVICE := qcwcn
-BOARD_WLAN_DEVICE_REV := MARLIN_15C_SS_W16.09.3
-WPA_SUPPLICANT_VERSION := VER_0_8_X
-BOARD_WPA_SUPPLICANT_DRIVER := NL80211
-BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_qcwcn
-BOARD_HOSTAPD_DRIVER := NL80211
-BOARD_HOSTAPD_PRIVATE_LIB := lib_driver_cmd_qcwcn
-WIFI_BAND := 802_11_ABG
+WPA_SUPPLICANT_VERSION      := VER_2_1_DEVEL
+BOARD_WPA_SUPPLICANT_PRIVATE_LIB := lib_driver_cmd_sprdwl
+BOARD_HOSTAPD_DRIVER        := NL80211
+BOARD_HOSTAPD_PRIVATE_LIB   := lib_driver_cmd_sprdwl
+BOARD_WLAN_DEVICE           := sc2341
+WIFI_DRIVER_FW_PATH_PARAM   := "/data/misc/wifi/fwpath"
+WIFI_DRIVER_FW_PATH_STA     := "sta_mode"
+WIFI_DRIVER_FW_PATH_P2P     := "p2p_mode"
+WIFI_DRIVER_FW_PATH_AP      := "ap_mode"
+WIFI_DRIVER_MODULE_PATH     := "/lib/modules/sprdwl.ko"
+WIFI_DRIVER_MODULE_NAME     := "sprdwl"
+
+
 
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 
@@ -105,13 +115,13 @@ BOARD_CHARGING_MODE_BOOTING_LPM := /sys/class/power_supply/battery/batt_lp_charg
 
 # Integrated kernel building configs
 #
-# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
-# TARGET_KERNEL_CONFIG := gtexslte_defconfig
-# TARGET_VARIANT_CONFIG := gtexslte_defconfig
-# TARGET_SELINUX_CONFIG := gtexslte_defconfig
-# TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-eabi-
-# KERNEL_TOOLCHAIN := /home/jedld/linaro/toolchain/bin
-#
+TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
+TARGET_KERNEL_CONFIG := gtexslte_defconfig
+TARGET_VARIANT_CONFIG := gtexslte_defconfig
+TARGET_SELINUX_CONFIG := gtexslte_defconfig
+TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-eabi-
+KERNEL_TOOLCHAIN := /home/jedld/linaro/toolchain/bin
+# #
 # SC9830_MODULES:
 # 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
 # 	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
@@ -145,33 +155,27 @@ TARGET_BOARD_FRONT_CAMERA_ROTATION := false
 TARGET_BOARD_CAMERA_ROTATION_CAPTURE := false
 
 #support hal1.0,hal3.2
-TARGET_BOARD_CAMERA_HAL_VERSION := 1.0
+TARGET_BOARD_CAMERA_HAL_VERSION := 3.0
+
+TARGET_BOARD_CAMERA_ISP_SOFTWARE_VERSION := 2
 
 # camera sensor type
-CAMERA_SENSOR_TYPE_BACK := "s5k4h5yc_mipi"
+CAMERA_SENSOR_TYPE_BACK := "s5k4ecgx_mipi"
 CAMERA_SENSOR_TYPE_FRONT := "s5k5e3yx_mipi"
 
 # select camera 2M,3M,5M,8M
 CAMERA_SUPPORT_SIZE := 5M
 FRONT_CAMERA_SUPPORT_SIZE := 2M
+
 TARGET_BOARD_NO_FRONT_SENSOR := false
 TARGET_BOARD_CAMERA_FLASH_CTRL := false
 
-#read sensor otp to isp
-TARGET_BOARD_CAMERA_READOTP_TO_ISP := true
-
-# use sprd auto lens
-TARGET_BOARD_CAMERA_SPRD_AUTOLENS := false
-
-#otp version, v0(OTP on Grandprime, Z3) v1(OTP on J1MINI) v2(Without OTP on TabG)
-TARGET_BOARD_CAMERA_OTP_VERSION := 0
 
 #read otp method 1:from kernel 0:from user
 TARGET_BOARD_CAMERA_READOTP_METHOD := 1
 
 #face detect
 TARGET_BOARD_CAMERA_FACE_DETECT := true
-TARGET_BOARD_CAMERA_FD_LIB := omron
 
 #sensor interface
 TARGET_BOARD_BACK_CAMERA_INTERFACE := mipi
@@ -183,11 +187,15 @@ TARGET_BOARD_CAMERA_CAPTURE_MODE := true
 #select camera zsl force cap mode
 TARGET_BOARD_CAMERA_FORCE_ZSL_MODE := true
 
+#sprd zsl feature
+TARGET_BOARD_CAMERA_SPRD_PRIVATE_ZSL := true
+
 #rotation capture
 TARGET_BOARD_CAMERA_ROTATION_CAPTURE := false
 
-#select camera not support autofocus
-TARGET_BOARD_CAMERA_NO_AUTOFOCUS_DEV := false
+#select camera support autofocus
+TARGET_BOARD_CAMERA_AUTOFOCUS := true
+
 
 #uv denoise enable
 TARGET_BOARD_CAMERA_CAPTURE_DENOISE := false
@@ -198,14 +206,19 @@ TARGET_BOARD_CAMERA_Y_DENOISE := true
 #select continuous auto focus
 TARGET_BOARD_CAMERA_CAF := true
 
-#select ACuteLogic awb algorithm
-TARGET_BOARD_USE_ALC_AWB := true
+TARGET_BOARD_CAMERA_NO_FLASH_DEV := false
+
+#image angle in different project
+TARGET_BOARD_CAMERA_ADAPTER_IMAGE := 0
 
 #pre_allocate capture memory
 TARGET_BOARD_CAMERA_PRE_ALLOC_CAPTURE_MEM := true
 
-#sc8830g isp ver 0;sc9630 isp ver 1;tshark2 isp version 2
+#sc8830g isp ver 0;sc9630 isp ver 1;sp9832a_2h11 isp version 2
 TARGET_BOARD_CAMERA_ISP_SOFTWARE_VERSION := 2
+
+#set hal version to 1.0
+TARGET_BOARD_CAMERA_HAL_VERSION := 1.0
 
 #support auto anti-flicker
 TARGET_BOARD_CAMERA_ANTI_FLICKER := true
@@ -213,16 +226,18 @@ TARGET_BOARD_CAMERA_ANTI_FLICKER := true
 #multi cap memory mode
 TARGET_BOARD_MULTI_CAP_MEM := true
 
+#low capture memory
+TARGET_BOARD_LOW_CAPTURE_MEM := true
+#select the vcm chip driver BU64241GWZ
+TARGET_VCM_BU64241GWZ := true
 #select mipi d-phy mode(none, phya, phyb, phyab)
-TARGET_BOARD_FRONT_CAMERA_MIPI := phyc
-TARGET_BOARD_BACK_CAMERA_MIPI := phyab
+TARGET_BOARD_FRONT_CAMERA_MIPI := phyb
+TARGET_BOARD_BACK_CAMERA_MIPI := phya
 
 #select ccir pclk src(source0, source1)
 TARGET_BOARD_FRONT_CAMERA_CCIR_PCLK := source0
 TARGET_BOARD_BACK_CAMERA_CCIR_PCLK := source0
 
-#hdr effect enable
-TARGET_BOARD_CAMERA_HDR_CAPTURE := true
 
 # misc
 TARGET_HAS_BACKLIT_KEYS := false

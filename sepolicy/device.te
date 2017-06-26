@@ -14,3 +14,4 @@ type refnotify_device, dev_type;
 type clock_device, dev_type;
 type wpa_device, dev_type;
 type gadget_serial_device, dev_type;
+type teetz_device, dev_type;

@@ -26,6 +26,9 @@
 /dev/slog_wcn           u:object_r:slog_device:s0
 /dev/download           u:object_r:wcn_device:s0
 
+# for keystore
+/dev/trusty-ipc-dev0          u:object_r:teetz_device:s0
+
 /dev/sttybt0            u:object_r:hci_attach_dev:s0
 
 /dev/pipe(/.*)?          u:object_r:audio_device:s0
