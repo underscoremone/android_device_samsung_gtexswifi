@@ -30,10 +30,6 @@ https://github.com/jedld/hardware_sprd.git
 
 There are some issues with the stock bluetooth app and library used by LineageOS 14.1
 
-download the custom bluetooth packages from the following repos:
-
-https://github.com/jedld/packages_apps_Bluetooth
-https://github.com/jedld/system_bt
 
 These are ported over from OMNI 7.0 souces which is close to AOSP.
 
@@ -46,6 +42,9 @@ Prepare Build environment, using an Ubuntu 16.10 system
 - Download spreadtrum open source into /vendor/sprd
 - apply source code patches from devices/samsung/gtexslte/patches
 
+For initializing the repo you can use, these should fetch the device related repos:
+
+ repo init -u https://github.com/jedld/android.git -b cm-14.1
 
 Start build
 
