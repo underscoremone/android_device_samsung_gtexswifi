@@ -4,6 +4,8 @@
 
 ro.sf.lcd_density=213
 ro.sf.hwrotation=180
+ro.sf.xdpi=216.17
+ro.sf.ydpi=216.746
 
 ro.opengles.version=131072
 ro.product.hardware=SS_SHARKLS
