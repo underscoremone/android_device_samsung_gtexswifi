@@ -6,8 +6,9 @@ Hardware Information
 Device Name:      Samsung Galaxy Tab A6 7" LTE
 Model:            SM-T285
 Codename:         gtexslte
-Chipset:          Spreadtrum sc9830
-CPU:              Spreadtrum sc8830 4 cores @1.5Ghz max each
+Chipset:          Spreadtrum sc9830 (SCX35L) 
+CPU:              Spreadtrum sc8830 4x Arm Cortex A7 cores @1.5Ghz max each
+Camera:           5MP back/ 2MP front, no flash
 Memory (RAM):     1.5GB
 Storage:          8GB eMMC flash (2GB system, 5GB data,~1GB boot, recovery, others)
 GPU:              Mali 400 MP2
@@ -20,31 +21,20 @@ Touch:            Melfas MCS8040
 LineageOS 14.1 Building Guide
 ------------------------------
 
-Download dependent repos
-
-Spreadtrum hardware libraries and drivers
------------------------------
-
-https://github.com/jedld/hardware_sprd.git
-
-
 There are some issues with the stock bluetooth app and library used by LineageOS 14.1
-
 
 These are ported over from OMNI 7.0 souces which is close to AOSP.
 
-Prepare Build environment, using an Ubuntu 16.10 system
+Steps
 
-- Prepare build environment for LineageOS 14.1
-- Download this device tree into devices/samsung/gtexslte
-- Download kernel sources into kernel/samsung/gtexslte
-- Download vendor proprietary block into vendor/samsung/gtexste
-- Download spreadtrum open source into /vendor/sprd
-- apply source code patches from devices/samsung/gtexslte/patches
+1. Prepare build environment for LineageOS 14.1 (https://forum.xda-developers.com/chef-central/android/how-to-build-lineageos-14-1-t3551484)
 
-For initializing the repo you can use, these should fetch the device related repos:
+Note: For initializing the repo you can use the command below instead:
 
  repo init -u https://github.com/jedld/android.git -b cm-14.1
+ repo sync
+ 
+If you haven't downloaded LineageOS before this can really take a while depending on your internet connection.
 
 Start build
 
@@ -54,6 +44,8 @@ Start build
 ```
 
 Build kernel separately (Recommended)
+
+The kernel should automatically be built during brunch, but you can build the kernel manually if you want.
 
 ```
 cd kernel/samsung/gtexslte
@@ -93,20 +85,4 @@ heimdall flash --SYSTEM system.img
 Repositories
 ============
 
-Kernel
-------
-```
-https://github.com/jedld/kernel_samsung_gtexslte.git -b performance
-```
-
-Vendor Tree
------------
-```
-https://github.com/jedld/vendor_samsung_gtexslte.git
-```
-
-Spreadtrum Opensource
------------------
-```
-https://github.com/jedld/android_vendor_sprd.git -b lineageos-14.1
-```
+Take a look at gtexslte.xml under https://github.com/jedld/android.git for dependent repositories.
