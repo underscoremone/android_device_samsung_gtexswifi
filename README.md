@@ -3,7 +3,6 @@ Device Tree for the Samsung Galaxy TAB A (2016) SM-T285
 Hardware Information
 ====================
 
-|-----------------|-----------------------------|
 | Device Name     | Samsung Galaxy Tab A6 2016 7" LTE|
 |-----------------|-----------------------------|
 |Model            | SM-T285                     |
