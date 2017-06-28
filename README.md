@@ -32,8 +32,10 @@ Steps
 
 Note: For initializing the repo you can use the command below instead:
 
+```
  repo init -u https://github.com/jedld/android.git -b cm-14.1
  repo sync
+```
  
 If you haven't downloaded LineageOS before this can really take a while depending on your internet connection.
 
