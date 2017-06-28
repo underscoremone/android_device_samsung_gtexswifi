@@ -115,26 +115,27 @@ BOARD_CHARGING_MODE_BOOTING_LPM := /sys/class/power_supply/battery/batt_lp_charg
 
 # Integrated kernel building configs
 #
-# TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
-# TARGET_KERNEL_CONFIG := gtexslte_defconfig
-# TARGET_VARIANT_CONFIG := gtexslte_defconfig
-# TARGET_SELINUX_CONFIG := gtexslte_defconfig
-# TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-eabi-
-# KERNEL_TOOLCHAIN := /home/jedld/linaro/toolchain/bin
-# #
-# SC9830_MODULES:
-# 	mkdir -p $(PRODUCT_OUT)/root/lib/modules
-# 	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
-# 	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
-# 	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
-# 	find ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
+TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
+TARGET_KERNEL_CONFIG := gtexslte_defconfig
+TARGET_VARIANT_CONFIG := gtexslte_defconfig
+TARGET_SELINUX_CONFIG := gtexslte_defconfig
+TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-eabi-
+KERNEL_TOOLCHAIN := /home/jedld/linaro/toolchain/bin
 
-# TARGET_KERNEL_MODULES := SC9830_MODULES
+# #
+SC9830_MODULES:
+	mkdir -p $(PRODUCT_OUT)/root/lib/modules
+	mkdir -p $(PRODUCT_OUT)/recovery/root/lib/modules
+	make -C $(TARGET_KERNEL_SOURCE)/external_module/mali MALI_PLATFORM=sc8830 BUILD=release KDIR=$(KERNEL_OUT)
+	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/root/lib/modules
+	cp $(TARGET_KERNEL_SOURCE)/external_module/mali/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT) clean
+	make -C $(TARGET_KERNEL_SOURCE)/external_module/wifi KDIR=$(KERNEL_OUT)
+	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/root/lib/modules
+	cp $(TARGET_KERNEL_SOURCE)/external_module/wifi/*.ko $(PRODUCT_OUT)/recovery/root/lib/modules
+	find -L ${KERNEL_OUT}/drivers -name "*.ko" -exec cp -f {} $(PRODUCT_OUT)/root/lib/modules \;
+
+TARGET_KERNEL_MODULES := SC9830_MODULES
 
 # Enable WEBGL in WebKit
 ENABLE_WEBGL := true
