@@ -72,6 +72,10 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
 	CMWallpapers \
 
+# OMS
+PRODUCT_PACKAGES += \
+	ThemeInterfacer \
+
 # Charger
 PRODUCT_PACKAGES += \
 	charger \
@@ -113,7 +117,10 @@ PRODUCT_PROPERTY_OVERRIDES += \
 		ro.product.partitionpath=/dev/block/platform/sdio_emmc/by-name/ \
 		ro.adb.secure=0 \
 		ro.secure=0 \
-		persist.sys.usb.config=mtp,adb
+		persist.sys.usb.config=mtp,adb \
+		ro.cmlegal.url=https://lineageos.org/legal \
+		ro.lineageoms.version=$(LINEAGE_VERSION)
+
 
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 		ro.adb.secure=0 \
