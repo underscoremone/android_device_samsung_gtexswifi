@@ -4,6 +4,7 @@ Hardware Information
 ====================
 
 | Device Name     | Samsung Galaxy Tab A6 2016 7" LTE|
+|-----------------|-----------------------------|
 |Model            | SM-T285                     |
 |Codename         | gtexslte                    |
 |Chipset          |Spreadtrum sc9830 (SCX35L)   |
