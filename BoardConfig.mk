@@ -3,6 +3,7 @@ USE_CAMERA_STUB := true
 # inherit from the proprietary version
 -include vendor/samsung/gtexslte/BoardConfigVendor.mk
 
+LOCAL_PATH := device/samsung/gtexslte
 TARGET_ARCH := arm
 TARGET_NO_BOOTLOADER := false
 TARGET_NO_RADIOIMAGE := true
@@ -120,6 +121,8 @@ TARGET_KERNEL_CONFIG := gtexslte_defconfig
 TARGET_VARIANT_CONFIG := gtexslte_defconfig
 TARGET_SELINUX_CONFIG := gtexslte_defconfig
 TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-linux-androideabi-
+# BOARD_MKBOOTIMG_ARGS := --base 0 --pagesize 2048
+# BOARD_CUSTOM_BOOTIMG_MK := $(LOCAL_PATH)/mkbootimg.mk
 
 # #
 SC9830_MODULES:
