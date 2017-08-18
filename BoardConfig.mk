@@ -1,8 +1,5 @@
 USE_CAMERA_STUB := true
 
-# inherit from the proprietary version
--include vendor/samsung/gtexslte/BoardConfigVendor.mk
-
 LOCAL_PATH := device/samsung/gtexslte
 TARGET_ARCH := arm
 TARGET_NO_BOOTLOADER := false
@@ -106,8 +103,6 @@ WIFI_DRIVER_FW_PATH_AP      := "ap_mode"
 WIFI_DRIVER_MODULE_PATH     := "/lib/modules/sprdwl.ko"
 WIFI_DRIVER_MODULE_NAME     := "sprdwl"
 
-
-
 TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 
 # Charger
@@ -115,7 +110,7 @@ BOARD_CHARGER_ENABLE_SUSPEND := true
 BOARD_CHARGING_MODE_BOOTING_LPM := /sys/class/power_supply/battery/batt_lp_charging
 
 # Integrated kernel building configs
-#
+
 TARGET_KERNEL_SOURCE := kernel/samsung/gtexslte
 TARGET_KERNEL_CONFIG := gtexslte_defconfig
 TARGET_VARIANT_CONFIG := gtexslte_defconfig
