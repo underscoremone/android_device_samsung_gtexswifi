@@ -1,7 +1,7 @@
 $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 
 # The gps config appropriate for this device
-$(call inherit-product, device/common/gps/gps_us_supl.mk)
+# $(call inherit-product, device/common/gps/gps_as_supl.mk)
 
 $(call inherit-product-if-exists, vendor/samsung/gtexslte/gtexslte-vendor.mk)
 
@@ -58,6 +58,22 @@ PRODUCT_COPY_FILES += \
 		device/samsung/gtexslte/apns-conf.xml:system/etc/apns-conf.xml \
 		device/samsung/gtexslte/bluetooth:system/etc/bluetooth \
 		device/samsung/gtexslte/init.rc:root/init.rc \
+
+# audio policy override
+PRODUCT_COPY_FILES += \
+		device/samsung/gtexslte/audio/audio_policy.conf:system/etc/audio_policy.conf \
+
+# gps
+PRODUCT_COPY_FILES += \
+	device/samsung/gtexslte/gps/gps.conf:system/etc/gps.conf \
+	device/samsung/gtexslte/gps/gps.xml:system/etc/gps.xml \
+
+# audio configs
+PRODUCT_COPY_FILES += \
+	device/samsung/gtexslte/audio/audio_hw.xml:system/etc/audio_hw.xml \
+	device/samsung/gtexslte/audio/audio_para:system/etc/audio_para \
+	device/samsung/gtexslte/audio/codec_pga.xml:system/etc/codec_pga.xml \
+	device/samsung/gtexslte/audio/tiny_hw.xml:system/etc/tiny_hw.xml \
 
 $(call inherit-product, build/target/product/full.mk)
 
@@ -166,19 +182,6 @@ PRODUCT_PACKAGES += \
 # Lights
 PRODUCT_PACKAGES += \
 	lights.sc8830
-
-# gps
-PRODUCT_COPY_FILES += \
-	$(LOCAL_PATH)/gps/gps.conf:system/etc/gps.conf \
-	$(LOCAL_PATH)/gps/gps.xml:system/etc/gps.xml \
-
-# audio configs
-PRODUCT_COPY_FILES += \
-	$(LOCAL_PATH)/audio/audio_hw.xml:system/etc/audio_hw.xml \
-	$(LOCAL_PATH)/audio/audio_para:system/etc/audio_para \
-	$(LOCAL_PATH)/audio/audio_policy.conf:system/etc/audio_policy.conf \
-	$(LOCAL_PATH)/audio/codec_pga.xml:system/etc/codec_pga.xml \
-	$(LOCAL_PATH)/audio/tiny_hw.xml:system/etc/tiny_hw.xml \
 
 PRODUCT_PACKAGES += \
 	libsprd_agps_agent
