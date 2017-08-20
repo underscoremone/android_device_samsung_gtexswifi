@@ -172,13 +172,16 @@ PRODUCT_COPY_FILES += \
 	$(LOCAL_PATH)/gps/gps.conf:system/etc/gps.conf \
 	$(LOCAL_PATH)/gps/gps.xml:system/etc/gps.xml \
 
+# audio configs
+PRODUCT_COPY_FILES += \
+	$(LOCAL_PATH)/audio/audio_hw.xml:system/etc/audio_hw.xml \
+	$(LOCAL_PATH)/audio/audio_para:system/etc/audio_para \
+	$(LOCAL_PATH)/audio/audio_policy.conf:system/etc/audio_policy.conf \
+	$(LOCAL_PATH)/audio/codec_pga.xml:system/etc/codec_pga.xml \
+	$(LOCAL_PATH)/audio/tiny_hw.xml:system/etc/tiny_hw.xml \
+
 PRODUCT_PACKAGES += \
 	libsprd_agps_agent
-
-# Media config
-MEDIA_CONFIGS := \
-	$(LOCAL_PATH)/media/media_codecs.xml \
-	$(LOCAL_PATH)/media/media_profiles.xml \
 
 #trustzone
 PRODUCT_PACKAGES += \

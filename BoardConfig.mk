@@ -1,4 +1,4 @@
-USE_CAMERA_STUB := true
+	USE_CAMERA_STUB := true
 
 LOCAL_PATH := device/samsung/gtexslte
 TARGET_ARCH := arm
@@ -16,7 +16,7 @@ ARCH_ARM_HAVE_TLS_REGISTER := true
 TARGET_BOOTLOADER_BOARD_NAME := 8830
 
 BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8
-BOARD_KERNEL_BASE := 0x80000000
+BOARD_KERNEL_BASE := 0
 BOARD_KERNEL_PAGESIZE := 2048
 
 #rild
@@ -103,7 +103,7 @@ WIFI_DRIVER_FW_PATH_AP      := "ap_mode"
 WIFI_DRIVER_MODULE_PATH     := "/lib/modules/sprdwl.ko"
 WIFI_DRIVER_MODULE_NAME     := "sprdwl"
 
-TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
+# TARGET_PREBUILT_KERNEL := kernel/samsung/gtexslte/arch/arm/boot/zImage
 
 # Charger
 BOARD_CHARGER_ENABLE_SUSPEND := true
@@ -117,7 +117,7 @@ TARGET_VARIANT_CONFIG := gtexslte_defconfig
 TARGET_SELINUX_CONFIG := gtexslte_defconfig
 TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-linux-androideabi-
 # BOARD_MKBOOTIMG_ARGS := --base 0 --pagesize 2048
-# BOARD_CUSTOM_BOOTIMG_MK := $(LOCAL_PATH)/mkbootimg.mk
+BOARD_CUSTOM_BOOTIMG_MK := $(LOCAL_PATH)/mkbootimg.mk
 
 # #
 SC9830_MODULES:
