@@ -153,6 +153,7 @@ PRODUCT_PACKAGES += \
 		libGLES_mali.so \
 		memtrack.sc8830 \
 		gralloc.sc8830.so \
+		libdither \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
 		libmemoryheapion \
