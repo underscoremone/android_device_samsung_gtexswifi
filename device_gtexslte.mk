@@ -59,9 +59,14 @@ PRODUCT_COPY_FILES += \
 		device/samsung/gtexslte/bluetooth:system/etc/bluetooth \
 		device/samsung/gtexslte/init.rc:root/init.rc \
 
-# audio policy override
 PRODUCT_COPY_FILES += \
-		device/samsung/gtexslte/audio/audio_policy.conf:system/etc/audio_policy.conf \
+	device/samsung/gtexslte/audio_policy_config/audio_policy_configuration.xml:system/etc/audio_policy_configuration.xml \
+	device/samsung/gtexslte/audio_policy_config/audio_policy_configuration_stub.xml:system/etc/audio_policy_configuration_stub.xml \
+	device/samsung/gtexslte/audio_policy_config/a2dp_audio_policy_configuration.xml:system/etc/a2dp_audio_policy_configuration.xml \
+	device/samsung/gtexslte/audio_policy_config/usb_audio_policy_configuration.xml:system/etc/usb_audio_policy_configuration.xml \
+	device/samsung/gtexslte/audio_policy_config/r_submix_audio_policy_configuration.xml:system/etc/r_submix_audio_policy_configuration.xml \
+	device/samsung/gtexslte/audio_policy_config/audio_policy_volumes.xml:system/etc/audio_policy_volumes.xml \
+	device/samsung/gtexslte/audio_policy_config/default_volume_tables.xml:system/etc/default_volume_tables.xml
 
 # gps
 PRODUCT_COPY_FILES += \

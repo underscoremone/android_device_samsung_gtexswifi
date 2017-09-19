@@ -70,14 +70,6 @@
           <Limit name="concurrent-instances" max="8" />
           <Feature name="adaptive-playback" />
       </MediaCodec>
-
-      <MediaCodec name="OMX.sprd.mp3.decoder">
-          <Type name="audio/mpeg" />
-          <Type name="audio/mpeg-L1" />
-          <Type name="audio/mpeg-L2" />
-      </MediaCodec>
-
-      <!-- <MediaCodec name="OMX.sprd.aac.decoder" type="audio/mp4a-latm" /> -->
       <!-- C&M Supported decoder BEGIN-->
 <!--
       <MediaCodec name="OMX.vpu.video_decoder.avc" type="video/avc">
@@ -140,6 +132,33 @@
 -->
       <MediaCodec name="OMX.google.mjpg.decoder" type="video/mjpg" />
   </Decoders>
+
+  <Encoders>
+      <MediaCodec name="OMX.sprd.mpeg4.encoder" type="video/mp4v-es">
+          <!-- profiles and levels:  Simple Profile : Level5 -->
+          <Limit name="size" min="176x144" max="1920x1088" />
+          <Limit name="alignment" value="16x16" />
+          <Limit name="block-size" value="16x16" />
+          <Limit name="blocks-per-second" range="12-245760" />
+          <Limit name="bitrate" range="1-40000000" />
+      </MediaCodec>
+      <MediaCodec name="OMX.sprd.h263.encoder" type="video/3gpp">
+          <!-- profiles and levels:  ProfileBaseline : Level70 -->
+          <Limit name="size" min="176x144" max="1920x1088" />
+          <Limit name="alignment" value="16x16" />
+          <Limit name="block-size" value="16x16" />
+          <Limit name="blocks-per-second" range="12-245760" />
+          <Limit name="bitrate" range="1-40000000" />
+      </MediaCodec>
+      <MediaCodec name="OMX.sprd.h264.encoder" type="video/avc">
+          <!-- profiles and levels:  ProfileBaseline : Level2 -->
+          <Limit name="size" min="176x144" max="1920x1088" />
+          <Limit name="alignment" value="16x16" />
+          <Limit name="block-size" value="16x16" />
+          <Limit name="blocks-per-second" range="1-245760" />
+          <Limit name="bitrate" range="1-40000000" />
+      </MediaCodec>
+  </Encoders>
   <Include href="media_codecs_google_video.xml" />
 
     <Include href="media_codecs_ffmpeg.xml" />
