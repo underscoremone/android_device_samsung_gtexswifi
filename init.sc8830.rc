@@ -97,8 +97,6 @@ on fs
 on post-fs
     chown system system /productinfo
     chmod 0771 /productinfo
-    insmod /lib/modules/mali.ko
-    insmod /lib/modules/trout_fm.ko
 
     chown system system /proc/uid_cputime/show_uid_stat
     chmod 0440 /proc/uid_cputime/show_uid_stat
