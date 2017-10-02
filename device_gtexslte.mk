@@ -156,7 +156,7 @@ PRODUCT_PACKAGES += \
 		libHWCUtils \
 		libGLES_mali.so \
 		memtrack.sc8830 \
-		gralloc.sc8830.so \
+		gralloc.sc8830 \
 		libdither \
 		hwcomposer.sc8830 \
 		sprd_gsp.sc8830 \
