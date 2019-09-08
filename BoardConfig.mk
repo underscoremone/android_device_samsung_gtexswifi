@@ -49,6 +49,9 @@ TARGET_KERNEL_SELINUX_CONFIG := gtexswifi-dt_defconfig
 TARGET_VARIANT_CONFIG := gtexswifi-dt_defconfig
 TARGET_KERNEL_SOURCE := kernel/samsung/gtexswifi
 
+# sdFAT filesystem for exFAT
+TARGET_KERNEL_HAVE_EXFAT := true
+
 # Audio
 SPRD_AUDIO_USE_NEW_API := true
 BOARD_USES_TINYALSA_AUDIO := true
