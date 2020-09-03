@@ -19,5 +19,5 @@ lunch omni_gtexswifi-eng
 make -j5 recoveryimage
 ```
 
-Kernel sources are available at: https://github.com/underscoremone/android_kernel_samsung_gtexswifi/tree/cm-13.0
+Kernel sources are available at: https://github.com/underscoremone/android_kernel_samsung_gtexswifi/tree/cm-14.1
 

@@ -52,7 +52,6 @@ BOARD_CUSTOM_BOOTIMG_MK := $(DEVICE_TREE)/bootimg.mk
 TW_THEME := portrait_hdpi
 TW_HAS_DOWNLOAD_MODE := true
 TW_NO_REBOOT_BOOTLOADER := true
-TW_EXCLUDE_SUPERSU := true
 TW_BRIGHTNESS_PATH := "/sys/devices/gen-panel-backlight.29/backlight/panel/brightness"
 TW_MAX_BRIGHTNESS := 255
 TW_DEFAULT_BRIGHTNESS := 162
