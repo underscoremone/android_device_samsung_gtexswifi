@@ -1,0 +1,231 @@
+import init.wifi.rc
+#import /init.storage.rc
+
+# add for board-relative touch screen driver for
+# alarm mode and normal mode.
+
+# set RTCC minfree watermark as {224M,192M,160M,128M,96M}
+on early-boot
+    write /sys/module/rtcc/parameters/minfree 57344,49152,40960,32768,24576
+
+on boot
+    chown system system /sys/class/switch/sprd_simdet/state
+# SSWAP
+    write /proc/sys/vm/swappiness 130
+
+# MSP FactoryApp
+    mkdir /efs 0771 radio system
+    mkdir /efs/imei 0775 radio system
+    mkdir /efs/FactoryApp 0775 system system
+
+# bluetooth
+    chmod 660 /dev/ttyS0
+    chmod 660 /proc/bluetooth/sleep/proto
+    chmod 660 /sys/class/rfkill/rfkill0/state
+    chmod 660 /sys/class/rfkill/rfkill0/type
+    chmod 660 /proc/bluetooth/sleep/btwrite
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chown bluetooth net_bt_stack /dev/ttyS0
+#for Bluesleep
+        chown bluetooth system /proc/bluetooth/sleep/proto
+        chown bluetooth system /proc/bluetooth/sleep/btwrite
+    chown bluetooth shell /productinfo/connectivity_configure.ini
+    chown bluetooth bluetooth /system/etc/connectivity_configure.ini
+	#for wifi
+    chmod 666 /productinfo/connectivity_configure.ini
+    chmod 666 /system/etc/connectivity_configure.ini
+
+	write /sys/devices/system/cpu/cpufreq/interactive/timer_rate 100000
+
+# Performance
+    chown radio system /sys/power/cpufreq_table
+    chown radio system /sys/power/cpufreq_min_limit
+    chown radio system /sys/power/cpufreq_max_limit
+    chown radio system /sys/devices/system/cpu/cpuhotplug/cpu_num_min_limit
+    chown radio system /sys/devices/system/cpu/cpuhotplug/cpu_num_limit
+    chown radio system /sys/module/mali/parameters/gpu_freq_list
+    chown system system        /sys/module/mali/parameters/gpu_freq_min_limit
+    chown system system        /sys/module/mali/parameters/gpu_freq_max_limit
+    chmod 0664 /sys/power/cpufreq_table
+    chmod 0664 /sys/power/cpufreq_min_limit
+    chmod 0664 /sys/power/cpufreq_max_limit
+    chmod 0664 /sys/devices/system/cpu/cpuhotplug/cpu_hotplug_disable
+    chmod 0664 /sys/devices/system/cpu/cpuhotplug/cpu_num_min_limit
+    chmod 0664 /sys/devices/system/cpu/cpuhotplug/cpu_num_limit
+    chmod 0664 /sys/module/mali/parameters/gpu_freq_list
+
+# Interactive governor parameters tuning for better power and performance
+    write /sys/devices/system/cpu/cpufreq/interactive/above_hispeed_delay 20000
+    write /sys/devices/system/cpu/cpufreq/interactive/boostpulse_duration 80000
+    write /sys/devices/system/cpu/cpufreq/interactive/go_hispeed_load 90
+    write /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq 1300000
+    write /sys/devices/system/cpu/cpufreq/interactive/io_is_busy 1
+    write /sys/devices/system/cpu/cpufreq/interactive/min_sample_time 20000
+    write /sys/devices/system/cpu/cpufreq/interactive/target_loads 80
+    write /sys/devices/system/cpu/cpufreq/interactive/timer_rate 20000
+    write /sys/devices/system/cpu/cpufreq/interactive/timer_slack 20000
+
+    write /sys/devices/system/cpu/cpuhotplug/cpu_up_high_threshold 80
+
+#LCD
+	chown system system /sys/class/backlight/panel/brightness
+	chmod 0664 system /sys/class/backlight/panel/brightness
+	chown radio system /sys/class/lcd/panel/power_reduce
+	chown system system /sys/class/backlight/panel/auto_brightness
+	chmod 0664 /sys/class/backlight/panel/auto_brightness
+	chown radio system /sys/class/lcd/panel/temperature
+	chmod 0664 /sys/class/lcd/panel/temperature
+
+# mdnie
+	chown system media_rw /sys/class/mdnie/mdnie/scenario
+	chmod 0664 /sys/class/mdnie/mdnie/scenario
+	chown system system /sys/class/mdnie/mdnie/negative
+	chmod 0664 /sys/class/mdnie/mdnie/negative
+	chown system media_rw /sys/class/mdnie/mdnie/accessibility
+	chmod 0664 /sys/class/mdnie/mdnie/accessibility
+	chown system media_rw /sys/class/mdnie/mdnie/mode
+	chmod 0664 /sys/class/mdnie/mdnie/mode
+	chown system system /sys/class/mdnie/mdnie/auto_brightness
+	chmod 0664 /sys/class/mdnie/mdnie/auto_brightness
+
+# OTG_TEST
+    chown system radio /sys/class/host_notify/usb_otg/booster
+    chmod 0660 /sys/class/host_notify/usb_otg/booster
+
+#KEY
+	chown system system /sys/class/sec/sec_key/reset_enabled
+
+# tsp
+	chown system system /sys/class/sec/tsp/cmd
+
+#touchkey
+	chown system system /sys/class/sec/sec_touchkey/touchkey_back
+	chown system system /sys/class/sec/sec_touchkey/touchkey_recent
+	chown system system /sys/class/sec/sec_touchkey/touchkey_threshold
+	chown system system /sys/class/sec/sec_touchkey/touchkey_raw_recent
+	chown system system /sys/class/sec/sec_touchkey/touchkey_raw_back
+	chown system system /sys/class/sec/sec_touchkey/touchkey_firm_update
+
+#Sensor
+# Accelerometer_sensor
+    chown system radio /sys/class/sensors/accelerometer_sensor/raw_data
+    chown system radio /sys/class/sensors/accelerometer_sensor/calibration
+    chown system radio /sys/class/sensors/accelerometer_sensor/reactive_alert
+    chown system radio /sys/class/sensors/accelerometer_sensor/vendor
+    chown system radio /sys/class/sensors/accelerometer_sensor/name
+    chown system radio /sys/class/sensors/accelerometer_sensor/lowpassfilter
+# Grip_sensor wifi
+    chown system radio /sys/class/sensors/grip_sensor_wifi/vendor
+    chown system radio /sys/class/sensors/grip_sensor_wifi/name
+    chown system radio /sys/class/sensors/grip_sensor_wifi/raw_data
+    chown system radio /sys/class/sensors/grip_sensor_wifi/calibration
+    chown system radio /sys/class/sensors/grip_sensor_wifi/threshold
+    chown system radio /sys/class/sensors/grip_sensor_wifi/onoff
+    chown system radio /sys/class/sensors/grip_sensor_wifi/freq
+# Meta Event
+    chown system radio /sys/class/sensors/sensor_dev/flush
+
+#audio pin mux
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp0_iis2
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp0_iis3
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp0_iis0
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp0_iis1
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp1_iis1
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp1_iis2
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp1_iis0
+    chown system system /proc/pin_switch/bt_iis_sys_sel/cp1_iis3
+    chown system system /proc/pin_switch/bt_iis_sys_sel/ap_iis3
+    chown system system /proc/pin_switch/bt_iis_sys_sel/ap_iis2
+    chown system system /proc/pin_switch/bt_iis_sys_sel/ap_iis1
+    chown system system /proc/pin_switch/bt_iis_sys_sel/ap_iis0
+    chown system system /proc/pin_switch/bt_iis_sys_sel/vbc_iis
+    chown system system /proc/pin_switch/iis01_loop_sel
+    chown system system /proc/pin_switch/iis23_loop_sel
+    chown system system /proc/pin_switch/iis12_loop_sel
+    chown system system /proc/pin_switch/iis02_loop_sel
+    chown system system /proc/pin_switch/iis03_loop_sel
+    chown system system /proc/pin_switch/iis13_loop_sel
+    chown system system /proc/pin_switch/iis1_sys_sel/ap_iis1
+    chown system system /proc/pin_switch/iis0_sys_sel/ap_iis0
+    chown system system /proc/pin_switch/iis0_sys_sel/cp0_iis0
+    chown system system /proc/pin_switch/iis0_sys_sel/cp1_iis0
+    chown system system /proc/pin_switch/iis0_sys_sel/cp2_iis0
+    chown system system /proc/pin_switch/iis1_sys_sel/cp2_iis1
+    chown system system /proc/pin_switch/iis1_sys_sel/cp0_iis1
+    chown system system /proc/pin_switch/iis1_sys_sel/cp1_iis1
+
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp0_iis2
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp0_iis3
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp0_iis0
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp0_iis1
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp1_iis1
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp1_iis2
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp1_iis0
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/cp1_iis3
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/ap_iis3
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/ap_iis2
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/ap_iis1
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/ap_iis0
+    chmod 0664 /proc/pin_switch/bt_iis_sys_sel/vbc_iis
+    chmod 0664 /proc/pin_switch/iis01_loop_sel
+    chmod 0664 /proc/pin_switch/iis23_loop_sel
+    chmod 0664 /proc/pin_switch/iis12_loop_sel
+    chmod 0664 /proc/pin_switch/iis02_loop_sel
+    chmod 0664 /proc/pin_switch/iis03_loop_sel
+    chmod 0664 /proc/pin_switch/iis13_loop_sel
+    chmod 0664 /proc/pin_switch/iis1_sys_sel/ap_iis1
+    chmod 0664 /proc/pin_switch/iis0_sys_sel/ap_iis0
+    chmod 0664 /proc/pin_switch/iis0_sys_sel/cp0_iis0
+    chmod 0664 /proc/pin_switch/iis0_sys_sel/cp1_iis0
+    chmod 0664 /proc/pin_switch/iis0_sys_sel/cp2_iis0
+    chmod 0664 /proc/pin_switch/iis1_sys_sel/cp2_iis1
+    chmod 0664 /proc/pin_switch/iis1_sys_sel/cp0_iis1
+    chmod 0664 /proc/pin_switch/iis1_sys_sel/cp1_iis1
+
+on fs
+
+# Permissions for EFS
+    chown radio system /efs
+    chmod 0771 /efs
+
+#For Absolute Persistence Partition 
+    mkdir /persdata 0755 system system
+    mkdir /persdata/absolute 0750 system system
+
+    wait /dev/block/platform/sdio_emmc/by-name/persdata
+    check_fs /dev/block/platform/sdio_emmc/by-name/persdata ext4
+    mount ext4 /dev/block/platform/sdio_emmc/by-name/persdata /persdata/absolute nosuid nodev barrier=1
+
+    chown system system /persdata
+    chmod 0755 /persdata 
+    chown system system /persdata/absolute
+    chmod 0750 /persdata/absolute
+    
+# LSI GPS
+     chown root system /dev/ttyS3
+     chmod 0660 /dev/ttyS3
+     chown root system /sys/class/sec/gps/GPS_PWR_EN/value
+     chmod 0664 /sys/class/sec/gps/GPS_PWR_EN/value
+     chown root system /sys/class/sec/gps/GPS_RESET/value
+     chmod 0664 /sys/class/sec/gps/GPS_RESET/value
+     mkdir /data/system 0771 system system
+     chown system system /data/system
+     mkdir /data/system/gps 0771 system system
+     chown system system /data/system/gps
+     rm /data/gps_started
+     rm /data/glonass_started
+     rm /data/beidou_started
+     rm /data/smd_started
+     rm /data/sv_cno.info
+
+
+# SSWAP
+service swapon /sbin/sswap -s
+    class core
+    user root
+    group root
+    oneshot
+
+on post-fs-data
+    write /proc/sys/vm/lowmem_reserve_ratio "96 96"

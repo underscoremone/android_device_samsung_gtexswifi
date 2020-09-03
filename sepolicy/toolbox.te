@@ -1,0 +1,3 @@
+allow toolbox audio_device:dir { write add_name };
+allow toolbox audio_device:fifo_file create;
+allow toolbox toolbox:capability dac_override;
