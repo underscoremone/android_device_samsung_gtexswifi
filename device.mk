@@ -52,7 +52,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/init.sc8830.usb.rc:root/init.sc8830.usb.rc \
     $(LOCAL_PATH)/rootdir/fstab.sc8830:root/fstab.sc8830 \
     $(LOCAL_PATH)/rootdir/ueventd.sc8830.rc:root/ueventd.sc8830.rc \
-    $(LOCAL_PATH)/rootdir/init.rilcommon.rc:root/init.rilcommon.rc \
     $(LOCAL_PATH)/rootdir/init.wifi.rc:root/init.wifi.rc \
     $(LOCAL_PATH)/rootdir/init.dhcp.rc:root/init.dhcp.rc
 
