@@ -5,6 +5,10 @@ import /init.rilcommon.rc
 on early-init
     mount debugfs debugfs /sys/kernel/debug
 
+    # Allow to access debugfs for system:system
+    chmod 0755 /sys/kernel/debug
+    chown system system /sys/kernel/debug
+
     # set core dump resource limit
     setrlimit 4 2147483647 2147483647
 
@@ -98,6 +102,9 @@ on post-fs
     mount tmpfs tmpfs /mnt/secure private rec
     mount tmpfs tmpfs /mnt/secure/asec shared rec
     ## Samsung ODE <<<
+
+    # Allow writing to the kernel trace log.
+    chmod 0222 /sys/kernel/debug/tracing/trace_marker
 
 on late-init
     trigger post-fs-data
