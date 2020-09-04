@@ -58,8 +58,7 @@ lib/libomx_m4vh263enc_hw_sprd.so|2d8e901fdaf57c32a89533482889a806f63f87f7
 lib/libomx_mp3dec_sprd.so|344d7d2c3930a73aadecc78283436cb61ea5c86d
 lib/libomx_vpxdec_hw_sprd.so|646d44bb233283b3df76d7a3ffbfbee1d8ef4b7a
 
-# RILD
-lib/libatchannel.so
+#
 bin/npsmobex
 bin/ddexe
 bin/connfwexe
@@ -68,19 +67,12 @@ bin/slogmodem
 bin/cp_diskserver
 bin/modem_control
 bin/modemd
-bin/ext_data.sh
-bin/ext_kill.sh
 bin/ext_symlink.sh
 bin/prepare_param.sh
-lib/libril.so
-bin/rild
-lib/libatparser.so
-lib/libreference-ril.so
-#   lib/libsec-ril.so
 lib/libsecril-client.so
 bin/refnotify
-bin/at_distributor
 bin/download
+bin/phoneserver
 
 # Camera
 cameradata/datapattern_420sp.yuv
@@ -171,8 +163,8 @@ etc/firmware/sc2331_fdl.bin
 etc/firmware/sc2331_fw.bin
 lib/hw/sensors.sc8830.so
 lib/hw/camera.sc8830.so
-libnvexchange.so
-libvbeffect.so
+lib/libnvexchange.so
+lib/libvbeffect.so
 lib/libefuse.so
 lib/libbm.so
 lib/libaf_running.so
