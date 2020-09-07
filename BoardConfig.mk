@@ -49,6 +49,7 @@ BOARD_SUPPRESS_SECURE_ERASE := true
 BOARD_CUSTOM_BOOTIMG_MK := $(DEVICE_TREE)/bootimg.mk
 
 # TWRP specific build flags
+TW_DEVICE_VERSION := 1
 TW_THEME := portrait_hdpi
 TW_HAS_DOWNLOAD_MODE := true
 TW_NO_REBOOT_BOOTLOADER := true
