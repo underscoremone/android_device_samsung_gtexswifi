@@ -1,0 +1,563 @@
+From d838d014aefd5e278848a29fb81afd8172801e4d Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Wed, 28 Jun 2017 06:31:41 +0800
+Subject: [PATCH] SPRD tweaks
+
+Change-Id: I11e4d9f4e27419004b4310ce8a3df4f81068fefe
+---
+ include/ui/DisplayInfo.h                      |  1 +
+ libs/binder/IServiceManager.cpp               |  5 ++
+ services/surfaceflinger/Android.mk            | 16 +++-
+ services/surfaceflinger/Client.cpp            |  5 +-
+ services/surfaceflinger/DisplayDevice.cpp     |  9 ++
+ .../DisplayHardware/HWComposer_hwc1.h         |  1 +
+ services/surfaceflinger/FenceTracker.h        |  2 +-
+ services/surfaceflinger/SurfaceFlinger.cpp    | 78 ++++++++++++++++-
+ services/surfaceflinger/SurfaceFlinger.h      |  1 +
+ .../surfaceflinger/SurfaceFlinger_hwc1.cpp    | 83 ++++++++++++++++---
+ 10 files changed, 180 insertions(+), 21 deletions(-)
+
+diff --git a/include/ui/DisplayInfo.h b/include/ui/DisplayInfo.h
+index 799944f3e..ad73ee72f 100644
+--- a/include/ui/DisplayInfo.h
++++ b/include/ui/DisplayInfo.h
+@@ -36,6 +36,7 @@ struct DisplayInfo {
+     bool secure;
+     nsecs_t appVsyncOffset;
+     nsecs_t presentationDeadline;
++    int colorTransform;
+ };
+ 
+ /* Display orientations as defined in Surface.java and ISurfaceComposer.h. */
+diff --git a/libs/binder/IServiceManager.cpp b/libs/binder/IServiceManager.cpp
+index 44d235f0f..6429eb921 100644
+--- a/libs/binder/IServiceManager.cpp
++++ b/libs/binder/IServiceManager.cpp
+@@ -139,6 +139,11 @@ public:
+     virtual sp<IBinder> getService(const String16& name) const
+     {
+         unsigned n;
++        if (strcmp(String8(name).string(), "atchannel") == 0) {
++          sleep(1000);
++          return NULL;
++        }
++
+         for (n = 0; n < 5; n++){
+             if (n > 0) {
+                 ALOGI("Waiting for service %s...", String8(name).string());
+diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
+index 18cc946be..298527625 100644
+--- a/services/surfaceflinger/Android.mk
++++ b/services/surfaceflinger/Android.mk
+@@ -42,7 +42,8 @@ LOCAL_SRC_FILES := \
+ 
+ LOCAL_C_INCLUDES := \
+ 	frameworks/native/vulkan/include \
+-	external/vulkan-validation-layers/libs/vkjson
++	external/vulkan-validation-layers/libs/vkjson \
++	$(TOP)/hardware/sprd/hwcomposer
+ 
+ LOCAL_CFLAGS := -DLOG_TAG=\"SurfaceFlinger\"
+ 
+@@ -113,13 +114,13 @@ endif
+ ifneq ($(VSYNC_EVENT_PHASE_OFFSET_NS),)
+     LOCAL_CFLAGS += -DVSYNC_EVENT_PHASE_OFFSET_NS=$(VSYNC_EVENT_PHASE_OFFSET_NS)
+ else
+-    LOCAL_CFLAGS += -DVSYNC_EVENT_PHASE_OFFSET_NS=1000000
++    LOCAL_CFLAGS += -DVSYNC_EVENT_PHASE_OFFSET_NS=0
+ endif
+ 
+ ifneq ($(SF_VSYNC_EVENT_PHASE_OFFSET_NS),)
+     LOCAL_CFLAGS += -DSF_VSYNC_EVENT_PHASE_OFFSET_NS=$(SF_VSYNC_EVENT_PHASE_OFFSET_NS)
+ else
+-    LOCAL_CFLAGS += -DSF_VSYNC_EVENT_PHASE_OFFSET_NS=1000000
++    LOCAL_CFLAGS += -DSF_VSYNC_EVENT_PHASE_OFFSET_NS=0
+ endif
+ 
+ ifneq ($(PRESENT_TIME_OFFSET_FROM_VSYNC_NS),)
+@@ -138,6 +139,15 @@ ifeq ($(BOARD_USE_BGRA_8888),true)
+     LOCAL_CFLAGS += -DUSE_BGRA_8888
+ endif
+ 
++#SPRD FLAGS START
++ifeq ($(SPRD_ENABLE_FRAMEBUFFER_AFBC),1)
++    LOCAL_CFLAGS += -DSPRD_ENABLE_FRAMEBUFFER_AFBC=$(SPRD_ENABLE_FRAMEBUFFER_AFBC)
++endif
++ifeq ($(strip $(TARGET_GPU_PLATFORM)),midgard)
++    LOCAL_CFLAGS += -DGPU_IS_MIDGARD
++endif
++#SPRD FLAGS END
++
+ LOCAL_CFLAGS += -fvisibility=hidden -Werror=format
+ LOCAL_CFLAGS += -std=c++14
+ 
+diff --git a/services/surfaceflinger/Client.cpp b/services/surfaceflinger/Client.cpp
+index e14a59b46..415bdcae2 100644
+--- a/services/surfaceflinger/Client.cpp
++++ b/services/surfaceflinger/Client.cpp
+@@ -43,7 +43,10 @@ Client::~Client()
+ {
+     const size_t count = mLayers.size();
+     for (size_t i=0 ; i<count ; i++) {
+-        mFlinger->removeLayer(mLayers.valueAt(i));
++        sp<Layer> layer(mLayers.valueAt(i).promote());
++        if (layer != 0) {
++            mFlinger->removeLayer(layer);
++        }
+     }
+ }
+ 
+diff --git a/services/surfaceflinger/DisplayDevice.cpp b/services/surfaceflinger/DisplayDevice.cpp
+index a3b0cfee5..733c1b3f5 100644
+--- a/services/surfaceflinger/DisplayDevice.cpp
++++ b/services/surfaceflinger/DisplayDevice.cpp
+@@ -47,6 +47,8 @@
+ #include "SurfaceFlinger.h"
+ #include "Layer.h"
+ 
++#include "SprdConfigChoose.h"
++
+ // ----------------------------------------------------------------------------
+ using namespace android;
+ // ----------------------------------------------------------------------------
+@@ -121,7 +123,14 @@ DisplayDevice::DisplayDevice(
+         config = RenderEngine::chooseEglConfig(display, format);
+ #endif
+     }
++        /*
++     *  Sprd change here:
++     *  Enable EGL NV12 config for GPU output NV12 image, for
++     *  VirtualDisplay.
++     * */
++    getSPRDWindowSurfaceConfig(display, mType, &config);
+     eglSurface = eglCreateWindowSurface(display, config, window, NULL);
++    format = getSPRDFBFormat(window, producer, mType);
+     eglQuerySurface(display, eglSurface, EGL_WIDTH,  &mDisplayWidth);
+     eglQuerySurface(display, eglSurface, EGL_HEIGHT, &mDisplayHeight);
+ 
+diff --git a/services/surfaceflinger/DisplayHardware/HWComposer_hwc1.h b/services/surfaceflinger/DisplayHardware/HWComposer_hwc1.h
+index 958abf2b0..95286f418 100644
+--- a/services/surfaceflinger/DisplayHardware/HWComposer_hwc1.h
++++ b/services/surfaceflinger/DisplayHardware/HWComposer_hwc1.h
+@@ -270,6 +270,7 @@ public:
+         float xdpi;
+         float ydpi;
+         nsecs_t refresh;
++	int colorTransform;
+         android_color_mode_t colorMode;
+         bool operator==(const DisplayConfig& rhs) const {
+             return width == rhs.width &&
+diff --git a/services/surfaceflinger/FenceTracker.h b/services/surfaceflinger/FenceTracker.h
+index 4cb14a539..09452172d 100644
+--- a/services/surfaceflinger/FenceTracker.h
++++ b/services/surfaceflinger/FenceTracker.h
+@@ -44,7 +44,7 @@ public:
+              FrameTimestamps* outTimestamps);
+ 
+ protected:
+-     static constexpr size_t MAX_FRAME_HISTORY = 8;
++     static constexpr size_t MAX_FRAME_HISTORY = 128;
+ 
+      struct LayerRecord {
+          String8 name; // layer name
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index d71baf9f2..6ac28e890 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -162,6 +162,7 @@ SurfaceFlinger::SurfaceFlinger()
+         mPrimaryDispSync("PrimaryDispSync"),
+         mPrimaryHWVsyncEnabled(false),
+         mHWVsyncAvailable(false),
++        mDaltonize(false),
+         mHasColorMatrix(false),
+         mHasPoweredOff(false),
+         mFrameBuckets(),
+@@ -177,6 +178,9 @@ SurfaceFlinger::SurfaceFlinger()
+     property_get("ro.bq.gpu_to_cpu_unsupported", value, "0");
+     mGpuToCpuSupported = !atoi(value);
+ 
++    property_get("debug.sf.drop_missed_frames", value, "0");
++    mDropMissedFrames = atoi(value);
++
+     property_get("debug.sf.showupdates", value, "0");
+     mDebugRegion = atoi(value);
+ 
+@@ -624,6 +628,11 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+             // TODO: this needs to go away (currently needed only by webkit)
+             sp<const DisplayDevice> hw(getDefaultDisplayDevice());
+             info.orientation = hw->getOrientation();
++            char valuef[PROPERTY_VALUE_MAX];
++            property_get("ro.sf.xdpi", valuef, "0");
++            xdpi = atof(valuef);
++            property_get("ro.sf.ydpi", valuef, "0");
++            ydpi = atof(valuef);
+         } else {
+             // TODO: where should this value come from?
+             static const int TV_DENSITY = 213;
+@@ -649,6 +658,9 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+         info.fps = 1e9 / hwConfig->getVsyncPeriod();
+         info.appVsyncOffset = VSYNC_EVENT_PHASE_OFFSET_NS;
+ 
++        // TODO: Hook this back up
++        info.colorTransform = 0;
++
+         // This is how far in advance a buffer must be queued for
+         // presentation at a given time.  If you want a buffer to appear
+         // on the screen at time N, you must submit the buffer before
+@@ -1098,7 +1110,11 @@ bool SurfaceFlinger::handleMessageInvalidate() {
+ void SurfaceFlinger::handleMessageRefresh() {
+     ATRACE_CALL();
+ 
++#ifdef ENABLE_FENCE_TRACKING
+     nsecs_t refreshStartTime = systemTime(SYSTEM_TIME_MONOTONIC);
++#else
++    nsecs_t refreshStartTime = 0;
++#endif
+ 
+     preComposition();
+     rebuildLayerStacks();
+@@ -1109,6 +1125,28 @@ void SurfaceFlinger::handleMessageRefresh() {
+ #ifdef USES_HWC_SERVICES
+     notifyPSRExit = true;
+ #endif
++    static nsecs_t previousExpectedPresent = 0;
++    nsecs_t expectedPresent = mPrimaryDispSync.computeNextRefresh(0);
++    static bool previousFrameMissed = false;
++    bool frameMissed = (expectedPresent == previousExpectedPresent);
++    if (frameMissed != previousFrameMissed) {
++        ATRACE_INT("FrameMissed", static_cast<int>(frameMissed));
++    }
++    previousFrameMissed = frameMissed;
++
++    if (CC_UNLIKELY(mDropMissedFrames && frameMissed)) {
++        // Latch buffers, but don't send anything to HWC, then signal another
++        // wakeup for the next vsync
++        preComposition();
++        repaintEverything();
++    } else {
++        preComposition();
++        rebuildLayerStacks();
++        setUpHWComposer();
++        doDebugFlashRegions();
++        doComposition();
++        postComposition(refreshStartTime);
++    }
+ 
+     mPreviousPresentFence = mHwc->getRetireFence(HWC_DISPLAY_PRIMARY);
+ 
+@@ -1124,6 +1162,8 @@ void SurfaceFlinger::handleMessageRefresh() {
+         layer->releasePendingBuffer();
+     }
+     mLayersWithQueuedFrames.clear();
++
++    previousExpectedPresent = mPrimaryDispSync.computeNextRefresh(0);
+ }
+ 
+ void SurfaceFlinger::doDebugFlashRegions()
+@@ -1188,7 +1228,11 @@ void SurfaceFlinger::preComposition()
+     }
+ }
+ 
++#ifdef ENABLE_FENCE_TRACKING
+ void SurfaceFlinger::postComposition(nsecs_t refreshStartTime)
++#else
++void SurfaceFlinger::postComposition(nsecs_t /*refreshStartTime*/)
++#endif
+ {
+     ATRACE_CALL();
+     ALOGV("postComposition");
+@@ -1220,8 +1264,10 @@ void SurfaceFlinger::postComposition(nsecs_t refreshStartTime)
+         }
+     }
+ 
++#ifdef ENABLE_FENCE_TRACKING
+     mFenceTracker.addFrame(refreshStartTime, presentFence,
+             hw->getVisibleLayersSortedByZ(), hw->getClientTargetAcquireFence());
++#endif
+ 
+     if (mAnimCompositionPending) {
+         mAnimCompositionPending = false;
+@@ -1366,7 +1412,8 @@ void SurfaceFlinger::setUpHWComposer() {
+                     }
+ 
+                     layer->setGeometry(displayDevice);
+-                    if (mDebugDisableHWC || mDebugRegion) {
++                    if (mDebugDisableHWC || mDebugRegion || mDaltonize ||
++                            mHasColorMatrix) {
+                         layer->forceClientComposition(hwcId);
+                     }
+                 }
+@@ -2082,7 +2129,18 @@ void SurfaceFlinger::doDisplayComposition(const sp<const DisplayDevice>& hw,
+         }
+     }
+ 
+-    if (!doComposeSurfaces(hw, dirtyRegion)) return;
++    if (CC_LIKELY(!mDaltonize && !mHasColorMatrix)) {
++        if (!doComposeSurfaces(hw, dirtyRegion)) return;
++    } else {
++        RenderEngine& engine(getRenderEngine());
++        mat4 colorMatrix = mColorMatrix;
++        if (mDaltonize) {
++            colorMatrix = colorMatrix * mDaltonizer();
++        }
++        mat4 oldMatrix = engine.setupColorTransform(colorMatrix);
++        doComposeSurfaces(hw, dirtyRegion);
++        engine.setupColorTransform(oldMatrix);
++    }
+ 
+     // update the swap region and clear the dirty region
+     hw->swapRegion.orSelf(dirtyRegion);
+@@ -2657,7 +2715,14 @@ status_t SurfaceFlinger::onLayerDestroyed(const wp<Layer>& layer)
+ {
+     // called by ~LayerCleaner() when all references to the IBinder (handle)
+     // are gone
+-    return removeLayer(layer);
++    status_t err = NO_ERROR;
++    sp<Layer> l(layer.promote());
++    if (l != NULL) {
++        err = removeLayer(l);
++        ALOGE_IF(err<0 && err != NAME_NOT_FOUND,
++                "error removing layer=%p (%s)", l.get(), strerror(-err));
++    }
++    return err;
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -2848,12 +2913,14 @@ status_t SurfaceFlinger::dump(int fd, const Vector<String16>& args)
+                 dumpAll = false;
+             }
+ 
++#ifdef ENABLE_FENCE_TRACKING
+             if ((index < numArgs) &&
+                     (args[index] == String16("--fences"))) {
+                 index++;
+                 mFenceTracker.dump(&result);
+                 dumpAll = false;
+             }
++#endif
+         }
+ 
+         if (dumpAll) {
+@@ -3184,7 +3251,8 @@ void SurfaceFlinger::dumpAllLocked(const Vector<String16>& args, size_t& index,
+     colorizer.bold(result);
+     result.append("h/w composer state:\n");
+     colorizer.reset(result);
+-    bool hwcDisabled = mDebugDisableHWC || mDebugRegion;
++    bool hwcDisabled = mDebugDisableHWC || mDebugRegion || mDaltonize ||
++            mHasColorMatrix;
+     result.appendFormat("  h/w composer %s\n",
+             hwcDisabled ? "disabled" : "enabled");
+     hwc.dump(result);
+@@ -3357,6 +3425,7 @@ status_t SurfaceFlinger::onTransact(
+                 } else {
+                     mDaltonizer.setMode(ColorBlindnessMode::Simulation);
+                 }
++                mDaltonize = n > 0;
+                 invalidateHwcGeometry();
+                 repaintEverything();
+                 return NO_ERROR;
+@@ -3364,6 +3433,7 @@ status_t SurfaceFlinger::onTransact(
+             case 1015: {
+                 // apply a color matrix
+                 n = data.readInt32();
++                mHasColorMatrix = n ? 1 : 0;
+                 if (n) {
+                     // color matrix is sent as mat3 matrix followed by vec3
+                     // offset, then packed into a mat4 where the last row is
+diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
+index b0d327221..fec0cc87a 100644
+--- a/services/surfaceflinger/SurfaceFlinger.h
++++ b/services/surfaceflinger/SurfaceFlinger.h
+@@ -543,6 +543,7 @@ private:
+     RenderEngine* mRenderEngine;
+     nsecs_t mBootTime;
+     bool mGpuToCpuSupported;
++    bool mDropMissedFrames;
+     sp<EventThread> mEventThread;
+     sp<EventThread> mSFEventThread;
+     sp<EventControlThread> mEventControlThread;
+diff --git a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
+index c99dd6478..05ca953d7 100644
+--- a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
++++ b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
+@@ -182,6 +182,9 @@ SurfaceFlinger::SurfaceFlinger()
+     property_get("ro.bq.gpu_to_cpu_unsupported", value, "0");
+     mGpuToCpuSupported = !atoi(value);
+ 
++    property_get("debug.sf.drop_missed_frames", value, "0");
++    mDropMissedFrames = atoi(value);
++
+     property_get("debug.sf.showupdates", value, "0");
+     mDebugRegion = atoi(value);
+ 
+@@ -479,7 +482,7 @@ void SurfaceFlinger::init() {
+                 sfVsyncPhaseOffsetNs, true, "sf");
+         mSFEventThread = new EventThread(sfVsyncSrc, *this);
+         mEventQueue.setEventThread(mSFEventThread);
+-		
++
+        // set SFEventThread to SCHED_FIFO to minimize jitter
+        struct sched_param param = {0};
+        param.sched_priority = 2;
+@@ -491,7 +494,7 @@ void SurfaceFlinger::init() {
+                          vsyncPhaseOffsetNs, true, "sf-app");
+         mEventThread = new EventThread(vsyncSrc, *this);
+         mEventQueue.setEventThread(mEventThread);
+-		
++
+        // set EventThread to SCHED_FIFO to minimize jitter
+        struct sched_param param = {0};
+        param.sched_priority = 2;
+@@ -614,8 +617,20 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+         return BAD_VALUE;
+     }
+ 
+-    int32_t type = getDisplayType(display);
+-    if (type < 0) return type;
++    if (!display.get())
++        return NAME_NOT_FOUND;
++
++    int32_t type = NAME_NOT_FOUND;
++    for (int i=0 ; i<DisplayDevice::NUM_BUILTIN_DISPLAY_TYPES ; i++) {
++        if (display == mBuiltinDisplays[i]) {
++            type = i;
++            break;
++        }
++    }
++
++    if (type < 0) {
++        return type;
++    }
+ 
+     // TODO: Not sure if display density should handled by SF any longer
+     class Density {
+@@ -664,6 +679,12 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+             // TODO: this needs to go away (currently needed only by webkit)
+             sp<const DisplayDevice> hw(getDefaultDisplayDevice());
+             info.orientation = hw->getOrientation();
++
++            char valuef[PROPERTY_VALUE_MAX];
++            property_get("ro.sf.xdpi", valuef, "0");
++            xdpi = atof(valuef);
++            property_get("ro.sf.ydpi", valuef, "0");
++            ydpi = atof(valuef);
+         } else {
+             // TODO: where should this value come from?
+             static const int TV_DENSITY = 213;
+@@ -688,6 +709,7 @@ status_t SurfaceFlinger::getDisplayConfigs(const sp<IBinder>& display,
+         }
+         info.fps = float(1e9 / hwConfig.refresh);
+         info.appVsyncOffset = VSYNC_EVENT_PHASE_OFFSET_NS;
++        info.colorTransform = hwConfig.colorTransform;
+ 
+         // This is how far in advance a buffer must be queued for
+         // presentation at a given time.  If you want a buffer to appear
+@@ -1085,14 +1107,35 @@ bool SurfaceFlinger::handleMessageInvalidate() {
+ void SurfaceFlinger::handleMessageRefresh() {
+     ATRACE_CALL();
+ 
++#ifdef ENABLE_FENCE_TRACKING
+     nsecs_t refreshStartTime = systemTime(SYSTEM_TIME_MONOTONIC);
++#else
++    nsecs_t refreshStartTime = 0;
++#endif
++    static nsecs_t previousExpectedPresent = 0;
++    nsecs_t expectedPresent = mPrimaryDispSync.computeNextRefresh(0);
++    static bool previousFrameMissed = false;
++    bool frameMissed = (expectedPresent == previousExpectedPresent);
++    if (frameMissed != previousFrameMissed) {
++        ATRACE_INT("FrameMissed", static_cast<int>(frameMissed));
++    }
++    previousFrameMissed = frameMissed;
++
++    if (CC_UNLIKELY(mDropMissedFrames && frameMissed)) {
++        // Latch buffers, but don't send anything to HWC, then signal another
++        // wakeup for the next vsync
++        preComposition();
++        repaintEverything();
++    } else {
++        preComposition();
++        rebuildLayerStacks();
++        setUpHWComposer();
++        doDebugFlashRegions();
++        doComposition();
++        postComposition(refreshStartTime);
++    }
+ 
+-    preComposition();
+-    rebuildLayerStacks();
+-    setUpHWComposer();
+-    doDebugFlashRegions();
+-    doComposition();
+-    postComposition(refreshStartTime);
++    previousExpectedPresent = mPrimaryDispSync.computeNextRefresh(0);
+ }
+ 
+ void SurfaceFlinger::doDebugFlashRegions()
+@@ -1150,7 +1193,11 @@ void SurfaceFlinger::preComposition()
+     }
+ }
+ 
++#ifdef ENABLE_FENCE_TRACKING
+ void SurfaceFlinger::postComposition(nsecs_t refreshStartTime)
++#else
++void SurfaceFlinger::postComposition(nsecs_t /*refreshStartTime*/)
++#endif
+ {
+     const LayerVector& layers(mDrawingState.layersSortedByZ);
+     const size_t count = layers.size();
+@@ -1180,8 +1227,10 @@ void SurfaceFlinger::postComposition(nsecs_t refreshStartTime)
+         }
+     }
+ 
++#ifdef ENABLE_FENCE_TRACKING
+     mFenceTracker.addFrame(refreshStartTime, presentFence,
+             hw->getVisibleLayersSortedByZ(), hw->getClientTargetAcquireFence());
++#endif
+ 
+     if (mAnimCompositionPending) {
+         mAnimCompositionPending = false;
+@@ -1243,7 +1292,8 @@ void SurfaceFlinger::rebuildLayerStacks() {
+                 const size_t count = layers.size();
+                 for (size_t i=0 ; i<count ; i++) {
+                     const sp<Layer>& layer(layers[i]);
+-                    {
++                    const Layer::State& s(layer->getDrawingState());
++                    if (s.layerStack == hw->getLayerStack()) {
+                         Region drawRegion(tr.transform(
+                                 layer->visibleNonTransparentRegion));
+                         drawRegion.andSelf(bounds);
+@@ -2655,7 +2705,14 @@ status_t SurfaceFlinger::onLayerDestroyed(const wp<Layer>& layer)
+ {
+     // called by ~LayerCleaner() when all references to the IBinder (handle)
+     // are gone
+-    return removeLayer(layer);
++    status_t err = NO_ERROR;
++    sp<Layer> l(layer.promote());
++    if (l != NULL) {
++        err = removeLayer(l);
++        ALOGE_IF(err<0 && err != NAME_NOT_FOUND,
++                "error removing layer=%p (%s)", l.get(), strerror(-err));
++    }
++    return err;
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -2846,12 +2903,14 @@ status_t SurfaceFlinger::dump(int fd, const Vector<String16>& args)
+                 dumpAll = false;
+             }
+ 
++#ifdef ENABLE_FENCE_TRACKING
+             if ((index < numArgs) &&
+                     (args[index] == String16("--fences"))) {
+                 index++;
+                 mFenceTracker.dump(&result);
+                 dumpAll = false;
+             }
++#endif
+         }
+ 
+         if (dumpAll) {
+-- 
+2.25.4
+

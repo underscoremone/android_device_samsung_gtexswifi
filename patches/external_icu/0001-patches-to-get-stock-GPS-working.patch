@@ -1,0 +1,174 @@
+From 61428e9ecdcd4cbb510aa41be63e9ac2d202b3dd Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Wed, 28 Jun 2017 07:59:34 +0800
+Subject: [PATCH] patches to get stock GPS working
+
+Change-Id: Iced0cc1f9520875412f955999afec5edbdb24202
+---
+ icu4c/source/common/Android.mk |   1 +
+ icu4c/source/common/icu53.c    | 141 +++++++++++++++++++++++++++++++++
+ 2 files changed, 142 insertions(+)
+ create mode 100644 icu4c/source/common/icu53.c
+
+diff --git a/icu4c/source/common/Android.mk b/icu4c/source/common/Android.mk
+index 8e5f7573..05812993 100644
+--- a/icu4c/source/common/Android.mk
++++ b/icu4c/source/common/Android.mk
+@@ -78,6 +78,7 @@ src_files := \
+ 	ulistformatter.cpp \
+ 	uloc.cpp \
+ 	uloc_keytype.cpp \
++	icu53.c \
+ 	uloc_tag.c \
+ 	umapfile.c \
+ 	umath.c \
+diff --git a/icu4c/source/common/icu53.c b/icu4c/source/common/icu53.c
+new file mode 100644
+index 00000000..b5061f27
+--- /dev/null
++++ b/icu4c/source/common/icu53.c
+@@ -0,0 +1,141 @@
++#include "unicode/ucnv.h"
++
++U_STABLE UConverter* U_EXPORT2
++ucnv_open_53(const char *converterName, UErrorCode *err)
++{
++    return ucnv_open(converterName, err);
++}
++
++U_STABLE void  U_EXPORT2
++ucnv_close_53(UConverter * converter)
++{
++    return ucnv_close(converter);
++}
++
++U_CAPI void  U_EXPORT2 ucnv_close_51 (UConverter * converter) {
++  ucnv_close (converter);
++}
++
++U_CAPI void  U_EXPORT2
++ucnv_setFromUCallBack_51 (UConverter * converter,
++                            UConverterFromUCallback newAction,
++                            const void* newContext,
++                            UConverterFromUCallback *oldAction,
++                            const void** oldContext,
++                            UErrorCode * err) {
++
++  ucnv_setFromUCallBack(converter, newAction, newContext, oldAction,
++        oldContext, err);
++}
++
++U_CAPI void    U_EXPORT2 ucnv_setToUCallBack_51 (UConverter * converter,
++                            UConverterToUCallback newAction,
++                            const void* newContext,
++                            UConverterToUCallback *oldAction,
++                            const void** oldContext,
++                            UErrorCode * err) {
++  ucnv_setToUCallBack(converter, newAction, newContext,
++        oldAction, oldContext, err);
++}
++
++U_CAPI UConverter* U_EXPORT2
++ucnv_open_51 (const char *name,
++                       UErrorCode * err) {
++  return ucnv_open(name, err);
++}
++
++U_CAPI void U_EXPORT2
++ucnv_convertEx_51 (UConverter *targetCnv, UConverter *sourceCnv,
++               char **target, const char *targetLimit,
++               const char **source, const char *sourceLimit,
++               UChar *pivotStart, UChar **pivotSource,
++               UChar **pivotTarget, const UChar *pivotLimit,
++               UBool reset, UBool flush,
++               UErrorCode *pErrorCode) {
++  ucnv_convertEx(targetCnv, sourceCnv, target, targetLimit, source,
++        sourceLimit, pivotStart, pivotSource,
++        pivotTarget, pivotLimit, reset, flush,
++        pErrorCode);
++}
++
++U_STABLE void U_EXPORT2 UCNV_FROM_U_CALLBACK_STOP_51 (
++                  const void *context,
++                  UConverterFromUnicodeArgs *fromUArgs,
++                  const UChar* codeUnits,
++                  int32_t length,
++                  UChar32 codePoint,
++                  UConverterCallbackReason reason,
++                  UErrorCode * err) {
++  return UCNV_FROM_U_CALLBACK_STOP(context, fromUArgs, codeUnits,
++      length, codePoint, reason, err);
++}
++
++U_STABLE void U_EXPORT2 UCNV_TO_U_CALLBACK_STOP_51 (
++                  const void *context,
++                  UConverterToUnicodeArgs *toUArgs,
++                  const char* codeUnits,
++                  int32_t length,
++                  UConverterCallbackReason reason,
++                  UErrorCode * err) {
++  return UCNV_TO_U_CALLBACK_STOP(context, toUArgs, codeUnits, length,
++      reason, err);
++}
++
++U_STABLE void U_EXPORT2 UCNV_TO_U_CALLBACK_STOP_53(
++                  const void *context,
++                  UConverterToUnicodeArgs *toUArgs,
++                  const char* codeUnits,
++                  int32_t length,
++                  UConverterCallbackReason reason,
++                  UErrorCode * err)
++{
++    UCNV_TO_U_CALLBACK_STOP(context, toUArgs, codeUnits, length, reason, err);
++}
++
++U_STABLE void U_EXPORT2 UCNV_FROM_U_CALLBACK_STOP_53(
++                  const void *context,
++                  UConverterFromUnicodeArgs *fromUArgs,
++                  const UChar* codeUnits,
++                  int32_t length,
++                  UChar32 codePoint,
++                  UConverterCallbackReason reason,
++                  UErrorCode * err)
++{
++    UCNV_FROM_U_CALLBACK_STOP (context, fromUArgs, codeUnits, length, codePoint, reason, err);
++}
++
++U_STABLE void U_EXPORT2
++ucnv_setToUCallBack_53(UConverter * converter,
++                     UConverterToUCallback newAction,
++                     const void* newContext,
++                     UConverterToUCallback *oldAction,
++                     const void** oldContext,
++                     UErrorCode * err)
++{
++    ucnv_setToUCallBack(converter, newAction, newContext, oldAction, oldContext, err);
++}
++
++U_STABLE void U_EXPORT2
++ucnv_setFromUCallBack_53(UConverter * converter,
++                       UConverterFromUCallback newAction,
++                       const void *newContext,
++                       UConverterFromUCallback *oldAction,
++                       const void **oldContext,
++                       UErrorCode * err)
++{
++    ucnv_setFromUCallBack(converter, newAction, newContext, oldAction, oldContext, err);
++}
++
++U_STABLE void U_EXPORT2
++ucnv_convertEx_53(UConverter *targetCnv, UConverter *sourceCnv,
++               char **target, const char *targetLimit,
++               const char **source, const char *sourceLimit,
++               UChar *pivotStart, UChar **pivotSource,
++               UChar **pivotTarget, const UChar *pivotLimit,
++               UBool reset, UBool flush,
++               UErrorCode *pErrorCode)
++{
++    ucnv_convertEx(targetCnv, sourceCnv, target, targetLimit, source, sourceLimit,
++                   pivotStart, pivotSource, pivotTarget, pivotLimit, reset, flush,
++                   pErrorCode);
++}
+-- 
+2.25.4
+

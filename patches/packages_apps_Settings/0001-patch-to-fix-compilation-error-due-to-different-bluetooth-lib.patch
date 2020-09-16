@@ -1,0 +1,35 @@
+From 92f29cad60e8a9272fddc24e9427f0072c2de943 Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Sat, 1 Jul 2017 23:29:17 +0800
+Subject: [PATCH] patch to fix compilation error due to different bluetooth lib
+
+Change-Id: I8ade2ec7b0c28e40e53486848a4337c66ba5e354
+---
+ .../settings/bluetooth/DevicePickerFragment.java   | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/src/com/android/settings/bluetooth/DevicePickerFragment.java b/src/com/android/settings/bluetooth/DevicePickerFragment.java
+index 9fa40286610..04dc89b75da 100644
+--- a/src/com/android/settings/bluetooth/DevicePickerFragment.java
++++ b/src/com/android/settings/bluetooth/DevicePickerFragment.java
+@@ -117,13 +117,13 @@ public void onPause() {
+         /* Check if any device was selected, if no device selected
+          * send  ACTION_DEVICE_NOT_SELECTED intent, otherwise
+          * don;t do anything */
+-        if (!mDeviceSelected) {
+-            Intent intent = new Intent(BluetoothDevicePicker.ACTION_DEVICE_NOT_SELECTED);
+-            if (mLaunchPackage != null && mLaunchClass != null) {
+-                intent.setClassName(mLaunchPackage, mLaunchClass);
+-            }
+-            getActivity().sendBroadcast(intent);
+-        }
++        // if (!mDeviceSelected) {
++        //     Intent intent = new Intent(BluetoothDevicePicker.ACTION_DEVICE_NOT_SELECTED);
++        //     if (mLaunchPackage != null && mLaunchClass != null) {
++        //         intent.setClassName(mLaunchPackage, mLaunchClass);
++        //     }
++        //     getActivity().sendBroadcast(intent);
++        // }
+     }
+ 
+     @Override

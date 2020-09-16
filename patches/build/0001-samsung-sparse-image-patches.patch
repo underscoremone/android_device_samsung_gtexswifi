@@ -1,0 +1,57 @@
+From 2ba60ee477ce68ee596986cc2673d62a5c071b02 Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Mon, 3 Jul 2017 08:40:40 +0800
+Subject: [PATCH] samsung sparse image patches
+
+Change-Id: Ic0a8b29583b3fce21a348d929dfbe3d4db749106
+---
+ tools/releasetools/sparse_img.py | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/tools/releasetools/sparse_img.py b/tools/releasetools/sparse_img.py
+index 4ba7560df..71c9c4f46 100644
+--- a/tools/releasetools/sparse_img.py
++++ b/tools/releasetools/sparse_img.py
+@@ -35,8 +35,8 @@ class SparseImage(object):
+                mode="rb", build_map=True):
+     self.simg_f = f = open(simg_fn, mode)
+ 
+-    header_bin = f.read(28)
+-    header = struct.unpack("<I4H4I", header_bin)
++    header_bin = f.read(32)
++    header = struct.unpack("<I4H5I", header_bin)
+ 
+     magic = header[0]
+     major_version = header[1]
+@@ -52,10 +52,10 @@ class SparseImage(object):
+     if major_version != 1 or minor_version != 0:
+       raise ValueError("I know about version 1.0, but this is version %u.%u" %
+                        (major_version, minor_version))
+-    if file_hdr_sz != 28:
++    if file_hdr_sz != 32:
+       raise ValueError("File header size was expected to be 28, but is %u." %
+                        (file_hdr_sz,))
+-    if chunk_hdr_sz != 12:
++    if chunk_hdr_sz != 16:
+       raise ValueError("Chunk header size was expected to be 12, but is %u." %
+                        (chunk_hdr_sz,))
+ 
+@@ -71,12 +71,12 @@ class SparseImage(object):
+     self.clobbered_blocks = rangelib.RangeSet(data=clobbered_blocks)
+ 
+     for i in range(total_chunks):
+-      header_bin = f.read(12)
+-      header = struct.unpack("<2H2I", header_bin)
++      header_bin = f.read(16)
++      header = struct.unpack("<2H3I", header_bin)
+       chunk_type = header[0]
+       chunk_sz = header[2]
+       total_sz = header[3]
+-      data_sz = total_sz - 12
++      data_sz = total_sz - 16
+ 
+       if chunk_type == 0xCAC1:
+         if data_sz != (chunk_sz * blk_sz):
+-- 
+2.25.4
+

@@ -1,0 +1,86 @@
+From 343900df8ff74dc8bec81f9a0f1f7edf960fccc0 Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Wed, 28 Jun 2017 06:15:34 +0800
+Subject: [PATCH] patch to Allow LD_SHIMS
+
+Change-Id: Ia8dc03676a0b89a51bfddaee0cd1e111c8bf5be5
+---
+ libc/bionic/libc_init_common.cpp | 2 +-
+ libc/include/stdio.h             | 2 ++
+ libc/stdio/stdio.cpp             | 4 ++++
+ linker/linker.cpp                | 4 ++--
+ 4 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/libc/bionic/libc_init_common.cpp b/libc/bionic/libc_init_common.cpp
+index 71c0b5ff0..ffb0d5dc4 100644
+--- a/libc/bionic/libc_init_common.cpp
++++ b/libc/bionic/libc_init_common.cpp
+@@ -243,7 +243,7 @@ static bool __is_unsafe_environment_variable(const char* name) {
+     "LD_ORIGIN_PATH",
+     "LD_PRELOAD",
+     "LD_PROFILE",
+-    "LD_SHIM_LIBS",
++    // "LD_SHIM_LIBS",
+     "LD_SHOW_AUXV",
+     "LD_USE_LOAD_BIAS",
+     "LOCALDOMAIN",
+diff --git a/libc/include/stdio.h b/libc/include/stdio.h
+index 623995b29..a93b7eeb2 100644
+--- a/libc/include/stdio.h
++++ b/libc/include/stdio.h
+@@ -183,6 +183,7 @@ FILE* funopen(const void*,
+ int fgetpos(FILE*, fpos_t*);
+ int fsetpos(FILE*, const fpos_t*);
+ int fseeko(FILE*, off_t, int);
++
+ off_t ftello(FILE*);
+ #  if defined(__USE_BSD)
+ FILE* funopen(const void*,
+@@ -210,6 +211,7 @@ FILE* freopen(const char* __restrict, const char* __restrict, FILE* __restrict);
+ FILE* freopen64(const char* __restrict, const char* __restrict, FILE* __restrict);
+ FILE* tmpfile(void);
+ FILE* tmpfile64(void);
++int	 vsnprintx(char * __restrict, size_t, const char * __restrict, __va_list);
+ 
+ #if __ISO_C_VISIBLE >= 1999 || __BSD_VISIBLE
+ int	 snprintf(char * __restrict, size_t, const char * __restrict, ...)
+diff --git a/libc/stdio/stdio.cpp b/libc/stdio/stdio.cpp
+index 1c31a277f..f20112167 100644
+--- a/libc/stdio/stdio.cpp
++++ b/libc/stdio/stdio.cpp
+@@ -252,6 +252,10 @@ FILE* fdopen(int fd, const char* mode) {
+   return __fopen(fd, flags);
+ }
+ 
++int	 vsnprintx(char * __restrict, size_t, const char * __restrict, __va_list) {
++  return 0;
++}
++
+ // Re-direct an existing, open (probably) file to some other file.
+ // ANSI is written such that the original file gets closed if at
+ // all possible, no matter what.
+diff --git a/linker/linker.cpp b/linker/linker.cpp
+index 29d1f2fb6..4da3682c1 100644
+--- a/linker/linker.cpp
++++ b/linker/linker.cpp
+@@ -4334,7 +4334,7 @@ static ElfW(Addr) __linker_init_post_relocation(KernelArgumentBlock& args, ElfW(
+   const char* ldpath_env = nullptr;
+   const char* ldpreload_env = nullptr;
+   const char* ldshim_libs_env = nullptr;
+-  if (!getauxval(AT_SECURE)) {
++  // if (!getauxval(AT_SECURE)) {
+     ldpath_env = getenv("LD_LIBRARY_PATH");
+     if (ldpath_env != nullptr) {
+       INFO("[ LD_LIBRARY_PATH set to \"%s\" ]", ldpath_env);
+@@ -4344,7 +4344,7 @@ static ElfW(Addr) __linker_init_post_relocation(KernelArgumentBlock& args, ElfW(
+       INFO("[ LD_PRELOAD set to \"%s\" ]", ldpreload_env);
+     }
+     ldshim_libs_env = getenv("LD_SHIM_LIBS");
+-  }
++  // }
+ 
+   struct stat file_stat;
+   // Stat "/proc/self/exe" instead of executable_path because
+-- 
+2.25.4
+

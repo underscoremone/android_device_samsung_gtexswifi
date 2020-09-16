@@ -1,0 +1,114 @@
+From b4d08ec01b5d3960ab9450901c95a832f2cb74af Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Wed, 28 Jun 2017 06:40:25 +0800
+Subject: [PATCH] patches to allow flashing img properly to gtexslte
+
+Change-Id: I78133984ebd3d6ffe562827974dc0be87b646fb7
+---
+ include/utils/AndroidThreads.h | 3 +++
+ init/init.cpp                  | 2 +-
+ libsparse/output_file.c        | 3 +++
+ libsparse/sparse_format.h      | 3 +++
+ libutils/Threads.cpp           | 9 +++++++++
+ 5 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/include/utils/AndroidThreads.h b/include/utils/AndroidThreads.h
+index 4c2dd49f6..54eba7e15 100644
+--- a/include/utils/AndroidThreads.h
++++ b/include/utils/AndroidThreads.h
+@@ -73,6 +73,9 @@ extern void androidSetCreateThreadFunc(android_create_thread_fn func);
+ // ------------------------------------------------------------------
+ // Extra functions working with raw pids.
+ 
++// Get pid for the current thread.
++extern pid_t androidGetTid();
++
+ #if defined(__ANDROID__)
+ // Change the priority AND scheduling group of a particular thread.  The priority
+ // should be one of the ANDROID_PRIORITY constants.  Returns INVALID_OPERATION
+diff --git a/init/init.cpp b/init/init.cpp
+index 7a370596e..0899e6fc5 100755
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -366,7 +366,7 @@ static void export_kernel_boot_props() {
+         { "ro.boot.mode",       "ro.bootmode",   "unknown", },
+         { "ro.boot.baseband",   "ro.baseband",   "unknown", },
+         { "ro.boot.bootloader", "ro.bootloader", "unknown", },
+-        { "ro.boot.hardware",   "ro.hardware",   "unknown", },
++        { "ro.boot.hardware",   "ro.hardware",   "sc8830", },
+ #ifndef IGNORE_RO_BOOT_REVISION
+         { "ro.boot.revision",   "ro.revision",   "0", },
+ #endif
+diff --git a/libsparse/output_file.c b/libsparse/output_file.c
+index cd3080038..da5b076c3 100644
+--- a/libsparse/output_file.c
++++ b/libsparse/output_file.c
+@@ -353,6 +353,7 @@ static int write_sparse_skip_chunk(struct output_file *out, int64_t skip_len)
+ 	chunk_header.reserved1 = 0;
+ 	chunk_header.chunk_sz = skip_len / out->block_size;
+ 	chunk_header.total_sz = CHUNK_HEADER_LEN;
++	chunk_header.samsung_magic = SAMSUNG_CHUNK_MAGIC;
+ 	ret = out->ops->write(out, &chunk_header, sizeof(chunk_header));
+ 	if (ret < 0)
+ 		return -1;
+@@ -378,6 +379,7 @@ static int write_sparse_fill_chunk(struct output_file *out, unsigned int len,
+ 	chunk_header.reserved1 = 0;
+ 	chunk_header.chunk_sz = rnd_up_len / out->block_size;
+ 	chunk_header.total_sz = CHUNK_HEADER_LEN + sizeof(fill_val);
++	chunk_header.samsung_magic = SAMSUNG_CHUNK_MAGIC;
+ 	ret = out->ops->write(out, &chunk_header, sizeof(chunk_header));
+ 
+ 	if (ret < 0)
+@@ -414,6 +416,7 @@ static int write_sparse_data_chunk(struct output_file *out, unsigned int len,
+ 	chunk_header.reserved1 = 0;
+ 	chunk_header.chunk_sz = rnd_up_len / out->block_size;
+ 	chunk_header.total_sz = CHUNK_HEADER_LEN + rnd_up_len;
++	chunk_header.samsung_magic = SAMSUNG_CHUNK_MAGIC;
+ 	ret = out->ops->write(out, &chunk_header, sizeof(chunk_header));
+ 
+ 	if (ret < 0)
+diff --git a/libsparse/sparse_format.h b/libsparse/sparse_format.h
+index c41f12a54..8d0f3e99a 100644
+--- a/libsparse/sparse_format.h
++++ b/libsparse/sparse_format.h
+@@ -30,9 +30,11 @@ typedef struct sparse_header {
+   __le32	image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
+ 				/* as 0. Standard 802.3 polynomial, use a Public Domain */
+ 				/* table implementation */
++  __le32  samsung_reserved;
+ } sparse_header_t;
+ 
+ #define SPARSE_HEADER_MAGIC	0xed26ff3a
++#define SAMSUNG_CHUNK_MAGIC 0xf7776f58
+ 
+ #define CHUNK_TYPE_RAW		0xCAC1
+ #define CHUNK_TYPE_FILL		0xCAC2
+@@ -44,6 +46,7 @@ typedef struct chunk_header {
+   __le16	reserved1;
+   __le32	chunk_sz;	/* in blocks in output image */
+   __le32	total_sz;	/* in bytes of chunk input file including chunk header and data */
++  __le32  samsung_magic;
+ } chunk_header_t;
+ 
+ /* Following a Raw or Fill or CRC32 chunk is data.
+diff --git a/libutils/Threads.cpp b/libutils/Threads.cpp
+index 7a56fc5c4..502584d62 100644
+--- a/libutils/Threads.cpp
++++ b/libutils/Threads.cpp
+@@ -302,6 +302,15 @@ void androidSetCreateThreadFunc(android_create_thread_fn func)
+     gCreateThreadFn = func;
+ }
+ 
++pid_t androidGetTid()
++{
++#ifdef HAVE_GETTID
++    return gettid();
++#else
++    return getpid();
++#endif
++}
++
+ #if defined(__ANDROID__)
+ int androidSetThreadPriority(pid_t tid, int pri)
+ {
+

@@ -1,0 +1,716 @@
+From cdac08bc5ee106e53aad2a3fc7d7b6a429fdefe8 Mon Sep 17 00:00:00 2001
+From: Joseph Emmanuel Dayo <joseph.dayo@gmail.com>
+Date: Thu, 29 Jun 2017 05:42:19 +0800
+Subject: [PATCH] bluetooth patches for gtexslte
+
+Change-Id: I99dfabcdddd8a90d155916165fbdd6626efbb85c
+---
+ include/hardware/bluetooth.h    |  12 --
+ include/hardware/bt_av.h        |  23 +---
+ include/hardware/bt_hf.h        |  65 ++++------
+ include/hardware/bt_hf_client.h |  12 --
+ include/hardware/bt_hh.h        |   8 +-
+ include/hardware/bt_rc.h        | 212 ++++----------------------------
+ include/hardware/bt_sock.h      |  19 ---
+ 7 files changed, 50 insertions(+), 301 deletions(-)
+
+diff --git a/include/hardware/bluetooth.h b/include/hardware/bluetooth.h
+index c169c9f..b9b3b12 100644
+--- a/include/hardware/bluetooth.h
++++ b/include/hardware/bluetooth.h
+@@ -267,7 +267,6 @@ typedef struct
+ /** Bluetooth Out Of Band data for bonding */
+ typedef struct
+ {
+-   uint8_t le_bt_dev_addr[7]; /* LE Bluetooth Device Address */
+    uint8_t c192[16]; /* Simple Pairing Hash C-192 */
+    uint8_t r192[16]; /* Simple Pairing Randomizer R-192 */
+    uint8_t c256[16]; /* Simple Pairing Hash C-256 */
+@@ -377,10 +376,6 @@ typedef void (*callback_thread_event)(bt_cb_thread_evt evt);
+ /* Receive any HCI event from controller. Must be in DUT Mode for this callback to be received */
+ typedef void (*dut_mode_recv_callback)(uint16_t opcode, uint8_t *buf, uint8_t len);
+ 
+-/** Bluetooth HCI event Callback */
+-/* Receive any HCI event from controller for raw commands */
+-typedef void (*hci_event_recv_callback)(uint8_t event_code, uint8_t *buf, uint8_t len);
+-
+ /* LE Test mode callbacks
+ * This callback shall be invoked whenever the le_tx_test, le_rx_test or le_test_end is invoked
+ * The num_packets is valid only for le_test_end command */
+@@ -418,7 +413,6 @@ typedef struct {
+     dut_mode_recv_callback dut_mode_recv_cb;
+     le_test_mode_callback le_test_mode_cb;
+     energy_info_callback energy_info_cb;
+-    hci_event_recv_callback hci_event_recv_cb;
+ } bt_callbacks_t;
+ 
+ typedef void (*alarm_cb)(void *data);
+@@ -555,10 +549,6 @@ typedef struct {
+ 
+     /* Send any test HCI (vendor-specific) command to the controller. Must be in DUT Mode */
+     int (*dut_mode_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
+-
+-    /* Send any test HCI command to the controller. */
+-    int (*hci_cmd_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
+-
+     /** BLE Test Mode APIs */
+     /* opcode MUST be one of: LE_Receiver_Test, LE_Transmitter_Test, LE_Test_End */
+     int (*le_test_mode)(uint16_t opcode, uint8_t *buf, uint8_t len);
+@@ -600,8 +590,6 @@ typedef struct {
+      * NOTE: |feature| has to match an item defined in interop_feature_t (interop.h).
+      */
+     void (*interop_database_add)(uint16_t feature, const bt_bdaddr_t *addr, size_t len);
+-    /** BT stack Test interface */
+-    const void* (*get_testapp_interface)(int test_app_profile);
+ } bt_interface_t;
+ 
+ /** TODO: Need to add APIs for Service Discovery, Service authorization and
+diff --git a/include/hardware/bt_av.h b/include/hardware/bt_av.h
+index 5b72eb1..2a822e3 100644
+--- a/include/hardware/bt_av.h
++++ b/include/hardware/bt_av.h
+@@ -50,11 +50,6 @@ typedef void (* btav_connection_state_callback)(btav_connection_state_t state,
+ typedef void (* btav_audio_state_callback)(btav_audio_state_t state,
+                                                bt_bdaddr_t *bd_addr);
+ 
+-/** Callback for connection priority of device for incoming connection
+- * btav_connection_priority_t
+- */
+-typedef void (* btav_connection_priority_callback)(bt_bdaddr_t *bd_addr);
+-
+ /** Callback for audio configuration change.
+  *  Used only for the A2DP sink interface.
+  *  state will have one of the values from btav_audio_state_t
+@@ -65,15 +60,6 @@ typedef void (* btav_audio_config_callback)(bt_bdaddr_t *bd_addr,
+                                                 uint32_t sample_rate,
+                                                 uint8_t channel_count);
+ 
+-/** Callback for updating apps for A2dp multicast state.
+- */
+-
+-typedef void (* btav_is_multicast_enabled_callback)(int state);
+-
+-/** Callback to notify reconfig a2dp when A2dp Soft Handoff is triggered
+-*/
+-typedef void(* btav_reconfig_a2dp_trigger_callback)(int reason, bt_bdaddr_t *bd_addr);
+-
+ /** BT-AV callback structure. */
+ typedef struct {
+     /** set to sizeof(btav_callbacks_t) */
+@@ -81,9 +67,6 @@ typedef struct {
+     btav_connection_state_callback  connection_state_cb;
+     btav_audio_state_callback audio_state_cb;
+     btav_audio_config_callback audio_config_cb;
+-    btav_connection_priority_callback connection_priority_cb;
+-    btav_is_multicast_enabled_callback multicast_state_cb;
+-    btav_reconfig_a2dp_trigger_callback reconfig_a2dp_trigger_cb;
+ } btav_callbacks_t;
+ 
+ /**
+@@ -106,8 +89,7 @@ typedef struct {
+     /**
+      * Register the BtAv callbacks
+      */
+-    bt_status_t (*init)( btav_callbacks_t* callbacks , int max_a2dp_connections,
+-                        int a2dp_multicast_state, const char *offload_cap);
++    bt_status_t (*init)( btav_callbacks_t* callbacks );
+ 
+     /** connect to headset */
+     bt_status_t (*connect)( bt_bdaddr_t *bd_addr );
+@@ -123,9 +105,6 @@ typedef struct {
+ 
+     /** Sets the audio track gain. */
+     void  (*set_audio_track_gain)( float gain );
+-
+-    /** Send priority of device to stack*/
+-    void (*allow_connection)( int is_valid , bt_bdaddr_t *bd_addr);
+ } btav_interface_t;
+ 
+ __END_DECLS
+diff --git a/include/hardware/bt_hf.h b/include/hardware/bt_hf.h
+index 9d257b0..0a77675 100644
+--- a/include/hardware/bt_hf.h
++++ b/include/hardware/bt_hf.h
+@@ -65,15 +65,6 @@ typedef enum
+    BTHF_WBS_YES
+ }bthf_wbs_config_t;
+ 
+-/* BIND type*/
+-typedef enum
+-{
+-   BTHF_BIND_SET,
+-   BTHF_BIND_READ,
+-   BTHF_BIND_TEST
+-}bthf_bind_type_t;
+-
+-
+ /* CHLD - Call held handling */
+ typedef enum
+ {
+@@ -83,6 +74,20 @@ typedef enum
+     BTHF_CHLD_TYPE_ADDHELDTOCONF,            // Add all held calls to a conference
+ } bthf_chld_type_t;
+ 
++
++/* HF Indicators HFP 1.7 */
++typedef enum
++{
++    BTHF_HF_IND_ENHANCED_DRIVER_SAFETY = 1,
++    BTHF_HF_IND_BATTERY_LEVEL_STATUS = 2,
++} bthf_hf_ind_type_t;
++
++typedef enum
++{
++    BTHF_HF_IND_DISABLED = 0,
++    BTHF_HF_IND_ENABLED,
++} bthf_hf_ind_status_t;
++
+ /** Callback for connection state change.
+  *  state will have one of the values from BtHfConnectionState
+  */
+@@ -161,13 +166,14 @@ typedef void (* bthf_unknown_at_cmd_callback)(char *at_string, bt_bdaddr_t *bd_a
+  */
+ typedef void (* bthf_key_pressed_cmd_callback)(bt_bdaddr_t *bd_addr);
+ 
+-/** Callback for HF indicators (BIND)
++/** Callback for BIND. Pass the remote HF Indicators supported.
+  */
+-typedef void (* bthf_bind_cmd_callback)(char* hf_ind, bthf_bind_type_t type, bt_bdaddr_t *bd_addr);
++typedef void (* bthf_bind_cmd_callback)(char *at_string, bt_bdaddr_t *bd_addr);
+ 
+-/** Callback for HF indicator value (BIEV)
++/** Callback for BIEV. Pass the change in the Remote HF indicator values
+  */
+-typedef void (* bthf_biev_cmd_callback)(char* hf_ind_val, bt_bdaddr_t *bd_addr);
++typedef void (* bthf_biev_cmd_callback)(bthf_hf_ind_type_t ind_id, int ind_value,
++                                        bt_bdaddr_t *bd_addr);
+ 
+ /** BT-HF callback structure. */
+ typedef struct {
+@@ -189,9 +195,9 @@ typedef struct {
+     bthf_cops_cmd_callback          cops_cmd_cb;
+     bthf_clcc_cmd_callback          clcc_cmd_cb;
+     bthf_unknown_at_cmd_callback    unknown_at_cmd_cb;
++    bthf_bind_cmd_callback          bind_cb;
++    bthf_biev_cmd_callback          biev_cb;
+     bthf_key_pressed_cmd_callback   key_pressed_cmd_cb;
+-    bthf_bind_cmd_callback          bind_cmd_cb;
+-    bthf_biev_cmd_callback          biev_cmd_cb;
+ } bthf_callbacks_t;
+ 
+ /** Network Status */
+@@ -234,26 +240,10 @@ typedef enum {
+     BTHF_CALL_MPTY_TYPE_MULTI
+ } bthf_call_mpty_type_t;
+ 
+-typedef enum {
+-    BTHF_HF_INDICATOR_STATE_DISABLED = 0,
+-    BTHF_HF_INDICATOR_STATE_ENABLED
+-} bthf_hf_indicator_status_t;
+-
+ typedef enum {
+     BTHF_CALL_ADDRTYPE_UNKNOWN = 0x81,
+     BTHF_CALL_ADDRTYPE_INTERNATIONAL = 0x91
+ } bthf_call_addrtype_t;
+-
+-typedef enum {
+-    BTHF_VOIP_CALL_NETWORK_TYPE_MOBILE = 0,
+-    BTHF_VOIP_CALL_NETWORK_TYPE_WIFI
+-} bthf_voip_call_network_type_t;
+-
+-typedef enum {
+-    BTHF_VOIP_STATE_STOPPED = 0,
+-    BTHF_VOIP_STATE_STARTED
+-} bthf_voip_state_t;
+-
+ /** Represents the standard BT-HF interface. */
+ typedef struct {
+ 
+@@ -330,16 +320,9 @@ typedef struct {
+     /** configureation for the SCO codec */
+     bt_status_t (*configure_wbs)( bt_bdaddr_t *bd_addr ,bthf_wbs_config_t config );
+ 
+-    /** Response for BIND READ command and activation/deactivation of  HF indicator */
+-    bt_status_t (*bind_response) (int anum, bthf_hf_indicator_status_t status,
+-                                  bt_bdaddr_t *bd_addr);
+-
+-    /** Response for BIND TEST command */
+-    bt_status_t (*bind_string_response) (const char* result, bt_bdaddr_t *bd_addr);
+-
+-    /** Sends connectivity network type used by Voip currently to stack */
+-    bt_status_t (*voip_network_type_wifi) (bthf_voip_state_t is_voip_started,
+-                                           bthf_voip_call_network_type_t is_network_wifi);
++    /** Response for HF Indicator change (+BIND) */
++    bt_status_t (*bind_response)(bthf_hf_ind_type_t ind_id, bthf_hf_ind_status_t ind_status,
++                                 bt_bdaddr_t *bd_addr);
+ } bthf_interface_t;
+ 
+ __END_DECLS
+diff --git a/include/hardware/bt_hf_client.h b/include/hardware/bt_hf_client.h
+index 0577e97..8acf1b2 100644
+--- a/include/hardware/bt_hf_client.h
++++ b/include/hardware/bt_hf_client.h
+@@ -266,16 +266,6 @@ typedef void (* bthf_client_last_voice_tag_number_callback) (const char *number)
+  */
+ typedef void (* bthf_client_ring_indication_callback) (void);
+ 
+-/**
+- * Callback for sending cgmi indication to app
+- */
+-typedef void (* bthf_client_cgmi_indication_callback) (const char *str);
+-
+-/**
+- * Callback for sending cgmm indication to app
+- */
+-typedef void (* bthf_client_cgmm_indication_callback) (const char *str);
+-
+ /** BT-HF callback structure. */
+ typedef struct {
+     /** set to sizeof(BtHfClientCallbacks) */
+@@ -301,8 +291,6 @@ typedef struct {
+     bthf_client_in_band_ring_tone_callback in_band_ring_tone_cb;
+     bthf_client_last_voice_tag_number_callback last_voice_tag_number_callback;
+     bthf_client_ring_indication_callback   ring_indication_cb;
+-    bthf_client_cgmi_indication_callback   cgmi_cb;
+-    bthf_client_cgmm_indication_callback   cgmm_cb;
+ } bthf_client_callbacks_t;
+ 
+ /** Represents the standard BT-HF interface. */
+diff --git a/include/hardware/bt_hh.h b/include/hardware/bt_hh.h
+index ece3c11..dad9586 100644
+--- a/include/hardware/bt_hh.h
++++ b/include/hardware/bt_hh.h
+@@ -165,12 +165,6 @@ typedef struct {
+     /** Set the HID proto mode. */
+     bt_status_t (*set_protocol)(bt_bdaddr_t *bd_addr, bthh_protocol_mode_t protocolMode);
+ 
+-    /** Get the HID Idle Time */
+-    bt_status_t (*get_idle_time)(bt_bdaddr_t *bd_addr);
+-
+-    /** Set the HID Idle Time */
+-    bt_status_t (*set_idle_time)(bt_bdaddr_t *bd_addr, uint8_t idleTime);
+-
+     /** Send a GET_REPORT to HID device. */
+     bt_status_t (*get_report)(bt_bdaddr_t *bd_addr, bthh_report_type_t reportType, uint8_t reportId, int bufferSize);
+ 
+@@ -180,7 +174,7 @@ typedef struct {
+     /** Send data to HID device. */
+     bt_status_t (*send_data)(bt_bdaddr_t *bd_addr, char* data);
+ 
+-    /** Closes the interface. */
++	/** Closes the interface. */
+     void  (*cleanup)( void );
+ 
+ } bthh_interface_t;
+diff --git a/include/hardware/bt_rc.h b/include/hardware/bt_rc.h
+index d0cf9c8..1e2c293 100644
+--- a/include/hardware/bt_rc.h
++++ b/include/hardware/bt_rc.h
+@@ -1,7 +1,4 @@
+ /*
+- * Copyright (C) 2013-2015, The Linux Foundation. All rights reserved.
+- * Not a Contribution.
+- *
+  * Copyright (C) 2012 The Android Open Source Project
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -28,14 +25,7 @@ __BEGIN_DECLS
+ #define BTRC_MAX_APP_SETTINGS       8
+ #define BTRC_MAX_FOLDER_DEPTH       4
+ #define BTRC_MAX_APP_ATTR_SIZE      16
+-#define BTRC_MAX_ELEM_ATTR_SIZE     8
+-#define BTRC_CHARSET_UTF8           0x006A
+-#define BTRC_BROWSE_PDU_HEADER      3
+-#define BTRC_AVCTP_HEADER           3
+-#define BTRC_BROWSE_PKT_3TO7OCT_LEN 5
+-#define BTRC_FOLDER_ITEM_HEADER     14
+-#define BTRC_ITEM_ATTRIBUTE_HEADER  8
+-#define BTRC_ITEM_TYPE_N_LEN_OCT    3
++#define BTRC_MAX_ELEM_ATTR_SIZE     7
+ 
+ typedef uint8_t btrc_uid_t[BTRC_UID_SIZE];
+ 
+@@ -62,24 +52,11 @@ typedef enum {
+     BTRC_EVT_TRACK_REACHED_START = 0x04,
+     BTRC_EVT_PLAY_POS_CHANGED = 0x05,
+     BTRC_EVT_APP_SETTINGS_CHANGED = 0x08,
+-    BTRC_EVT_NOW_PLAYING_CONTENT_CHANGED = 0x09,
+-    BTRC_EVT_AVAILABLE_PLAYERS_CHANGED = 0x0a,
+-    BTRC_EVT_ADDRESSED_PLAYER_CHANGED = 0x0b,
+ } btrc_event_id_t;
+ 
+-//used for Scope
+-typedef enum {
+-    BTRC_EVT_MEDIA_PLAYLIST = 0,
+-    BTRC_EVT_MEDIA_VIRTUALFILESYST = 1,
+-    BTRC_EVT_SEARCH = 2,
+-    BTRC_EVT_NOWPLAYING = 3,
+-    BTRC_EVT_MAX_BROWSE = 4,
+-} btrc_browse_folderitem_t;
+-
+ typedef enum {
+     BTRC_NOTIFICATION_TYPE_INTERIM = 0,
+     BTRC_NOTIFICATION_TYPE_CHANGED = 1,
+-    BTRC_NOTIFICATION_TYPE_REJECT = 2,
+ } btrc_notification_type_t;
+ 
+ typedef enum {
+@@ -97,7 +74,6 @@ typedef enum {
+     BTRC_MEDIA_ATTR_NUM_TRACKS = 0x05,
+     BTRC_MEDIA_ATTR_GENRE = 0x06,
+     BTRC_MEDIA_ATTR_PLAYING_TIME = 0x07,
+-    BTRC_MEDIA_ATTR_COVER_ART = 0x08,
+ } btrc_media_attr_t;
+ 
+ typedef enum {
+@@ -121,12 +97,6 @@ typedef enum {
+     BTRC_STS_NO_ERROR       = 0x04  /* Operation Success */
+ } btrc_status_t;
+ 
+-typedef enum {
+-    BTRC_TYPE_MEDIA_PLAYER = 0x01,
+-    BTRC_TYPE_FOLDER = 0x02,
+-    BTRC_TYPE_MEDIA_ELEMENT = 0x03
+-} btrc_folder_list_item_type_t;
+-
+ typedef struct {
+     uint8_t num_attr;
+     uint8_t attr_ids[BTRC_MAX_APP_SETTINGS];
+@@ -169,7 +139,6 @@ typedef union
+     btrc_uid_t track; /* queue position in NowPlaying */
+     uint32_t song_pos;
+     btrc_player_settings_t player_setting;
+-    uint16_t player_id;
+ } btrc_register_notification_t;
+ 
+ typedef struct {
+@@ -185,158 +154,54 @@ typedef struct {
+ /** Callback for the controller's supported feautres */
+ typedef void (* btrc_remote_features_callback)(bt_bdaddr_t *bd_addr,
+                                                       btrc_remote_features_t features);
+-#define BTRC_FEATURE_MASK_SIZE 16
+-
+-typedef uint8_t btrc_feature_mask_t[BTRC_FEATURE_MASK_SIZE];
+-
+-typedef struct {
+-    uint16_t              charset_id;
+-    uint16_t              str_len;
+-    uint8_t               *p_str;
+-} btrc_player_full_name_t;
+-
+-typedef struct
+-{
+-    uint32_t              sub_type;
+-    uint16_t              player_id;
+-    uint8_t               major_type;
+-    uint8_t               play_status;
+-    btrc_feature_mask_t   features;       /* Supported feature bit mask*/
+-    btrc_player_full_name_t     name;           /* The player name, name length and character set id.*/
+-} btrc_folder_list_item_player_t;
+-
+-typedef struct
+-{
+-    uint64_t                    uid;
+-    uint8_t                     type;
+-    uint8_t                     playable;
+-    btrc_player_full_name_t     name;
+-} btrc_folder_list_item_folder_t;
+-
+-typedef struct
+-{
+-    uint32_t                    attr_id;
+-    btrc_player_full_name_t     name;
+-} btrc_attr_entry_t;
+-
+-typedef struct
+-{
+-    uint64_t                    uid;
+-    uint8_t                     type;
+-    uint8_t                     attr_count;
+-    btrc_player_full_name_t     name;
+-    btrc_attr_entry_t*          p_attr_list;
+-} btrc_folder_list_item_media_t;
+-
+-typedef struct {
+-    uint16_t              str_len;
+-    uint8_t               *p_str;
+-} btrc_name_t;
+-
+-/* SetBrowsedPlayer */
+-typedef struct
+-{
+-    uint32_t              num_items;
+-    uint16_t              uid_counter;
+-    uint16_t              charset_id;
+-    uint8_t               status;
+-    uint8_t               folder_depth;
+-    btrc_name_t           *p_folders;
+-} btrc_set_browsed_player_rsp_t;
+-
+-typedef struct
+-{
+-    uint8_t                          item_type;
+-    union
+-    {
+-        btrc_folder_list_item_player_t   player;
+-        btrc_folder_list_item_folder_t   folder;
+-        btrc_folder_list_item_media_t    media;
+-    } u;
+-} btrc_folder_list_item_t;
+-
+-/* GetFolderItems */
+-typedef struct
+-{
+-    uint16_t                  uid_counter;
+-    uint16_t                  item_count;
+-    uint8_t                   status;
+-    btrc_folder_list_item_t   *p_item_list;
+-} btrc_folder_list_entries_t;
+ 
+ /** Callback for play status request */
+-typedef void (* btrc_get_play_status_callback)(bt_bdaddr_t *bd_addr);
++typedef void (* btrc_get_play_status_callback)();
+ 
+ /** Callback for list player application attributes (Shuffle, Repeat,...) */
+-typedef void (* btrc_list_player_app_attr_callback)(bt_bdaddr_t *bd_addr);
++typedef void (* btrc_list_player_app_attr_callback)();
+ 
+ /** Callback for list player application attributes (Shuffle, Repeat,...) */
+-typedef void (* btrc_list_player_app_values_callback)(btrc_player_attr_t attr_id,
+-        bt_bdaddr_t *bd_addr);
++typedef void (* btrc_list_player_app_values_callback)(btrc_player_attr_t attr_id);
+ 
+ /** Callback for getting the current player application settings value
+ **  num_attr: specifies the number of attribute ids contained in p_attrs
+ */
+-typedef void (* btrc_get_player_app_value_callback) (uint8_t num_attr, btrc_player_attr_t *p_attrs,
+-        bt_bdaddr_t *bd_addr);
++typedef void (* btrc_get_player_app_value_callback) (uint8_t num_attr, btrc_player_attr_t *p_attrs);
+ 
+ /** Callback for getting the player application settings attributes' text
+ **  num_attr: specifies the number of attribute ids contained in p_attrs
+ */
+-typedef void (* btrc_get_player_app_attrs_text_callback) (uint8_t num_attr,
+-        btrc_player_attr_t *p_attrs, bt_bdaddr_t *bd_addr);
++typedef void (* btrc_get_player_app_attrs_text_callback) (uint8_t num_attr, btrc_player_attr_t *p_attrs);
+ 
+ /** Callback for getting the player application settings values' text
+ **  num_attr: specifies the number of value ids contained in p_vals
+ */
+-typedef void (* btrc_get_player_app_values_text_callback) (uint8_t attr_id,
+-         uint8_t num_val, uint8_t *p_vals, bt_bdaddr_t *bd_addr);
++typedef void (* btrc_get_player_app_values_text_callback) (uint8_t attr_id, uint8_t num_val, uint8_t *p_vals);
+ 
+ /** Callback for setting the player application settings values */
+-typedef void (* btrc_set_player_app_value_callback) (btrc_player_settings_t *p_vals,
+-        bt_bdaddr_t *bd_addr);
++typedef void (* btrc_set_player_app_value_callback) (btrc_player_settings_t *p_vals);
+ 
+ /** Callback to fetch the get element attributes of the current song
+ **  num_attr: specifies the number of attributes requested in p_attrs
+ */
+-typedef void (* btrc_get_element_attr_callback) (uint8_t num_attr, btrc_media_attr_t *p_attrs,
+-        bt_bdaddr_t *bd_addr);
++typedef void (* btrc_get_element_attr_callback) (uint8_t num_attr, btrc_media_attr_t *p_attrs);
+ 
+ /** Callback for register notification (Play state change/track change/...)
+ **  param: Is only valid if event_id is BTRC_EVT_PLAY_POS_CHANGED
+ */
+-typedef void (* btrc_register_notification_callback) (btrc_event_id_t event_id, uint32_t param,
+-        bt_bdaddr_t *bd_addr);
++typedef void (* btrc_register_notification_callback) (btrc_event_id_t event_id, uint32_t param);
+ 
+ /* AVRCP 1.4 Enhancements */
+ /** Callback for volume change on CT
+ **  volume: Current volume setting on the CT (0-127)
+ */
+-typedef void (* btrc_volume_change_callback) (uint8_t volume, uint8_t ctype, bt_bdaddr_t *bd_addr);
++typedef void (* btrc_volume_change_callback) (uint8_t volume, uint8_t ctype);
+ 
+ /** Callback for passthrough commands */
+-typedef void (* btrc_passthrough_cmd_callback) (int id, int key_state, bt_bdaddr_t *bd_addr);
++typedef void (* btrc_passthrough_cmd_callback) (int id, int key_state);
+ 
+ /** BT-RC Target callback structure. */
+-
+-typedef void (* btrc_get_folder_items_callback) (btrc_browse_folderitem_t id,
+-                  btrc_getfolderitem_t *param, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_set_addressed_player_callback) (uint32_t player_id, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_set_browsed_player_callback) (uint32_t player_id, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_change_path_callback) (uint8_t direction, uint64_t uid, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_play_item_callback) (uint8_t scope, uint64_t uid, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_get_item_attr_callback) (uint8_t scope, uint64_t uid,
+-        uint8_t num_attr, btrc_media_attr_t *p_attrs, uint32_t size, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_connection_state_callback) (bool state, bt_bdaddr_t *bd_addr);
+-
+-typedef void (* btrc_get_total_item_callback) (uint8_t scope, bt_bdaddr_t *bd_addr);
+-
+ typedef struct {
+     /** set to sizeof(BtRcCallbacks) */
+     size_t      size;
+@@ -352,14 +217,6 @@ typedef struct {
+     btrc_register_notification_callback         register_notification_cb;
+     btrc_volume_change_callback                 volume_change_cb;
+     btrc_passthrough_cmd_callback               passthrough_cmd_cb;
+-    btrc_get_folder_items_callback              get_folderitems_cb;
+-    btrc_set_addressed_player_callback          set_addrplayer_cb;
+-    btrc_set_browsed_player_callback            set_browsed_player_cb;
+-    btrc_change_path_callback                   change_path_cb;
+-    btrc_play_item_callback                     play_item_cb;
+-    btrc_get_item_attr_callback                 get_item_attr_cb;
+-    btrc_connection_state_callback              connection_state_cb;
+-    btrc_get_total_item_callback                get_tot_item_cb;
+ } btrc_callbacks_t;
+ 
+ /** Represents the standard BT-RC AVRCP Target interface. */
+@@ -370,54 +227,47 @@ typedef struct {
+     /**
+      * Register the BtRc callbacks
+      */
+-    bt_status_t (*init)( btrc_callbacks_t* callbacks , int max_avrcp_connections);
++    bt_status_t (*init)( btrc_callbacks_t* callbacks );
+ 
+     /** Respose to GetPlayStatus request. Contains the current
+     **  1. Play status
+     **  2. Song duration/length
+     **  3. Song position
+     */
+-    bt_status_t (*get_play_status_rsp)( btrc_play_status_t play_status, uint32_t song_len,
+-                 uint32_t song_pos, bt_bdaddr_t *bd_addr);
++    bt_status_t (*get_play_status_rsp)( btrc_play_status_t play_status, uint32_t song_len, uint32_t song_pos);
+ 
+     /** Lists the support player application attributes (Shuffle/Repeat/...)
+     **  num_attr: Specifies the number of attributes contained in the pointer p_attrs
+     */
+-    bt_status_t (*list_player_app_attr_rsp)( uint8_t num_attr, btrc_player_attr_t *p_attrs,
+-            bt_bdaddr_t *bd_addr);
++    bt_status_t (*list_player_app_attr_rsp)( int num_attr, btrc_player_attr_t *p_attrs);
+ 
+     /** Lists the support player application attributes (Shuffle Off/On/Group)
+     **  num_val: Specifies the number of values contained in the pointer p_vals
+     */
+-    bt_status_t (*list_player_app_value_rsp)( uint8_t num_val, uint8_t *p_vals,
+-            bt_bdaddr_t *bd_addr);
++    bt_status_t (*list_player_app_value_rsp)( int num_val, uint8_t *p_vals);
+ 
+     /** Returns the current application attribute values for each of the specified attr_id */
+-    bt_status_t (*get_player_app_value_rsp)( btrc_player_settings_t *p_vals,
+-            bt_bdaddr_t *bd_addr);
++    bt_status_t (*get_player_app_value_rsp)( btrc_player_settings_t *p_vals);
+ 
+     /** Returns the application attributes text ("Shuffle"/"Repeat"/...)
+     **  num_attr: Specifies the number of attributes' text contained in the pointer p_attrs
+     */
+-    bt_status_t (*get_player_app_attr_text_rsp)( int num_attr, btrc_player_setting_text_t *p_attrs,
+-            bt_bdaddr_t *bd_addr);
++    bt_status_t (*get_player_app_attr_text_rsp)( int num_attr, btrc_player_setting_text_t *p_attrs);
+ 
+     /** Returns the application attributes text ("Shuffle"/"Repeat"/...)
+     **  num_attr: Specifies the number of attribute values' text contained in the pointer p_vals
+     */
+-    bt_status_t (*get_player_app_value_text_rsp)( int num_val, btrc_player_setting_text_t *p_vals,
+-            bt_bdaddr_t *bd_addr);
++    bt_status_t (*get_player_app_value_text_rsp)( int num_val, btrc_player_setting_text_t *p_vals);
+ 
+     /** Returns the current songs' element attributes text ("Title"/"Album"/"Artist")
+     **  num_attr: Specifies the number of attributes' text contained in the pointer p_attrs
+     */
+-    bt_status_t (*get_element_attr_rsp)( uint8_t num_attr, btrc_element_attr_val_t *p_attrs,
+-            bt_bdaddr_t *bd_addr);
++    bt_status_t (*get_element_attr_rsp)( uint8_t num_attr, btrc_element_attr_val_t *p_attrs);
+ 
+     /** Response to set player attribute request ("Shuffle"/"Repeat")
+     **  rsp_status: Status of setting the player attributes for the current media player
+     */
+-    bt_status_t (*set_player_app_value_rsp)(btrc_status_t rsp_status, bt_bdaddr_t *bd_addr);
++    bt_status_t (*set_player_app_value_rsp)(btrc_status_t rsp_status);
+ 
+     /* Response to the register notification request (Play state change/track change/...).
+     ** event_id: Refers to the event_id this notification change corresponds too
+@@ -426,8 +276,7 @@ typedef struct {
+     */
+     bt_status_t (*register_notification_rsp)(btrc_event_id_t event_id,
+                                              btrc_notification_type_t type,
+-                                             btrc_register_notification_t *p_param,
+-                                             bt_bdaddr_t *bd_addr);
++                                             btrc_register_notification_t *p_param);
+ 
+     /* AVRCP 1.4 enhancements */
+ 
+@@ -436,20 +285,7 @@ typedef struct {
+     ** With RelateVolume, we will send VOLUME_UP/VOLUME_DOWN opposed to absolute volume level
+     ** volume: Should be in the range 0-127. bit7 is reseved and cannot be set
+     */
+-    bt_status_t (*set_volume)(uint8_t volume, bt_bdaddr_t *bd_addr);
+-    bt_status_t (*get_folder_items_rsp) (btrc_folder_list_entries_t *p_param, bt_bdaddr_t *bd_addr);
+-
+-    bt_status_t (*set_addressed_player_rsp) (btrc_status_t status_code, bt_bdaddr_t *bd_addr);
+-    bt_status_t (*set_browsed_player_rsp) (btrc_set_browsed_player_rsp_t *p_param,
+-            bt_bdaddr_t *bd_addr);
+-    bt_status_t (*change_path_rsp) (uint8_t status_code, uint32_t item_count,
+-            bt_bdaddr_t *bd_addr);
+-    bt_status_t (*play_item_rsp) (uint8_t status_code, bt_bdaddr_t *bd_addr);
+-    bt_status_t (*get_item_attr_rsp)( uint8_t num_attr, btrc_element_attr_val_t *p_attrs,
+-            bt_bdaddr_t *bd_addr);
+-    bt_status_t (*is_device_active_in_handoff) (bt_bdaddr_t *bd_addr);
+-    bt_status_t (*get_total_items_rsp) (uint8_t status_code, uint32_t item_count,
+-            uint16_t uid_counter, bt_bdaddr_t *bd_addr);
++    bt_status_t (*set_volume)(uint8_t volume);
+ 
+     /** Closes the interface. */
+     void  (*cleanup)( void );
+@@ -484,7 +320,7 @@ typedef void (* btrc_ctrl_track_changed_callback)(bt_bdaddr_t *bd_addr, uint8_t
+                                                      btrc_element_attr_val_t *p_attrs);
+ 
+ typedef void (* btrc_ctrl_play_position_changed_callback)(bt_bdaddr_t *bd_addr,
+-                                                              uint32_t song_len, uint32_t song_pos, btrc_play_status_t play_status);
++                                                              uint32_t song_len, uint32_t song_pos);
+ 
+ typedef void (* btrc_ctrl_play_status_changed_callback)(bt_bdaddr_t *bd_addr,
+                                                             btrc_play_status_t play_status);
+diff --git a/include/hardware/bt_sock.h b/include/hardware/bt_sock.h
+index 386dff7..8d1a9e0 100644
+--- a/include/hardware/bt_sock.h
++++ b/include/hardware/bt_sock.h
+@@ -30,12 +30,6 @@ typedef enum {
+     BTSOCK_L2CAP = 3
+ } btsock_type_t;
+ 
+-typedef enum {
+-    BTSOCK_OPT_GET_MODEM_BITS = 1,
+-    BTSOCK_OPT_SET_MODEM_BITS = 2,
+-    BTSOCK_OPT_CLR_MODEM_BITS = 3,
+-} btsock_option_type_t;
+-
+ /** Represents the standard BT SOCKET interface. */
+ typedef struct {
+     short size;
+@@ -76,19 +70,6 @@ typedef struct {
+      */
+     bt_status_t (*connect)(const bt_bdaddr_t *bd_addr, btsock_type_t type, const uint8_t* uuid,
+             int channel, int* sock_fd, int flags, int callingUid);
+-
+-    /*
+-     * get socket option of rfcomm channel socket.
+-     */
+-    bt_status_t (*get_sock_opt)(btsock_type_t type, int channel, btsock_option_type_t option_name,
+-            void *option_value, int *option_len);
+-    /*
+-
+-     * set socket option of rfcomm channel socket.
+-     */
+-    bt_status_t (*set_sock_opt)(btsock_type_t type, int channel, btsock_option_type_t option_name,
+-            void *option_value, int option_len);
+-
+ } btsock_interface_t;
+ 
+ __END_DECLS
+-- 
+2.25.4
+
