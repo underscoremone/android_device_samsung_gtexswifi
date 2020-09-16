@@ -33,7 +33,8 @@ PRODUCT_COPY_FILES += \
 # GPS
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/gps/gps.conf:system/etc/gps.conf \
-    $(LOCAL_PATH)/configs/gps/gps.xml:system/etc/gps.xml
+    $(LOCAL_PATH)/configs/gps/gps.xml:system/etc/gps.xml \
+    $(LOCAL_PATH)/configs/gps/gnss_cfg.xml:system/etc/gnss_cfg.xml
 
 # System init .rc files
 SYSTEM_INIT_RC_FILES := \
@@ -129,10 +130,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     bluetooth.default \
     audio.a2dp.default \
-    libbt-vendor
-
-# Bluetooth
-PRODUCT_PACKAGES += \
+    libbt-vendor \
     libbluetooth_jni
 
 # Lights
