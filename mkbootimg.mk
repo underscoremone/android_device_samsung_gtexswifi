@@ -8,6 +8,8 @@ DTBTAGNAME := "sprd,sc-id = <"
 INSHEAD := $(LOCAL_PATH)/insertheader/prebuilt/bin/imgheaderinsert
 SIGNEDBIMG ?= $(PRODUCT_OUT)/boot-sign.img
 SIGNEDRIMG ?= $(PRODUCT_OUT)/recovery-sign.img
+SPRDSIGN := $(LOCAL_PATH)/signimage/prebuilt/bin/sprd_sign
+SPRDSIGNCFG := $(LOCAL_PATH)/signimage/config
 
 ifneq ($(TARGET_KERNEL_ARCH),)
 KERNEL_ARCH := $(TARGET_KERNEL_ARCH)
@@ -28,6 +30,7 @@ $(INSTALLED_BOOTIMAGE_TARGET): $(MKBOOTIMG) $(INTERNAL_BOOTIMAGE_FILES) $(INSTAL
 	@echo "SEANDROIDENFORCE" >> $@
 	$(hide) $(INSHEAD) $(INSTALLED_BOOTIMAGE_TARGET) 1
 	$(hide) mv $(SIGNEDBIMG) $(INSTALLED_BOOTIMAGE_TARGET)
+	$(hide) $(SPRDSIGN) $(INSTALLED_BOOTIMAGE_TARGET) $(SPRDSIGNCFG)
 	@echo -e ${CL_CYN}"Made boot image: $@"${CL_RST}
 
 ## Overload recoveryimg generation:
@@ -40,4 +43,5 @@ $(INSTALLED_RECOVERYIMAGE_TARGET): $(MKBOOTIMG) $(INSTALLED_DTIMAGE_TARGET) \
 	$(hide) $(call assert-max-image-size,$@,$(BOARD_RECOVERYIMAGE_PARTITION_SIZE),raw)
 	$(hide) $(INSHEAD) $(INSTALLED_RECOVERYIMAGE_TARGET) 1
 	$(hide) mv $(SIGNEDRIMG) $(INSTALLED_RECOVERYIMAGE_TARGET)
+	$(hide) $(SPRDSIGN) $(INSTALLED_RECOVERYIMAGE_TARGET) $(SPRDSIGNCFG)
 	@echo -e ${CL_CYN}"Made recovery image: $@"${CL_RST}
