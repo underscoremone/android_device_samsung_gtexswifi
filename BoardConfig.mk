@@ -52,14 +52,14 @@ TARGET_KERNEL_CONFIG := gtexswifi-dt_defconfig
 TARGET_KERNEL_SELINUX_CONFIG := gtexswifi-dt_defconfig
 TARGET_VARIANT_CONFIG := gtexswifi-dt_defconfig
 TARGET_KERNEL_SOURCE := kernel/samsung/gtexswifi
-NEED_KERNEL_MODULE_ROOT := true
 
 TARGET_KERNEL_MODULES := SPRDWL_MODULE
+WLAN_DRIVER_PATH := kernel/samsung/gtexswifi/drivers/net/wireless/sc2331
 
 SPRDWL_MODULE:
-	mv $(KERNEL_OUT)/drivers/net/wireless/sc2331/sprdwl.ko $(KERNEL_MODULES_OUT)
-	mkdir -p $(PRODUCT_OUT)/system/lib/modules
-	ln -sf /lib/modules/sprdwl.ko $(PRODUCT_OUT)/system/lib/modules/sprdwl.ko
+	make $(MAKE_FLAGS) -C $(WLAN_DRIVER_PATH) SPRDWL_PLATFORM=sc8830 USING_PP_CORE=2 BUILD=$(MBUILD_VAR) KDIR=$(KERNEL_OUT) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE)
+	mv $(WLAN_DRIVER_PATH)/sprdwl.ko $(KERNEL_MODULES_OUT)
+	make $(MAKE_FLAGS) -C $(WLAN_DRIVER_PATH) SPRDWL_PLATFORM=sc8830 USING_PP_CORE=2 BUILD=$(MBUILD_VAR) KDIR=$(KERNEL_OUT) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) clean
 
 # sdFAT filesystem for exFAT
 TARGET_KERNEL_HAVE_EXFAT := true
