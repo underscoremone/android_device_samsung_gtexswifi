@@ -56,9 +56,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/init.wifi.rc:root/init.wifi.rc \
     $(LOCAL_PATH)/rootdir/init.dhcp.rc:root/init.dhcp.rc
 
-PRODUCT_PACKAGES += \
-    sprdwl.ko
-
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/bluetooth:system/etc/bluetooth
 
