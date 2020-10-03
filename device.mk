@@ -56,8 +56,11 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/init.wifi.rc:root/init.wifi.rc \
     $(LOCAL_PATH)/rootdir/init.dhcp.rc:root/init.dhcp.rc
 
+# Bluetooth
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/bluetooth:system/etc/bluetooth
+    $(LOCAL_PATH)/configs/bluetooth/pskey_bt.txt:system/lib/modules/pskey_bt.txt \
+    $(LOCAL_PATH)/configs/bluetooth/iop_bt.db:system/etc/bluetooth/iop_bt.db \
+    $(LOCAL_PATH)/configs/bluetooth/iop_device_list.conf:system/etc/bluetooth/iop_device_list.conf
 
 # Prebuilt kl keymaps
 PRODUCT_COPY_FILES += \
@@ -79,15 +82,15 @@ PRODUCT_PACKAGES += \
 
 # Codecs
 PRODUCT_PACKAGES += \
-	libcolorformat_switcher \
-	libstagefrighthw \
-	libstagefright_sprd_mpeg4dec \
-	libstagefright_sprd_mpeg4enc \
-	libstagefright_sprd_h264dec \
-	libstagefright_sprd_h264enc \
-	libstagefright_sprd_vpxdec \
-	libstagefright_sprd_aacdec \
-	libstagefright_sprd_mp3dec \
+    libcolorformat_switcher \
+    libstagefrighthw \
+    libstagefright_sprd_mpeg4dec \
+    libstagefright_sprd_mpeg4enc \
+    libstagefright_sprd_h264dec \
+    libstagefright_sprd_h264enc \
+    libstagefright_sprd_vpxdec \
+    libstagefright_sprd_aacdec \
+    libstagefright_sprd_mp3dec \
     libstagefright_sprd_soft_mpeg4dec \
     libstagefright_sprd_soft_h264dec \
     libstagefright_soft_mjpgdec \
@@ -143,19 +146,19 @@ PRODUCT_PACKAGES += \
 
 # Audio
 PRODUCT_PACKAGES += \
-	audio.primary.sc8830 \
+    audio.primary.sc8830 \
     audio_policy.sc8830 \
-	libaudio-resampler \
-	audio.a2dp.default \
-	audio.usb.default \
-	audio.r_submix.default \
-	libtinyalsa \
-	audio_hw.xml \
-	audio_para \
-	audio_effects.conf \
-	audio_policy.conf \
-	codec_pga.xml \
-	tiny_hw.xml \
+    libaudio-resampler \
+    audio.a2dp.default \
+    audio.usb.default \
+    audio.r_submix.default \
+    libtinyalsa \
+    audio_hw.xml \
+    audio_para \
+    audio_effects.conf \
+    audio_policy.conf \
+    codec_pga.xml \
+    tiny_hw.xml \
     libeng-audio \
     libatchannel
 
