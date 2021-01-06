@@ -1,0 +1,29 @@
+From fd05185d7d85576246368755775057c64bda8ac5 Mon Sep 17 00:00:00 2001
+From: underscoremone <underscoremone@gmail.com>
+Date: Wed, 6 Jan 2021 00:04:02 +0000
+Subject: [PATCH] Revert "Update the signature of init function to include
+ whether the device is an ATV"
+
+This reverts commit 37df7fdbd6413b7075018c1bea721352cb69bff1.
+---
+ include/hardware/bluetooth.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/include/hardware/bluetooth.h b/include/hardware/bluetooth.h
+index 7fbbcdf..b9b3b12 100644
+--- a/include/hardware/bluetooth.h
++++ b/include/hardware/bluetooth.h
+@@ -459,9 +459,8 @@ typedef struct {
+     /**
+      * Opens the interface and provides the callback routines
+      * to the implemenation of this interface.
+-     * The |is_atv| flag indicates whether the local device is an Android TV
+      */
+-    int (*init)(bt_callbacks_t* callbacks, bool is_atv);
++    int (*init)(bt_callbacks_t* callbacks );
+ 
+     /** Enable Bluetooth. */
+     int (*enable)(bool guest_mode);
+-- 
+2.26.2
+
