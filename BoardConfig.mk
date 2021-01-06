@@ -270,7 +270,6 @@ BOARD_HAS_NO_MISC_PARTITION := true
 BOARD_HAS_FLIPPED_SCREEN := true
 BOARD_HAS_NO_SELECT_BUTTON := true
 TW_INCLUDE_CRYPTO := true
-TW_EXCLUDE_TWRPAPP := true
 else
 TARGET_RECOVERY_FSTAB = device/samsung/gtexswifi/rootdir/recovery.fstab
 LZMA_RAMDISK_TARGETS := recovery
