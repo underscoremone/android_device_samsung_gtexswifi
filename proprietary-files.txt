@@ -32,8 +32,6 @@ lib/libbt-iopdb.so
 lib/libbt-aptx-4.0.3.so
 lib/libbt-codec_aptx.so
 lib/libbt-codec_sshd.so
-#   lib/libicuu1.so
-#   lib/libicuoc.so
 lib/libbt-iopdb_mod.so
 #app/Bluetooth/Bluetooth.apk|02b2193ddd9b4e6501c3cb64732ad9df81ac2b90
 #app/Bluetooth/lib/arm/libbluetooth_jni.so|e5dc4e998c447e303cd6d29ed40721a3ff698cc0
@@ -101,9 +99,13 @@ bin/engpc|4ec909ac51804443267bbb37a6f9e1e37db90909
 #GPS
 etc/ca.pem
 lib/libwrappergps.so|dd5e8347c3d19999ebaa815180b1af16511604e6
-lib/hw/gps.default.so|7b639d5a003f608d474b937b6116c7c6b800eb9f
+lib/hw/gps.default.so|11a6b5df0e732f23444bb026c35ce2842a4ac9d3
 etc/HARRIER_ASIC_PATCH.bin|27476cae28409ca619e5cc495b2898eb5a9a5c47
 lib/libgpspc.so
+lib/libool.so|a374d3f085833b07bf3b6def9a7db382fb0a9621
+lib/libcrptoo.so|3c61dc3fd192332754d4b9e7601fa84bd378f16f
+lib/libicuoc.so|a90d11b5b3b46bf8466eb44554dd35020336504a
+lib/libcc_manager.so
 
 #encryption
 #lib/hw/keystore.sc8830.so
@@ -127,9 +129,6 @@ lib/lib_SamsungRec_V04013.so
 lib/libsamsungSoundbooster.so
 lib/lib_Samsung_Resampler.so
 lib/libsprdlsc.so
-#   lib/libool.so
-#   lib/libcrptoo.so
-lib/libcc_manager.so
 etc/wifi/p2p_supplicant_overlay.conf
 etc/wifi/wpa_supplicant.conf
 etc/wifi/wpa_supplicant_overlay.conf
