@@ -34,11 +34,6 @@ BOARD_HAS_LARGE_FILESYSTEM := true
 BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE := ext4
 
 # Kernel
-ifeq ($(WITH_TWRP),true)
-BOARD_KERNEL_IMAGE_NAME := zImage
-else
-BOARD_KERNEL_IMAGE_NAME := Image
-endif
 BOARD_CUSTOM_BOOTIMG := true
 BOARD_CUSTOM_BOOTIMG_MK := device/samsung/gtexswifi/mkbootimg.mk
 BOARD_KERNEL_CMDLINE := console=ttyS1,115200n8 androidboot.selinux=permissive
@@ -50,8 +45,9 @@ TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-eabi-
 KERNEL_TOOLCHAIN := $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin
 TARGET_KERNEL_SOURCE := kernel/samsung/gtexswifi
 ifeq ($(WITH_TWRP),true)
-TARGET_KERNEL_CONFIG := twrp_gtexswifi-dt_defconfig
+-include device/samsung/gtexswifi/twrp.mk
 else
+BOARD_KERNEL_IMAGE_NAME := Image
 TARGET_KERNEL_CONFIG := gtexswifi-dt_defconfig
 TARGET_KERNEL_SELINUX_CONFIG := gtexswifi-dt_defconfig
 TARGET_VARIANT_CONFIG := gtexswifi-dt_defconfig
@@ -62,6 +58,8 @@ TARGET_KERNEL_MODULES := SPRDWL_MODULE
 SPRDWL_MODULE:
 	mv $(KERNEL_OUT)/drivers/net/wireless/sc2331/sprdwl.ko $(KERNEL_MODULES_OUT)
 
+TARGET_RECOVERY_FSTAB = device/samsung/gtexswifi/rootdir/recovery.fstab
+LZMA_RAMDISK_TARGETS := recovery
 endif
 
 # sdFAT filesystem for exFAT
@@ -253,28 +251,4 @@ BOARD_USES_LEGACY_MMAP := true
 
 # Bionic
 TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS := true
-
-# Recovery
-ifeq ($(WITH_TWRP),true)
-RECOVERY_VARIANT := twrp
-TARGET_RECOVERY_FSTAB = device/samsung/gtexswifi/rootdir/twrp.fstab
-TW_THEME := portrait_hdpi
-TW_HAS_DOWNLOAD_MODE := true
-TW_NO_REBOOT_BOOTLOADER := true
-TW_BRIGHTNESS_PATH := "/sys/devices/gen-panel-backlight.29/backlight/panel/brightness"
-TW_MAX_BRIGHTNESS := 255
-TW_DEFAULT_BRIGHTNESS := 162
-TARGET_USE_CUSTOM_LUN_FILE_PATH := "/sys/devices/20200000.usb/gadget/lun0/file"
-TARGET_RECOVERY_PIXEL_FORMAT := "ABGR_8888"
-RECOVERY_GRAPHICS_FORCE_USE_LINELENGTH := true
-RECOVERY_GRAPHICS_FORCE_SINGLE_BUFFER := true
-RECOVERY_SDCARD_ON_DATA := true
-BOARD_HAS_NO_MISC_PARTITION := true
-BOARD_HAS_FLIPPED_SCREEN := true
-BOARD_HAS_NO_SELECT_BUTTON := true
-TW_INCLUDE_CRYPTO := true
-else
-TARGET_RECOVERY_FSTAB = device/samsung/gtexswifi/rootdir/recovery.fstab
-LZMA_RAMDISK_TARGETS := recovery
-endif
 

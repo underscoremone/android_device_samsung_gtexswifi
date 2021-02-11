@@ -1,0 +1,22 @@
+### twrp.mk ###
+
+BOARD_KERNEL_IMAGE_NAME := zImage
+TARGET_KERNEL_CONFIG := twrp_gtexswifi-dt_defconfig
+
+RECOVERY_VARIANT := twrp
+TARGET_RECOVERY_FSTAB = device/samsung/gtexswifi/rootdir/twrp.fstab
+TW_THEME := portrait_hdpi
+TW_HAS_DOWNLOAD_MODE := true
+TW_NO_REBOOT_BOOTLOADER := true
+TW_BRIGHTNESS_PATH := "/sys/devices/gen-panel-backlight.29/backlight/panel/brightness"
+TW_MAX_BRIGHTNESS := 255
+TW_DEFAULT_BRIGHTNESS := 162
+TARGET_USE_CUSTOM_LUN_FILE_PATH := "/sys/devices/20200000.usb/gadget/lun0/file"
+TARGET_RECOVERY_PIXEL_FORMAT := "ABGR_8888"
+RECOVERY_GRAPHICS_FORCE_USE_LINELENGTH := true
+RECOVERY_GRAPHICS_FORCE_SINGLE_BUFFER := true
+RECOVERY_SDCARD_ON_DATA := true
+BOARD_HAS_NO_MISC_PARTITION := true
+BOARD_HAS_FLIPPED_SCREEN := true
+BOARD_HAS_NO_SELECT_BUTTON := true
+TW_INCLUDE_CRYPTO := true
