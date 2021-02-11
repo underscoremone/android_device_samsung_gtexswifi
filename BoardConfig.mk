@@ -48,18 +48,21 @@ BOARD_MKBOOTIMG_ARGS := --base 0 --pagesize 2048 --kernel_offset 0x00008000 --ra
 BOARD_KERNEL_SEPARATED_DT := true
 TARGET_KERNEL_CROSS_COMPILE_PREFIX := arm-eabi-
 KERNEL_TOOLCHAIN := $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin
+TARGET_KERNEL_SOURCE := kernel/samsung/gtexswifi
+ifeq ($(WITH_TWRP),true)
+TARGET_KERNEL_CONFIG := twrp_gtexswifi-dt_defconfig
+else
 TARGET_KERNEL_CONFIG := gtexswifi-dt_defconfig
 TARGET_KERNEL_SELINUX_CONFIG := gtexswifi-dt_defconfig
 TARGET_VARIANT_CONFIG := gtexswifi-dt_defconfig
-TARGET_KERNEL_SOURCE := kernel/samsung/gtexswifi
+NEED_KERNEL_MODULE_ROOT := true
 
 TARGET_KERNEL_MODULES := SPRDWL_MODULE
-WLAN_DRIVER_PATH := kernel/samsung/gtexswifi/drivers/net/wireless/sc2331
 
 SPRDWL_MODULE:
-	make $(MAKE_FLAGS) -C $(WLAN_DRIVER_PATH) SPRDWL_PLATFORM=sc8830 USING_PP_CORE=2 BUILD=$(MBUILD_VAR) KDIR=$(KERNEL_OUT) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE)
-	mv $(WLAN_DRIVER_PATH)/sprdwl.ko $(KERNEL_MODULES_OUT)
-	make $(MAKE_FLAGS) -C $(WLAN_DRIVER_PATH) SPRDWL_PLATFORM=sc8830 USING_PP_CORE=2 BUILD=$(MBUILD_VAR) KDIR=$(KERNEL_OUT) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) clean
+	mv $(KERNEL_OUT)/drivers/net/wireless/sc2331/sprdwl.ko $(KERNEL_MODULES_OUT)
+
+endif
 
 # sdFAT filesystem for exFAT
 TARGET_KERNEL_HAVE_EXFAT := true
@@ -131,7 +134,7 @@ WIFI_DRIVER_FW_PATH_PARAM   := "/data/misc/wifi/fwpath"
 WIFI_DRIVER_FW_PATH_STA     := "sta_mode"
 WIFI_DRIVER_FW_PATH_P2P     := "p2p_mode"
 WIFI_DRIVER_FW_PATH_AP      := "ap_mode"
-WIFI_DRIVER_MODULE_PATH     := "/system/lib/modules/sprdwl.ko"
+WIFI_DRIVER_MODULE_PATH     := "/lib/modules/sprdwl.ko"
 WIFI_DRIVER_MODULE_NAME     := "sprdwl"
 
 # Charger
