@@ -36,6 +36,7 @@ If you want to compile LineageOS-14.1 for gtexswifi follow [LinegeOS Getting sta
     <project path="vendor/samsung/gtexswifi" name="underscoremone/proprietary_vendor_samsung_gtexswifi" remote="github" revision="cm-14.1"/>
     <project path="hardware/sprd" name="underscoremone/android_hardware_sprd" remote="github" revision="cm-14.1"/>
     <project path="packages/apps/SamsungServiceMode" name="LineageOS/android_packages_apps_SamsungServiceMode" remote="github" revision="cm-14.1"/>
+    <project path="prebuilts/gcc/linux-x86/arm/arm-eabi-7.5" name="underscoremone/android_prebuilts_gcc_linux-x86_arm_arm-eabi" remote="github" revision="linaro-7.5.0-2019.12" />
 </manifest>
 ```
 
