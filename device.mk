@@ -38,10 +38,22 @@ PRODUCT_COPY_FILES += \
 
 # System init .rc files
 SYSTEM_INIT_RC_FILES := \
+    $(LOCAL_PATH)/system/etc/init/batterysrv.rc \
+    $(LOCAL_PATH)/system/etc/init/cp_diskserver.rc \
     $(LOCAL_PATH)/system/etc/init/engpc.rc \
     $(LOCAL_PATH)/system/etc/init/mediacodec.rc \
     $(LOCAL_PATH)/system/etc/init/mediaserver.rc \
-    $(LOCAL_PATH)/system/etc/init/surfaceflinger.rc
+    $(LOCAL_PATH)/system/etc/init/modem_control.rc \
+    $(LOCAL_PATH)/system/etc/init/modemd.rc \
+    $(LOCAL_PATH)/system/etc/init/phoneserver.rc \
+    $(LOCAL_PATH)/system/etc/init/prepare_param.rc \
+    $(LOCAL_PATH)/system/etc/init/refnotify.rc \
+    $(LOCAL_PATH)/system/etc/init/slogmodem.rc \
+    $(LOCAL_PATH)/system/etc/init/slog.rc \
+    $(LOCAL_PATH)/system/etc/init/smd_symlink.rc \
+    $(LOCAL_PATH)/system/etc/init/surfaceflinger.rc \
+    $(LOCAL_PATH)/system/etc/init/wcnd.rc
+
 
 PRODUCT_COPY_FILES += \
     $(foreach f,$(SYSTEM_INIT_RC_FILES),$(f):system/etc/init/$(notdir $(f)))

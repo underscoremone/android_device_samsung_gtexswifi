@@ -1,0 +1,6 @@
+service phoneserver_w /system/bin/phoneserver -m w
+    class core
+    user root
+    group radio system shell dhcp
+    disabled
+    oneshot

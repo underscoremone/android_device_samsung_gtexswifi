@@ -415,73 +415,6 @@ on property:ro.product.name=sp9838aea_auto_slt
 on property:sys.boot_completed=1
     write /sys/kernel/mm/ksm/run   1
 
-#modem_control
-service modem_control  /system/bin/modem_control
-    class core
-    user root
-    group system radio shell
-    oneshot
-
-service modemd /system/bin/modemd
-    class core
-    user system
-    group system radio shell
-    oneshot
-
-service wcnd /system/bin/wcnd
-    class core
-    #   we will start as root and wcnd will switch to user system
-    user system
-    group system shell wifi inet bluetooth net_bt_stack
-    oneshot
-
-
-service wcnd_eng /system/bin/wcnd -G
-    class core
-    group system shell wifi inet bluetooth net_bt_stack
-    disabled
-    oneshot
-
-service phoneserver_w /system/bin/phoneserver -m w
-    class core
-    user root
-    group radio system shell dhcp
-    disabled
-    oneshot
-
-service batterysrv /bin/batterysrv
-    class core
-    user system
-    group system
-    oneshot
-
-#cp_diskserver
-service cp_diskserver_w /system/bin/cp_diskserver w 0
-    class core
-    user system
-    group system radio shell
-    disabled
-    oneshot
-
-service slog /system/bin/slog -t
-    class main
-    user system
-    group system shell radio log sdcard_r sdcard_rw media_rw
-    disabled
-
-service slogmodem /system/bin/slogmodem -s sec
-    class main
-    user system
-    group media_rw system shell radio log sdcard_r sdcard_rw
-    disabled
-
-service refnotify_w /system/bin/refnotify -t 1
-    class main
-    disabled
-    user system
-    group system radio shell
-    oneshot
-
 # For CTS of slog ->
 # This action is to make sure that the shell user
 # can also enable the slog daemon
@@ -519,12 +452,6 @@ on property:persist.modem.w.enable=1
     start refnotify_w
     start cp_diskserver_w
 
-#create symlink
-service smd_symlink /system/bin/ext_symlink.sh -u
-    user root
-    disabled
-    oneshot
-
 service umount_service /system/bin/umount /preload
     disabled
     oneshot
@@ -558,13 +485,6 @@ service auditd /system/bin/auditd -k
 service lpm /system/bin/lpm
     class charger
     critical
-
-service prepare_param /system/bin/prepare_param.sh /dev/block/platform/sdio_emmc/by-name/PARAM
-    class core
-    user root
-    group root
-    seclabel u:r:prepare_param:s0
-    oneshot
 
 service scs /system/bin/scs
     class main

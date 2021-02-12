@@ -1,0 +1,6 @@
+service cp_diskserver_w /system/bin/cp_diskserver w 0
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot

@@ -1,0 +1,6 @@
+service refnotify_w /system/bin/refnotify -t 1
+    class main
+    disabled
+    user system
+    group system radio shell
+    oneshot
