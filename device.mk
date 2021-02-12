@@ -48,8 +48,6 @@ SYSTEM_INIT_RC_FILES := \
     $(LOCAL_PATH)/system/etc/init/phoneserver.rc \
     $(LOCAL_PATH)/system/etc/init/prepare_param.rc \
     $(LOCAL_PATH)/system/etc/init/refnotify.rc \
-    $(LOCAL_PATH)/system/etc/init/slogmodem.rc \
-    $(LOCAL_PATH)/system/etc/init/slog.rc \
     $(LOCAL_PATH)/system/etc/init/smd_symlink.rc \
     $(LOCAL_PATH)/system/etc/init/surfaceflinger.rc \
     $(LOCAL_PATH)/system/etc/init/wcnd.rc

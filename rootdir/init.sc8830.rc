@@ -367,17 +367,11 @@ on charger
     chmod 0771 /efs
     mkdir /efs/Battery 0775 radio system
 
-service poweroffalarm /system/bin/poweroff_alarm
-    disabled
-    oneshot
-
 on alarm
     class_start core
     start drm
     start media
     start console
-    start slog
-    start poweroffalarm
 
 on property:ro.board_ram_size=min
     setprop zram.disksize 64
@@ -415,35 +409,6 @@ on property:ro.product.name=sp9838aea_auto_slt
 on property:sys.boot_completed=1
     write /sys/kernel/mm/ksm/run   1
 
-# For CTS of slog ->
-# This action is to make sure that the shell user
-# can also enable the slog daemon
-
-# convert the debug to system
-on property:debug.slog.enabled=1
-    setprop persist.sys.slog.enabled 1
-
-# convert the debug to system
-on property:debug.slog.enabled=0
-    setprop persist.sys.slog.enabled 0
-
-# Start the daemon
-on property:persist.sys.slog.enabled=1
-    mkdir /data/local/tmp/slog 0770 system system
-	mkdir /data/local/tmp/slogmodem 0770 system system
-    start slog
-    start slogmodem
-    start sprd_res_monitor
-
-# Stop the daemon
-on property:persist.sys.slog.enabled=0
-    stop slog
-    stop slogmodem
-    stop sprd_res_monitor
-    rm /data/local/tmp/sprd_monitor.conf
-
-# For CTS of slog <-
-
 on property:persist.modem.w.enable=1
     symlink /dev/spipe_w1 /dev/vbpipe1
     symlink /dev/spipe_w2 /dev/vbpipe2
@@ -475,40 +440,8 @@ service compact_memory /sbin/bgcompact
     oneshot
     disabled
 
-# SEC_SELINUX
-service auditd /system/bin/auditd -k
-    class main
-    seclabel u:r:auditd:s0
-    disabled
-    oneshot
-
-service lpm /system/bin/lpm
-    class charger
-    critical
-
-service scs /system/bin/scs
-    class main
-    user system
-    group system
-    oneshot
-
 on property:init.svc.zygote=restarting
     restart bootchecker
-
-# Strongswan VPN
-service charon /system/bin/charon
-    class main
-    socket charon stream 600 system system
-    # charon will setuid to vpn after getting necessary resources.
-    group vpn net_admin inet
-    disabled
-    oneshot
-
-service cmd_services /system/bin/cmd_services
-    class main
-    user root
-    disabled
-    oneshot
 
 service sdumpstate /system/bin/dumpstate -P
     class main

@@ -54,7 +54,6 @@ bin/npsmobex
 bin/ddexe
 bin/connfwexe
 bin/macloader
-bin/slogmodem
 bin/cp_diskserver
 bin/modem_control
 bin/modemd
@@ -82,16 +81,8 @@ lib/libspaf.so
 lib/libynoise.so
 
 # Misc Binaries
-bin/sprd_res_monitor
-bin/auditd
-bin/cmd_services
 bin/charge
-bin/scs
-bin/charon
 bin/wcnd
-#   bin/smdexe
-#   bin/bootchecker
-bin/lpm
 bin/drsd
 bin/calibration_init
 bin/engpc|4ec909ac51804443267bbb37a6f9e1e37db90909
@@ -110,7 +101,6 @@ lib/libcc_manager.so
 #encryption
 #lib/hw/keystore.sc8830.so
 
-#   lib/libbindrr.so
 lib/libedmnativehelper.so
 lib/libstlport.so
 lib/libstrongswan.so
@@ -136,10 +126,6 @@ bin/batterysrv
 bin/wlandutservice
 bin/macloader
 bin/mfgloader
-#   etc/plmn_se13.bin
-etc/slog_modem.conf
-etc/slog.conf
-#   etc/spn-conf.xml
 etc/thermalSensorsConfig.xml
 etc/connectivity_configure.ini
 etc/connectivity_calibration.ini
