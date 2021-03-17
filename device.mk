@@ -173,8 +173,8 @@ PRODUCT_PACKAGES += \
     libatchannel
 
 # Camera HAL
-PRODUCT_PACKAGES += \
-    camera.sc8830
+#PRODUCT_PACKAGES += \
+#    camera.sc8830
 
 # Wifi
 PRODUCT_PACKAGES += \

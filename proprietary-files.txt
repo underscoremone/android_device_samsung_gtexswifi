@@ -67,21 +67,21 @@ bin/phoneserver
 # Camera
 cameradata/datapattern_420sp.yuv
 cameradata/datapattern_front_420sp.yuv
-#lib/libae.so
-#lib/libAF.so
-#lib/libAl_Awb_v2.so
-#lib/libawb.so
-#lib/libcalibration.so
-#lib/libdeflicker.so
-#lib/liblsc.so
+lib/libae.so
+lib/libAF.so
+lib/libAl_Awb_v2.so
+lib/libawb.so
+lib/libcalibration.so
+lib/libdeflicker.so
+lib/liblsc.so
 lib/libseccamera_jni.so
 lib/libseccameracore.so
-#lib/libsft_af_ctrl.so
-#lib/libspaf.so
-#lib/libynoise.so
-#lib/libaf_running.so
-#lib/libaf_tune.so
-#lib/hw/camera.sc8830.so
+lib/libsft_af_ctrl.so
+lib/libspaf.so
+lib/libynoise.so
+lib/libaf_running.so
+lib/libaf_tune.so
+lib/hw/camera.sc8830.so
 
 # Misc Binaries
 bin/charge
